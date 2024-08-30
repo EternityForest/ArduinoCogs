@@ -1,8 +1,9 @@
 #include "cogs_bindings_engine.h"
 
+using namespace cogs_rules;
+
 static std::list<Binding> bindings;
 
-/*!SECTION
 
 
 
@@ -33,7 +34,7 @@ static void clear_globals() {
 };
 
 // Add a new global variable.
-static void append_global(std::string name, int32_t* value) {
+static void append_global(std::string name, const int32_t* value) {
   // Make a C compatible version of the string we need to manually free later
   char* n = (char*)malloc(name.size() + 1);
   n[name.size()] = (char)NULL;
@@ -53,11 +54,13 @@ static void append_global(std::string name, int32_t* value) {
 };
 
 
+static int32_t fxp_res_var = FXP_RES;
 
-void refresh_bindings_engine() {
+void cogs_rules::refresh_bindings_engine() {
   clear_globals();
 
-  append_global("$RES", &FXP_100_PERCENT);
+  // We check and don't let user target anything starting with $.
+  append_global("$RES", &fxp_res_var);
 
 
   for (const auto& [key, tag] : IntTagPoint::all_tags) {
@@ -80,27 +83,27 @@ int32_t IntFadeClaim ::applyLayer(int32_t bg) {
   // Calculate how far along we are as a 0 to 100% control value
   int32_t blend_fader = millis() - this->start;
   if (blend_fader > this->duration) {
-    blend_fader = FXP_100_PERCENT;
+    blend_fader = FXP_RES;
     this->finished = true;
   } else {
-    blend_fader *= FXP_100_PERCENT;
+    blend_fader *= FXP_RES;
     blend_fader = blend_fader / this->duration;
   }
 
   blend_fader *= this->alpha;
 
-  blend_fader = blend_fader / FXP_100_PERCENT;
+  blend_fader = blend_fader / FXP_RES;
 
   int64_t blend_bg = bg;
-  blend_bg *= (FXP_100_PERCENT - blend_fader);
+  blend_bg *= (FXP_RES - blend_fader);
 
 
   int64_t blend_fg = this->value;
-  blend_fg *= (FXP_100_PERCENT - blend_fader);
+  blend_fg *= (FXP_RES - blend_fader);
 
   int64_t res = blend_bg + blend_fg;
 
-  return res / FXP_100_PERCENT;
+  return res / FXP_RES;
 }
 
 
@@ -113,14 +116,26 @@ int32_t IntFadeClaim ::applyLayer(int32_t bg) {
 Binding::Binding(std::string target_name, std::string input) {
   int err = 0;
 
+
+
+
   this->input_expression = te_compile(input.c_str(), global_vars, global_vars_count, &err);
   if (err) {
     input_expression = NULL;
   }
 
-  if (IntTagPoint::all_tags.contains(target_name)) {
-    this->target = IntTagPoint::all_tags[target_name];
+  if(target_name.size() && target_name[0] == '$') {
+    this->target = NULL;
   }
+  else{
+
+    if (IntTagPoint::all_tags.contains(target_name)) {
+      this->target = IntTagPoint::all_tags[target_name];
+    }
+
+  }
+
+
 };
 
 void Binding::eval() {

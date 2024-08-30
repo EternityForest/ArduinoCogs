@@ -54,8 +54,7 @@ extern "C"
 }
 
 namespace cogs_rules
-{
-
+{ 
   typedef cogs_tagpoints::TagPoint<int32_t> IntTagPoint;
 
   class Binding;
@@ -65,7 +64,9 @@ namespace cogs_rules
   //! Will not alter state of any variables that already exist.
   void refresh_bindings_engine();
 
-  /// This number is used throughout the code to represent the max of a 0-100 value
+
+  /// This number is used throughout the code whenever we need to represent a fraction
+  /// As an integer, it is the default fixed point resolution.
   /// This is special because it is the highest power of two fitting in an int16.
   const int32_t FXP_RES=16384;
 

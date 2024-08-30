@@ -43,7 +43,7 @@ namespace cogs_tagpoints
 
   public:
     /// Map of all tags of the given type
-    static std::map<std::string, std::shared_ptr<TagPoint>> all_tags;
+    inline static std::map<std::string, std::shared_ptr<TagPoint>> all_tags;
 
     std::string name;
     T last_calculated_value;
@@ -185,7 +185,7 @@ namespace cogs_tagpoints
     {
       // Ensure idempotency
       this->subscribers.remove(func);
-      this->subscribers.insert(0, func);
+      this->subscribers.push_back(func);
     }
   };
 
@@ -248,4 +248,9 @@ namespace cogs_tagpoints
     this->last_calculated_value = v;
     return v;
   };
+
+
+  template class TagPoint<int32_t>;
+
 }
+
