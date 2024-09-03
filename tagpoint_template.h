@@ -20,7 +20,10 @@ namespace cogs_tagpoints
 
   /// A tag point is a container representing a subscribable value.
   /// They may be of any type, however int32 is the standard type
+  /// Tags must be unregistered once you are done, as they automatically store themselves in a global list.
 
+  /// Do not directly create a TagPoint.  Use TagPoint<T>::getTag(name, default_value)
+  
   template <typename T>
   class TagPoint
   {
@@ -48,6 +51,28 @@ namespace cogs_tagpoints
     std::string name;
     T last_calculated_value;
     TagPoint(std::string n, T val);
+
+
+    //! Get a tag by name and create it if it doesn't exist.
+    //! Do not create a tag directly, use TagPoint<T>::getTag
+
+    /*!
+    @param name The name of the tag
+    @param default_value The default value of the tag.  Ignored if tag already exists.
+    */
+
+    inline static std::shared_ptr<TagPoint<T>> getTag(std::string name, T default_value){
+      if(!TagPoint<T>::all_tags.contains(name)){
+        TagPoint<T>::all_tags[name] = std::shared_ptr<TagPoint<T>>(new TagPoint<T>(name, default_value));
+      }
+
+      return TagPoint<T>::all_tags[name];
+    }
+
+    //! Unregister a tag. It should not be used after that.
+    void unregister(){
+      TagPoint<T>::all_tags.erase(name);
+    }
 
     /// Recalculates value, applying all claim layers
     T rerender();
@@ -148,9 +173,6 @@ namespace cogs_tagpoints
     this->name = n;
     this->background_value = val;
     this->last_calculated_value = val;
-
-    std::shared_ptr<TagPoint<T>> p(this);
-    TagPoint<T>::all_tags[n] = p;
   }
 
   template <typename T>

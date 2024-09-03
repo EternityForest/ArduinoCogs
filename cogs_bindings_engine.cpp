@@ -116,9 +116,6 @@ int32_t IntFadeClaim ::applyLayer(int32_t bg) {
 Binding::Binding(std::string target_name, std::string input) {
   int err = 0;
 
-
-
-
   this->input_expression = te_compile(input.c_str(), global_vars, global_vars_count, &err);
   if (err) {
     input_expression = NULL;
@@ -141,6 +138,14 @@ Binding::Binding(std::string target_name, std::string input) {
 void Binding::eval() {
   if (this->input_expression) {
     float x = te_eval(this->input_expression);
+
+    // Change detection, don't send on repeats.
+    if(x == this->last_value) {
+      return;
+    }
+
+    this->last_value = x;
+
     if (this->target) {
       this->target->setValue(x);
     }
@@ -150,3 +155,62 @@ void Binding::eval() {
 Binding::~Binding() {
   te_free(this->input_expression);
 };
+
+
+void Binding::reset() {
+  // This is our no data state.
+  this->last_value = -NAN;
+}
+
+
+void State::eval(){
+  for (const auto& binding : this->bindings) {
+    binding->eval();
+  }
+}
+
+void State::reset(){
+  for (const auto& binding : this->bindings) {
+    binding->reset();
+  }
+}
+
+std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string input) {
+  std::shared_ptr<Binding> binding = std::make_shared<Binding>(target_name, input);
+  this->bindings.push_back(binding);
+
+  return binding;
+}
+
+void State::removeBinding(std::shared_ptr<Binding> binding) {
+  this->bindings.remove(binding);
+}
+
+void State::clearBindings() {
+  this->bindings.clear();
+}
+
+
+Clockwork::Clockwork(std::string name) {
+  this->name = name;
+  this->current_state = "default";
+}
+
+Clockwork::~Clockwork() {
+  // These can't be auto cleaned because there's a global list.
+  for(const auto& tag : this->tags) {
+    tag->unregister();
+  }
+}
+
+std::shared_ptr<State> Clockwork::addState(std::string name) {
+  std::shared_ptr<State> state = std::make_shared<State>();
+  this->states[name] = state;
+  return state;
+}
+
+
+void Clockwork::removeState(std::string name) {
+  this->states.erase(name);
+}
+

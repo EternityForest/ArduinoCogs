@@ -1,43 +1,5 @@
 #pragma once
 
-/**
-@file cogs_bindings_engine.h
-
-
-This file provides a low-code programming model where you can connect
-"Tag Points" together in a way that will be familiar to anyone used to Excel.
-
-## Tags
-
-A Tag Point is a 32 bit integer that can be used to represent any kind of value,
-such as an input or an output.
-
-## Bindings
-
-A binding is a rule that sets its value to an expression, which may use other tags.
-These expressions are compiled from strings, so they may be loaded dynamically.
-
-They use floating point arithmetic, but the actual variables are fixed.
-
-## Fixed Point Math
-
-To represent fractional values within the tag, we standardize on the special value
-of 16384 to be our resolution.  If you are storing, say, degrees celcius, you would likely
-want to store it as 16384ths of a degree.
-
-This value is available as $res in expressions.
-
-
-
-## Special Values in expressions
-
-### $res
-
-This is the special value of 16384.
-
-
-*/
-
 #include <tr1/unordered_map>
 #include <string>
 #include <map>
@@ -54,7 +16,7 @@ extern "C"
 }
 
 namespace cogs_rules
-{ 
+{
   typedef cogs_tagpoints::TagPoint<int32_t> IntTagPoint;
 
   class Binding;
@@ -64,11 +26,10 @@ namespace cogs_rules
   //! Will not alter state of any variables that already exist.
   void refresh_bindings_engine();
 
-
   /// This number is used throughout the code whenever we need to represent a fraction
   /// As an integer, it is the default fixed point resolution.
   /// This is special because it is the highest power of two fitting in an int16.
-  const int32_t FXP_RES=16384;
+  const int32_t FXP_RES = 16384;
 
   class IntFadeClaim : public cogs_tagpoints::TagPointClaim<int32_t>
   {
@@ -86,13 +47,69 @@ namespace cogs_rules
   private:
     te_expr *input_expression;
     std::shared_ptr<IntTagPoint> target;
+    float last_value = -NAN;
 
   public:
     Binding(std::string target_name, std::string input);
 
+    //! Eval the expression, do change detection.
+    //! If the value changes, notify target
     void eval();
+
+    //! Reset the change detection.
+    void reset();
 
     ~Binding();
   };
+
+  //! Represents one state machine state.
+  //! Does not have a name because Clockwork tracks that
+  class State
+  {
+  public:
+
+    //! List of bindings which shall be evaluated only when the state is active
+    std::list<std::shared_ptr<cogs_rules::Binding>> bindings;
+
+    //! Reviewuate all bindings in this state.
+    void eval();
+
+    //! Reset the change detection of all bindings.
+    void reset();
+
+
+    //! Don't create bindings yourself, use this
+    std::shared_ptr<cogs_rules::Binding> addBinding(std::string target_name, std::string input);
+
+    void clearBindings();
+    void removeBinding(std::shared_ptr<cogs_rules::Binding> binding);
+  };
+
+  class Clockwork
+  {
+  public:
+    Clockwork(std::string name);
+    std::string name;
+    std::string current_state;
+
+    //! A clockwork is a state machine with extra features.
+    std::map<std::string, std::shared_ptr<cogs_rules::State>> states;
+
+
+    std::shared_ptr<cogs_rules::State> addState(std::string);
+    void removeState(std::string);
+
+    ~Clockwork();
+
+  private:
+      /// Clockworks can own tag points. They are auto unregistered.
+      std::list<std::shared_ptr<IntTagPoint>> tags;
+  };
+
+
+  std::shared_ptr<cogs_rules::Binding> makeBinding(std::string target_name, std::string input);
+  std::shared_ptr<cogs_rules::Clockwork> makeClockwork(std::string name);
+
+  
 
 }
