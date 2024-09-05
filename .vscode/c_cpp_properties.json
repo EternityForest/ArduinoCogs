@@ -4,6 +4,7 @@
             "name": "Arduino",
             "includePath": [
                 "${workspaceFolder}/**",
+                "~/.arduino15/packages/esp32/hardware/esp32/*/libraries/**",
                 "~/Arduino/libraries/**"
             ],
             "defines": [],

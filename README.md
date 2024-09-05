@@ -1,11 +1,29 @@
 # arduino-cogs
-Arduino library for creating rules at runtime.  Builds on
+Arduino library for creating rules at runtime.
 
 It provides a low-code programming model where you can connect
 "Tag Points" together in a way that will be familiar to anyone used to Excel.
 
-The expressions are interpreted as strings, and the intent is to expand this to allow for
-web-based rule creation.
+The expressions are interpreted as strings, and the intent is to expand this to allow for web-based rule creation.
+
+
+
+## Web features
+
+Cogs includes an optional web server, powered by ESPAsyncwebserver, making it easy to extend with your own pages.
+
+The web server provides a small set of APIs, mostly for editing files.  
+
+### JSON Editor
+
+Notably, it provides a JSON editor that takes a filename on the LittleFS, and a
+schema URL, with requests like `/builtin/jsoneditor.html?filename=/test.json&schema=/builtin/schemas/object.json `.
+
+While this does increase the firmware size by over 100k, it also means that the
+web 
+
+
+
 
 ## Code Example
 

@@ -6,6 +6,7 @@
 #include "esp_random.h"
 
 #include "cogs_web.h"
+#include "cogs_util.h"
 
 using namespace cogs_web;
 
@@ -15,54 +16,8 @@ AsyncWebServer cogs_web::server(80);
 namespace cogs_web
 {
 
-    std::list<NavBarEntry> navBarEntries;
-
-    static const char welcome_page[] = R"(
-<script type="module">
-    import { html, css, LitElement } from '/builtin/lit.min.js';
-
-    export class SimpleGreeting extends LitElement {
-        static properties = {
-            name : {type : String},
-        };
-
-        static styles = css`p
-        {
-        color:
-            blue
-        }
-        `;
-
-        constructor()
-        {
-            super();
-            this.name = 'Somebody';
-            this.timer = setInterval(() => {
-                this.name = Date.now();
-            },1000);
-        }
-
-        disconnectedCallback()
-        {
-            clearInterval(this.timer);
-            super.disconnectedCallback();
-        }
-
-        render()
-        {
-            return html`<p> Hello, ${ this.name }
-            !</ p>`;
-        }
-    }
-
-    customElements.define('simple-greeting', SimpleGreeting);
-
-</script>
-
-<simple-greeting></simple-greeting>
-
-<div id="app"></div>
-)";
+    std::list<NavBarEntry *> navBarEntries;
+    #include "webdata/cogs_welcome_page.h"
 
     static std::string default_ssid = "";
     static std::string default_pass = "";

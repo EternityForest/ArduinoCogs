@@ -35,23 +35,38 @@ namespace cogs_web
     /// Everything adds it's page routes here.
     extern AsyncWebServer server;
 
-    //! Represents one entry in the nav bar.
-    //! Used by plugins.
+    class NavBarEntry;
+
+    extern std::list<cogs_web::NavBarEntry *>  navBarEntries;
+
+    //! Represents one entry in the nav bar.  On creation, it is automatically active.
+    //! Used by plugins.  Created with cogs_web::NavBarEntry::create(title, url)
     class NavBarEntry
     {
-    public:
-        std::string title;
-        std::string url;
+    private:
+        // Private so nobody puts one on the stack and then has it vanish.
         NavBarEntry(std::string title, std::string url)
         {
             this->title = title;
             this->url = url;
+            navBarEntries.push_back(this);
         };
+
+    public:
+        // Title may be changed after instantiation
+        std::string title;
+
+        // Url may be changed after instantiation
+        std::string url;
+
+        /// Create a new nav bar entry.  Entries are automatically added to navBarEntries.
+        /// Returns a pointer to the new entry.
+        static NavBarEntry *create(std::string title, std::string url){
+            return new NavBarEntry(title, url);
+        }
+
     };
 
-    //! List of all nav bar entries.
-    /// After creating a new entry, add it here with navBarEntries.push_back(entry);
-    extern std::list<cogs_web::NavBarEntry>  navBarEntries;
 
     //! Set up and enable the web UI for cogs.
     void setupWebServer();

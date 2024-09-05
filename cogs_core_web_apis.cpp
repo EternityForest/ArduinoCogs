@@ -8,6 +8,8 @@
 
 #include "cogs_web.h"
 #include "cogs_static_data.h"
+#include "cogs_util.h"
+#include "cogs_global_events.h"
 
 /// Handles requests to /api/cogs.navbar by returning a JSON list of the nav bar entries
 
@@ -20,8 +22,8 @@ static void navbar_handler(AsyncWebServerRequest *request)
     int ctr = 0;
     for (auto e : navBarEntries)
     {
-        doc["entries"][ctr]["title"] = e.title;
-        doc["entries"][ctr]["url"] = e.url;
+        doc["entries"][ctr]["title"] = e->title;
+        doc["entries"][ctr]["url"] = e->url;
     }
 
     char output[2048];
@@ -32,16 +34,23 @@ static void navbar_handler(AsyncWebServerRequest *request)
 
 static void listdir_handler(AsyncWebServerRequest *request)
 {
+    int args = request->args();
+for(int i=0;i<args;i++){
+  Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
+}
+
+
     JsonDocument doc;
     char resp[32000];
 
-    if (!request->hasParam("dir"))
+    if (!request->hasArg("dir"))
     {
         request->send(500);
         return;
     }
+    cogs::logError(request->arg("dir").c_str());
 
-    auto dir = LittleFS.open(request->getParam("dir")->value(), "r");
+    auto dir = LittleFS.open(request->arg("dir").c_str(), "r");
     if (!dir)
     {
         request->send(404);
@@ -78,22 +87,55 @@ static void listdir_handler(AsyncWebServerRequest *request)
 
 static void handleDownload(AsyncWebServerRequest *request)
 {
-    request->send(LittleFS, request->getParam("file")->value().c_str());
+
+int args = request->args();
+for(int i=0;i<args;i++){
+  Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
 }
 
-static void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+    if (!request->hasArg("file"))
+    {
+        request->send(500, "text/plain", "nofileparam");
+        return;
+    }
+
+    cogs::logError(request->arg("file").c_str());
+
+    request->send(LittleFS, request->arg("file").c_str());
+}
+
+static void handleUpload(AsyncWebServerRequest *request, String orig_filename, size_t index, uint8_t *data, size_t len, bool final)
 {
 
-    std::string redirect = "";
-    if (request->hasParam("redirect"))
+int args = request->args();
+for(int i=0;i<args;i++){
+  Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
+}
+
+    std::string redirect = "/";
+    if (request->hasArg("redirect"))
     {
-        redirect = request->getParam("redirect")->value().c_str();
+        redirect = request->arg("redirect").c_str();
+    }
+
+    std::string path;
+
+    if(request->hasArg("path")){
+        path = request->arg("path").c_str();
+
+        // Allow auto using the filename
+        if request->arg("path").endsWith("/"){
+            path = path + orig_filename;
+        };
+    }
+    else{
+        request->send(500, "text/plain", "nofnparam");
     }
 
     if (!index)
     {
         // open the file on first call and store the file handle in the request object
-        request->_tempFile = LittleFS.open(filename, "w");
+        request->_tempFile = LittleFS.open(path, "w");
     }
 
     if (len)
@@ -106,8 +148,37 @@ static void handleUpload(AsyncWebServerRequest *request, String filename, size_t
     {
         // close the file handle as the upload is now done
         request->_tempFile.close();
-        request->redirect("/");
+        cogs::triggerGlobalEvent(cogs::GlobalEvent::FileChanged, 0, path);
+
+        request->redirect(redirect.c_str());
     }
+}
+
+static void handleSetFile(AsyncWebServerRequest *request)
+{
+    if (!request->hasArg("file"))
+    {
+        request->send(500,"text/plain","nofileparam");
+        return;
+    }
+
+    if (!request->hasArg("data"))
+    {
+        request->send(500,"text/plain","nodata");
+        return;
+    }
+    auto f = LittleFS.open(request->arg("file").c_str(), "w");
+    if (!f)
+    {
+        request->send(500, "text/plain","cantopenfile");
+        return;
+    }
+
+
+    f.print(request->arg("data").c_str());
+    f.close();
+    cogs::triggerGlobalEvent(cogs::GlobalEvent::FileChanged, 0, request->arg("file").c_str());
+    request->send(200);
 }
 
 namespace cogs_web
@@ -115,15 +186,7 @@ namespace cogs_web
 
     void setup_cogs_core_web_apis()
     {
-        server.on("/builtin/lit.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                  {
-                      AsyncWebServerResponse *response = request->beginResponse(200, 
-                      "application/javascript",
-                      cogs_builtin_static::lit_min_js, 
-                      sizeof(cogs_builtin_static::lit_min_js));
-
-                      response->addHeader("Content-Encoding", "gzip");
-                      request->send(response); });
+        setup_builtin_static();
 
         server.on("/api/cogs.navbar", HTTP_GET, navbar_handler);
         server.on("/api/cogs.listdir", HTTP_GET, listdir_handler);
@@ -131,6 +194,10 @@ namespace cogs_web
         server.on("/api/cogs.upload", HTTP_POST, [](AsyncWebServerRequest *request)
                   { request->send(200); }, handleUpload);
 
+        server.on("/api/cogs.setfile", HTTP_POST, handleSetFile);
+
         server.on("/api/cogs.download", HTTP_GET, handleDownload);
+
+
     }
 }

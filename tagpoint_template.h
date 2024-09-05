@@ -38,7 +38,7 @@ namespace cogs_tagpoints
     std::map<int, std::shared_ptr<TagPointClaim<T>>> claims;
 
     // These functions are called when value changes
-    std::list<void (*)(T)> subscribers;
+    std::list<void (*)(T, TagPoint<T>*)> subscribers;
 
     /// Clean the list of claims.  Once something is marked finished, if it is
     /// Right above background, it's value is the new background and we delete it
@@ -47,6 +47,10 @@ namespace cogs_tagpoints
   public:
     /// Map of all tags of the given type
     inline static std::map<std::string, std::shared_ptr<TagPoint>> all_tags;
+
+
+    // Lets the calling code add some arbitrary data
+    void * extraData;
 
     std::string name;
     T last_calculated_value;
@@ -90,10 +94,10 @@ namespace cogs_tagpoints
     void removeClaim(std::shared_ptr<TagPointClaim<T>> c);
 
     //! Function will be called when val changes
-    void subscribe(void (*func)(T));
+    void subscribe(void (*func)(T, TagPoint<T>*));
 
     //! Unsubscribe a previously subscribed function if it exists.
-    void unsubscribe(void (*func)(T));
+    void unsubscribe(void (*func)(T, TagPoint<T>*));
 
     //! Set the background value of a tag.
     /// Does not automatically rerender.
@@ -200,7 +204,7 @@ namespace cogs_tagpoints
   }
 
   template <typename T>
-  void TagPoint<T>::subscribe(void (*func)(T))
+  void TagPoint<T>::subscribe(void (*func)(T, TagPoint<T> *))
   {
     // Defensive null crash blocking
     if (func)
@@ -212,7 +216,7 @@ namespace cogs_tagpoints
   };
 
   template <typename T>
-  void TagPoint<T>::unsubscribe(void (*func)(T))
+  void TagPoint<T>::unsubscribe(void (*func)(T, TagPoint<T> *))
   {
     this->subscribers.remove(func);
   };

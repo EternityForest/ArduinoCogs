@@ -114,7 +114,7 @@ void te_free_parameters(te_expr *n) {
         case TE_FUNCTION4: case TE_CLOSURE4: te_free(n->parameters[3]);     /* Falls through. */
         case TE_FUNCTION3: case TE_CLOSURE3: te_free(n->parameters[2]);     /* Falls through. */
         case TE_FUNCTION2: case TE_CLOSURE2: te_free(n->parameters[1]);     /* Falls through. */
-        case TE_FUNCTION1: case TE_CLOSURE1: te_free(n->parameters[(unsigned char)0]);
+        case TE_FUNCTION1: case TE_CLOSURE1: te_free(n->parameters[0]);
     }
 }
 
@@ -346,15 +346,15 @@ void next_token(state *s) {
         }
 
         /* Try reading a number. */
-        if ((s->next[(unsigned char)0] >= '0' && s->next[(unsigned char)0] <= '9') || s->next[(unsigned char)0] == '.') {
+        if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.') {
             s->value = strtod(s->next, (char**)&s->next);
             s->type = TOK_NUMBER;
         } else {
             /* Look for a variable or builtin function call. */
-            if (isalpha(s->next[(unsigned char)0])) {
+            if (isalpha(s->next[0])) {
                 const char *start;
                 start = s->next;
-                while (isalpha(s->next[(unsigned char)0]) || isdigit(s->next[(unsigned char)0]) || (s->next[(unsigned char)0] == '_') || (s->next[(unsigned char)0] == '.') || (s->next[(unsigned char)0] == '$')) s->next++;
+                while (isalpha(s->next[0]) || isdigit(s->next[0]) || (s->next[0] == '_') || (s->next[0] == '.') || (s->next[0] == '$')) s->next++;
 
                 int tok_len = s->next - start;
                 
@@ -385,7 +385,7 @@ void next_token(state *s) {
 
             } else {
                 /* Look for an operator or special character. */
-                switch (s->next++[(unsigned char)0]) {
+                switch (s->next++[0]) {
                     case '+': s->type = TOK_INFIX; s->function = add; break;
                     case '-': s->type = TOK_INFIX; s->function = sub; break;
                     case '*': s->type = TOK_INFIX; s->function = mul; break;
@@ -439,7 +439,7 @@ static te_expr *base(state *s) {
             CHECK_NULL(ret);
 
             ret->function = s->function;
-            if (IS_CLOSURE(s->type)) ret->parameters[(unsigned char)0] = s->context;
+            if (IS_CLOSURE(s->type)) ret->parameters[0] = s->context;
             next_token(s);
             if (s->type == TOK_OPEN) {
                 next_token(s);
@@ -459,8 +459,8 @@ static te_expr *base(state *s) {
             ret->function = s->function;
             if (IS_CLOSURE(s->type)) ret->parameters[1] = s->context;
             next_token(s);
-            ret->parameters[(unsigned char)0] = power(s);
-            CHECK_NULL(ret->parameters[(unsigned char)0], te_free(ret));
+            ret->parameters[0] = power(s);
+            CHECK_NULL(ret->parameters[0], te_free(ret));
             break;
 
         case TE_FUNCTION2: case TE_FUNCTION3: case TE_FUNCTION4:
@@ -557,7 +557,7 @@ static te_expr *factor(state *s) {
     int neg = 0;
 
     if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) && ret->function == negate) {
-        te_expr *se = ret->parameters[(unsigned char)0];
+        te_expr *se = ret->parameters[0];
         free(ret);
         ret = se;
         neg = 1;
@@ -726,7 +726,7 @@ float te_eval(const te_expr *n) {
         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
         case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
             switch(ARITY(n->type)) {
-                case 0: return TE_FUN(void*)(n->parameters[(unsigned char)0]);
+                case 0: return TE_FUN(void*)(n->parameters[0]);
                 case 1: return TE_FUN(void*, float)(n->parameters[1], M(0));
                 case 2: return TE_FUN(void*, float, float)(n->parameters[2], M(0), M(1));
                 case 3: return TE_FUN(void*, float, float, float)(n->parameters[3], M(0), M(1), M(2));
