@@ -6,7 +6,7 @@ namespace cogs
 {
 
     /// All global event types are defined here
-    typedef enum GlobalEvent
+    enum GlobalEvent
     {
         /// Called right after boot
         bootEvent = 0,
@@ -24,7 +24,7 @@ namespace cogs
         /// Param0: ignored, param1: file name
         fileChangeEvent = 4
 
-    } GlobalEvent;
+    };
 
     /// A GlobalEvent has an int and string parameter, either or both may be unused
     /// depending on the event type.
@@ -43,11 +43,5 @@ namespace cogs
     //! Trigger a global event.  All handlers will be called.
     //! @example cogs::triggerGlobalEvent(cogs::bootEvent);
 
-    void triggerGlobalEvent(GlobalEvent event, int param = 0, std::string param2 = "")
-    {
-        for (auto e : globalEventHandlers)
-        {
-            e(event, param, param2);
-        }
-    }
+    void triggerGlobalEvent(GlobalEvent event, int param1, std::string param2 );
 }

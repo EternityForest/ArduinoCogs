@@ -9,7 +9,7 @@
 
 extern "C"
 {
-#include "tinyexpr.h"
+#include "tinyexpr/tinyexpr.h"
 }
 
 namespace cogs_tagpoints

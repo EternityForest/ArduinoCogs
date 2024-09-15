@@ -120,6 +120,8 @@ Binding::Binding(std::string target_name, std::string input)
   this->input_expression = te_compile(input.c_str(), global_vars, global_vars_count, &err);
   if (err)
   {
+    cogs::logError("Failed to compile binding");
+    cogs::logError(input);
     input_expression = NULL;
   }
 
@@ -129,7 +131,6 @@ Binding::Binding(std::string target_name, std::string input)
   }
   else
   {
-
     if (IntTagPoint::all_tags.contains(target_name))
     {
       this->target = IntTagPoint::all_tags[target_name];
@@ -151,8 +152,14 @@ void Binding::eval()
 
     this->last_value = x;
 
-    if (this->target)
-    {
+    // Maybe the tag was made after the binding.
+    if(!this->target){
+      if(IntTagPoint::all_tags.contains(this->target_name)){
+        this->target = IntTagPoint::all_tags[this->target_name];
+        this->target->setValue(x);
+      }
+    }
+    else{
       this->target->setValue(x);
     }
   }
@@ -203,7 +210,7 @@ void State::clearBindings()
   this->bindings.clear();
 }
 
-static std::shared_ptr<Clockwork> getClockwork(std::string name)
+std::shared_ptr<Clockwork> Clockwork::getClockwork(std::string name)
 {
   if (Clockwork::allClockworks.contains(name))
   {
@@ -216,7 +223,7 @@ static std::shared_ptr<Clockwork> getClockwork(std::string name)
   return cw;
 }
 
-static void evalAll()
+void Clockwork::evalAll()
 {
   for (const auto &cw : Clockwork::allClockworks)
   {

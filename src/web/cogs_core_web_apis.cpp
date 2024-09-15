@@ -6,8 +6,8 @@
 #include <string.h>
 #include "esp_random.h"
 
-#include "cogs_web.h"
-#include "cogs_static_data.h"
+#include "web/cogs_web.h"
+#include "web/cogs_static_data.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
 
@@ -124,8 +124,8 @@ for(int i=0;i<args;i++){
         path = request->arg("path").c_str();
 
         // Allow auto using the filename
-        if request->arg("path").endsWith("/"){
-            path = path + orig_filename;
+        if (request->arg("path").endsWith("/")){
+            path = path + orig_filename.c_str();
         };
     }
     else{
@@ -135,7 +135,11 @@ for(int i=0;i<args;i++){
     if (!index)
     {
         // open the file on first call and store the file handle in the request object
-        request->_tempFile = LittleFS.open(path, "w");
+        request->_tempFile = LittleFS.open(path.c_str(), "w");
+    }
+
+    if(!request->_tempFile){
+        request->send(500, "text/plain", "cantopenfile");
     }
 
     if (len)
@@ -148,7 +152,7 @@ for(int i=0;i<args;i++){
     {
         // close the file handle as the upload is now done
         request->_tempFile.close();
-        cogs::triggerGlobalEvent(cogs::GlobalEvent::FileChanged, 0, path);
+        cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, path);
 
         request->redirect(redirect.c_str());
     }
@@ -177,7 +181,7 @@ static void handleSetFile(AsyncWebServerRequest *request)
 
     f.print(request->arg("data").c_str());
     f.close();
-    cogs::triggerGlobalEvent(cogs::GlobalEvent::FileChanged, 0, request->arg("file").c_str());
+    cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
     request->send(200);
 }
 

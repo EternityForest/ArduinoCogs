@@ -12,7 +12,21 @@ The expressions are interpreted as strings, and the intent is to expand this to 
 
 Cogs includes an optional web server, powered by ESPAsyncwebserver, making it easy to extend with your own pages.
 
-The web server provides a small set of APIs, mostly for editing files.  
+The web server provides a small set of APIs, mostly for editing files.
+
+### Builtin Static resources
+
+* /builtin/barrel.css
+* /builtin/lit.js
+* /builtin/cog.js
+
+### The page template
+
+To make a page, make a js file that exports PageRoot(a lit component), and metadata(a dict that must have a title).
+
+That component can be loaded into the default template at "/default-template?load-module=/my/page/url"
+
+Nothing in cogs uses any server-side templating, just pure client-side 
 
 ### JSON Editor
 
@@ -104,3 +118,44 @@ This value is available as $res in expressions.
 
 This is the special value of 16384.
 
+
+
+
+## Reggshell
+
+Reggshell is a regex-based fake shell language, that exists mostly to transfer files.
+It's really more of serial file transfer protocol.
+
+
+This example gives a basic serial console:
+
+```cpp
+auto cli = Reggshell();
+
+void loop() {
+  if(Serial.available()){
+    cli.parseChar(Serial.read());
+  }
+}
+```
+
+
+### Commands
+
+#### cat << "---EOF---" > FILENAME
+
+You can use here docs, but only with this one specific delimiter.
+There is no cat command, pipes, redirects, or any of that, it just fakes it for this one specific
+pattern, for compatibility.
+
+There is also no working directory. Paths are always relative to root, and must not start with a slash.
+This is so you can run the command on a Linux machine too, to put the file in the current directory.
+
+
+#### reggshar FILENAME
+
+Prints out a file as a here doc that you can use to transfer the file to another machine.
+
+#### echo WORD
+
+Echo the argument.  Quoting isn't supported, args can't have spaces.

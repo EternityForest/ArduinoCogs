@@ -10,14 +10,14 @@
 
 using namespace cogs_web;
 
-
 AsyncWebServer cogs_web::server(80);
 
 namespace cogs_web
 {
 
     std::list<NavBarEntry *> navBarEntries;
-    #include "webdata/cogs_welcome_page.h"
+#include "web/data/cogs_page_template.h"
+#include "web/data/cogs_welcome_page.h"
 
     static std::string default_ssid = "";
     static std::string default_pass = "";
@@ -28,7 +28,14 @@ namespace cogs_web
         cogs_web::setup_cogs_core_web_apis();
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-                  { request->send(200, "text/html", welcome_page); });
+                  { request->redirect("/default-template?load-module=/builtin/welcome_page"); });
+
+        server.on("/default-template", HTTP_GET, [](AsyncWebServerRequest *request)
+                  { request->send(200, "text/html", cogs_page_template); });
+
+        server.on("/builtin/welcome_page", HTTP_GET, [](AsyncWebServerRequest *request)
+                  { request->send(200, "application/javascript", welcome_page); });
+
         server.begin();
     }
 

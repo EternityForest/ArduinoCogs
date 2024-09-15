@@ -18,7 +18,7 @@
 #include <Arduino.h>
 extern "C"
 {
-#include "tinyexpr.h"
+#include "tinyexpr/tinyexpr.h"
 }
 
 namespace cogs_rules
@@ -54,6 +54,7 @@ namespace cogs_rules
   private:
     te_expr *input_expression;
     std::shared_ptr<IntTagPoint> target;
+    std::string target_name;
     float last_value = -NAN;
 
   public:
@@ -76,12 +77,10 @@ namespace cogs_rules
   private:
     friend class Clockwork;
 
-
   public:
-
     /// Duration in milliseconds. If set,
     /// The state will transition to the next state after this many milliseconds.
-    int32_t duration=0;
+    int32_t duration = 0;
 
     /// The name of the next state to transition to when the state is finished.
     std::string nextState = "";
@@ -109,9 +108,7 @@ namespace cogs_rules
   class Clockwork
   {
   private:
-
   public:
-
     /// Do not directly create a Clockwork.  Use Clockwork::getClockwork
     Clockwork(std::string name);
 
@@ -122,11 +119,11 @@ namespace cogs_rules
     //! Eval all clockworks
     static void evalAll();
 
-    static std::map<std::string, std::shared_ptr<cogs_rules::Clockwork>> allClockworks;
+    inline static std::map<std::string, std::shared_ptr<cogs_rules::Clockwork>> allClockworks;
 
     //! Get a clockwork or make one of one by that name doesn't exist
     /// This is the only way to get a clockwork.
-     static std::shared_ptr<Clockwork> getClockwork(std::string);
+    static std::shared_ptr<Clockwork> getClockwork(std::string);
 
     //! Unregister this clockwork from the global list.
     //! The object should not be used after this call.
@@ -134,7 +131,6 @@ namespace cogs_rules
 
     //! A clockwork is a state machine with extra features.
     std::map<std::string, std::shared_ptr<cogs_rules::State>> states;
-
 
     /// Create a state object or delete it if it already exists
     std::shared_ptr<cogs_rules::State> getState(std::string);
