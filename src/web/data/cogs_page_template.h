@@ -13,10 +13,16 @@ static const char cogs_page_template[] = R"(
     
 <script type="module">
 const urlParams = new URLSearchParams(window.location.search);
-const root = urlParams.get('page-module');
-import {PageRoot, metadata} from root;
-customElements.define('page-root', PageRoot);
+const root = urlParams.get('load-module');
+
+async function f(){
+    const m = await import(root);
+    customElements.define('page-root', m.PageRoot);
+}
+f()
 </script>
 
 <page-root></page-root>
+</body>
+</html>
 )";

@@ -1,6 +1,5 @@
 
 static const char jsoneditor_js[] = R"(
-
 const urlParams = new URLSearchParams(window.location.search);
 const schema_url = urlParams.get('schema');
 var filename = urlParams.get('filename');
@@ -23,19 +22,24 @@ export const metadata = {
 
 export class PageRoot extends LitElement {
 
-    connectedCallback() {
-        super.connectedCallback();
+    updated() {
+        if(this.initialized) {
+        return;
+        }
+
 
         var jes = document.createElement('script')
-        jes.src = '/builtin/jsoneditor.html'
-        document.appendChild(jes);
+        jes.type = "module"
+        jes.src = '/builtin/jsoneditor.min.js'
+        document.head.appendChild(jes);
+        var t = this;
 
         // Wait till the script we need is loaded
         jes.addEventListener('load', async () => {
             const response = await fetch(schema_url);
             const schema_data = await response.json();
 
-            editor = new JSONEditor(document.getElementById('editor_holder'), {
+            editor = new JSONEditor(t.shadowRoot.getElementById("editor_holder"), {
                 schema: schema_data
             });
 
@@ -68,5 +72,4 @@ export class PageRoot extends LitElement {
         `;
     }
 }
-
 )";

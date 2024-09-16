@@ -42,7 +42,7 @@ void setup_builtin_static()
                     response->addHeader("Content-Encoding", "gzip");
                     request->send(response); });
 
-    cogs_web::server.on("/builtin/jsoneditor.js", HTTP_GET, [](AsyncWebServerRequest *request)
+    cogs_web::server.on("/builtin/jsoneditor_app.js", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/javascript", jsoneditor_js); });
 
     cogs_web::server.on("/builtin/schemas/object.json", HTTP_GET, [](AsyncWebServerRequest *request)

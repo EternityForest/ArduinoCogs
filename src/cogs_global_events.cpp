@@ -6,8 +6,35 @@ using namespace cogs;
 namespace cogs
 {
 
+
+    unsigned long lastSlowPoll = 0;
+    unsigned int slowPollIndex = 0;
+
+
+    std::list<void (*)()> fastPollHandlers;
+    std::vector<void (*)()> slowPollHandlers;
+
     std::list<void (*)(cogs::GlobalEvent, int, std::string)> globalEventHandlers;
 
+
+    // Slow poll happens one at a time, and only one handler at a time,
+    // so they don't all happen at once and make lag.
+    static void doSlowPoll(){
+        slowPollIndex++;
+        slowPollHandlers[slowPollIndex % slowPollHandlers.size()]();
+    }
+
+
+    void poll(){
+        for (auto e : fastPollHandlers){
+            e();
+        }
+
+        if (millis() - lastSlowPoll > 1000){
+            lastSlowPoll = millis();
+            doSlowPoll();
+        } 
+    }
     void triggerGlobalEvent(GlobalEvent event, int param1, std::string param2)
     {
         for (auto e : globalEventHandlers)

@@ -23,6 +23,9 @@ namespace reggshell
         // strip_quotes(arg2);
         // strip_quotes(arg3);
 
+        reggshell->print(">>> ");
+        reggshell->println(rawline);
+
         if (reggshell->commands_map.contains(name))
         {
             reggshell->commands_map[name]->callback(reggshell, arg1, arg2, arg3);
@@ -37,7 +40,7 @@ namespace reggshell
     {
         this->line_buffer_len = 0;
         this->exclusive = NULL;
-        
+
         this->addBuiltins();
         this->addCommand("([%a%d_]+) *([%a%d_\\./]*) *([%a%d_\\./]*) *([%a%d_\\./]*)", doSimpleCommand);
     }
@@ -62,6 +65,11 @@ namespace reggshell
 
     void Reggshell::println(const char *s)
     {
+        // Defensive programming
+        if(!s){
+            s = "NULLPTR";
+        }
+
         if (this->output_callback)
         {
             this->output_callback(s);
@@ -184,11 +192,12 @@ namespace reggshell
         this->exclusive = NULL;
     }
 
-    void Reggshell::addSimpleCommand(std::string name, void (*callback)(Reggshell *, const char *, const char *, const char *))
+    void Reggshell::addSimpleCommand(std::string name, void (*callback)(Reggshell *, const char *, const char *, const char *), const char * help)
     {
         auto cmd = new ReggshellSimpleCommand();
         cmd->name = name;
         cmd->callback = callback;
+        cmd->help = help;
         this->commands_map[name] = cmd;
     }
 

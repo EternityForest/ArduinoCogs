@@ -1,10 +1,11 @@
 #pragma once
 #include <string>
 #include <list>
+#include <vector>
+#include <Arduino.h>
 
 namespace cogs
 {
-
     /// All global event types are defined here
     enum GlobalEvent
     {
@@ -40,8 +41,20 @@ namespace cogs
     */
     extern std::list<void (*)(cogs::GlobalEvent, int, std::string)> globalEventHandlers;
 
+
+    //! Put functions here if you want them to be called every loop
+    extern std::list<void (*)()> fastPollHandlers;
+
+
+    //! Put functions here if you want them to be called every few seconds.
+    extern std::vector<void (*)()> slowPollHandlers;
+
     //! Trigger a global event.  All handlers will be called.
     //! @example cogs::triggerGlobalEvent(cogs::bootEvent);
 
     void triggerGlobalEvent(GlobalEvent event, int param1, std::string param2 );
+
+    //! Poll all registered loop functions.
+    //! Call this in a loop as fast as you can!
+    void poll();
 }

@@ -68,6 +68,9 @@ namespace cogs_web
     };
 
 
+    //! Enable managing the WiFi based on the config file
+    void manageWifi();
+    
     //! Set up and enable the web UI for cogs.
     void setupWebServer();
 

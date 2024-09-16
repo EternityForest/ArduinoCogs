@@ -1,11 +1,32 @@
 # arduino-cogs
-Arduino library for creating rules at runtime.
+Arduino library for creating rules at runtime, and much more:
+
+* Global event handlers, slow and fast poll functions
+* JSON-based configuration and schema editor
+* Serial console that supports here docs for easy inital setup
+* Web UI with GUI editors(Powered by JSON schema)
+* Rules engine parses expressions at runtime
+* State machines you can configure at runtime
+* Everything is extensible and plugin based, easy to add new apps to a sketch.
+
+
+### The rules engine
 
 It provides a low-code programming model where you can connect
 "Tag Points" together in a way that will be familiar to anyone used to Excel.
 
 The expressions are interpreted as strings, and the intent is to expand this to allow for web-based rule creation.
 
+## Config files
+
+### /config/device.json
+
+This contains config that is purely for one specific physical device, to keep it separate
+from things you might want to reuse.
+
+```json
+{"hostname": "DeviceNameHere"}
+```
 
 
 ## Web features
@@ -14,27 +35,48 @@ Cogs includes an optional web server, powered by ESPAsyncwebserver, making it ea
 
 The web server provides a small set of APIs, mostly for editing files.
 
+## Setting up credentials
+
+There are two ways to connect to wifi, directly in code:
+
+```cpp
+  cogs_web::setDefaultWifi("SSID", "Password", "Hostname");
+```
+
+Or via the serial port. Copy and paste this exact code, filling in your info.
+Note that this is not a Linux shell. It just uses regex to pretend to be one.
+
+```bash
+cat << "--EOF--" > config/network.json
+{
+  "ssid": "YourSSID",
+  "password": "hunter3",
+  "hostname": "NameForYourDevice"
+}
+```
+
+Afterwards it will show up in any recent browser at `http://YourHostname.local`
+
 ### Builtin Static resources
 
 * /builtin/barrel.css
 * /builtin/lit.js
-* /builtin/cog.js
+* /builtin/cogs.js
 
 ### The page template
 
-To make a page, make a js file that exports PageRoot(a lit component), and metadata(a dict that must have a title).
+To make a page, make a js file that exports PageRoot(a Lit component), and metadata(a dict that must have a title).
 
 That component can be loaded into the default template at "/default-template?load-module=/my/page/url"
 
-Nothing in cogs uses any server-side templating, just pure client-side 
+Nothing in cogs uses any server-side templating, just pure client-side.
 
 ### JSON Editor
 
 Notably, it provides a JSON editor that takes a filename on the LittleFS, and a
-schema URL, with requests like `/builtin/jsoneditor.html?filename=/test.json&schema=/builtin/schemas/object.json `.
+schema URL, with requests like `http://192.168.1.15/default-template?load-module=/builtin/jsoneditor.js&schema=/builtin/schemas/object.json&filename=/test.json`
 
-While this does increase the firmware size by over 100k, it also means that the
-web 
+Note that this works by going to the default template, which then loads the json editor app.
 
 
 
@@ -46,6 +88,12 @@ web
 void setup() {
 
   Serial.begin(115200);
+
+  // Enable Clockworks, bindings, and tag points.
+  cogs_rules::initializeRulesEngine();
+
+  // Enable serial console
+  cogs_reggshell::initializeReggshell();
 
   // Create a tag point
   cogs_rules::IntTagPoint t("foo", 80);
@@ -80,8 +128,9 @@ void setup() {
   // Nothing happened just yet
   Serial.println(t.rerender());
 
-  // Eval just that one binding
-  b.eval();
+  // Rules and bindings get executed here
+
+  cogs::poll();
 
   // Value should be 149
   Serial.println(t.rerender());
@@ -121,22 +170,28 @@ This is the special value of 16384.
 
 
 
+## Utility Functions
+
+### cogs::random()
+
+Random 32 bit number
+
+### cogs::random(min,max)
+
+Min is inclusive, max is not.
+
+
+
 ## Reggshell
 
-Reggshell is a regex-based fake shell language, that exists mostly to transfer files.
+Reggshell is a regex-based fake shell language, that exists mostly to transfer files and debug.
 It's really more of serial file transfer protocol.
 
-
-This example gives a basic serial console:
+To use it, call the initialize function.  Serial data will be read in poll();
 
 ```cpp
-auto cli = Reggshell();
-
-void loop() {
-  if(Serial.available()){
-    cli.parseChar(Serial.read());
-  }
-}
+// Enable serial console
+cogs_reggshell::initializeReggshell();
 ```
 
 

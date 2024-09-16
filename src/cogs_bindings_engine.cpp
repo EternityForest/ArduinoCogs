@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "cogs_bindings_engine.h"
 #include "cogs_util.h"
+#include "cogs_global_events.h"
 
 using namespace cogs_rules;
 
@@ -12,6 +13,9 @@ static std::list<Binding> bindings;
 /// Be requested until they actually are.
 static int global_vars_count = 0;
 static te_variable global_vars[256];
+
+
+
 
 static void clear_globals()
 {
@@ -334,4 +338,13 @@ void Clockwork::eval()
   {
     cogs::logError("State not found: " + this->currentState);
   }
+}
+
+
+static void fastPoll(){
+  cogs_rules::Clockwork::evalAll();
+}
+
+void cogs_rules::initializeRulesEngine(){
+  cogs::fastPollHandlers.push_back(fastPoll);
 }

@@ -153,4 +153,5 @@ namespace cogs_rules
   std::shared_ptr<cogs_rules::Binding> makeBinding(std::string target_name, std::string input);
   std::shared_ptr<cogs_rules::Clockwork> makeClockwork(std::string name);
 
+  void initializeRulesEngine();
 }

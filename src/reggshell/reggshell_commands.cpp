@@ -1,5 +1,6 @@
 #include "reggshell.h"
 #include <LittleFS.h>
+#include <WiFi.h>
 #include <Arduino.h>
 
 using namespace reggshell;
@@ -205,6 +206,14 @@ static void echoCommand(Reggshell *reggshell, const char *arg1, const char *arg2
     }
 }
 
+
+static void ipCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
+{
+    reggshell->print("IP: ");
+    reggshell->println(WiFi.localIP().toString().c_str());
+}
+
+
 static void catCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
 {
     char fn[64];
@@ -260,22 +269,50 @@ static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, 
         return;
     }
 
+    reggshell->print("Files in dir: ");
+    reggshell->println(arg1);
+
     File i = dir.openNextFile();
 
     while (i)
     {
+        reggshell->print("  ");
         reggshell->println(i.name());
         i = dir.openNextFile();
     }
+
+    dir.close();
+    reggshell->println("");
+}
+
+void Reggshell::help()
+{
+    this->println("");
+    this->println("Commands:");
+    for (auto cmd : this->commands_map)
+    {
+        this->println(cmd.first.c_str());
+        if(cmd.second->help[0] != 0){
+            this->println(cmd.second->help);
+        }
+
+        this->println("");
+    }
+}
+
+static void helpCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
+{
+   reggshell->help();
 }
 
 void Reggshell::addBuiltins()
 {
     this->addCommand("cat *<< *\"---EOF---\" *> *(.*)", heredoc);
 
-    this->addSimpleCommand("echo", echoCommand);
-    this->addSimpleCommand("shar", sharCommand);
-    this->addSimpleCommand("cat", catCommand);
-    this->addSimpleCommand("cat", catCommand);
-    this->addSimpleCommand("ls", lsCommand);
+    this->addSimpleCommand("echo", echoCommand, "Echoes the arguments");
+    this->addSimpleCommand("reggshar", sharCommand, "Prints a file in shareable format which can be sent to another device");
+    this->addSimpleCommand("cat", catCommand, "Prints the contents of a file");
+    this->addSimpleCommand("ls", lsCommand, "ls <dir>Prints the contents of a directory");
+    this->addSimpleCommand("ip", ipCommand, "Prints the current network info.");
+    this->addSimpleCommand("help", helpCommand, "Prints this help");
 }

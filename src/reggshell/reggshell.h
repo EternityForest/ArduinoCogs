@@ -30,6 +30,7 @@ namespace reggshell
     {
     public:
         std::string name;
+        const char * help = NULL;
         void (*callback)(Reggshell *,  const char *, const char *, const char *);
     };
 
@@ -76,13 +77,16 @@ namespace reggshell
         /// Add a nonsimple command.  Lines matching pattern will be passed to callback
         void addCommand(std::string pattern, void (*callback)(Reggshell *, MatchState *, const char * rawline));
 
-        void addSimpleCommand(std::string name, void (*callback)(Reggshell*, const char *, const char *, const char *));
+        void addSimpleCommand(std::string name, void (*callback)(Reggshell*, const char *, const char *, const char *), const char * help = NULL);
 
 
         /// Print to the output.
         void print(const char *s);
         void println(const char *s);
 
+
+        /// Print help
+        void help();
 
 
 
