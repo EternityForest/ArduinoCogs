@@ -183,8 +183,6 @@ void Binding::eval()
 {
   if (this->input_expression)
   {
-    Serial.println("eval");
-    Serial.println(this->multiCount);
     // If it's a multi binding, evaluate each part
     for (int i = 0; i < this->multiCount; i++)
     {
@@ -205,10 +203,6 @@ void Binding::eval()
 
       if (this->target)
       {
-        Serial.println(this->target_name.c_str());
-        Serial.println(x);
-        Serial.println(this->multiStart);
-        Serial.println(i);
         this->target->setValue(x, this->multiStart + i, 1);
       }
     }
@@ -287,6 +281,9 @@ void Clockwork::close()
 
 Clockwork::Clockwork(const std::string &name)
 {
+  if(name.size() == 0){
+    throw std::runtime_error("name empty");
+  }
   this->name = name;
   this->enteredAt = millis();
 }
@@ -348,7 +345,7 @@ static void onStateTagSet(IntTagPoint *tag)
 std::shared_ptr<State> Clockwork::getState(std::string name)
 {
   if(name.size() == 0){
-    throw std::runtime_error("Clockwork::getState() called with empty name");
+    throw std::runtime_error("name empty");
   }
 
   if (this->states.contains(name))

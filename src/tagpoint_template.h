@@ -78,9 +78,14 @@ namespace cogs_tagpoints
 
     inline static std::shared_ptr<TagPoint<T>> getTag(std::string name, T default_value, int count = 1)
     {
-      if(count == 0){
-        cogs::logError("TagPoint length must be greater than 0");
+      if(name.size() == 0){
+        throw std::runtime_error("name empty");
       }
+
+      if(count == 0){
+        throw std::runtime_error("0-length tag not allowed");
+      }
+      
       if (!TagPoint<T>::all_tags.contains(name))
       {
         TagPoint<T>::all_tags[name] = std::shared_ptr<TagPoint<T>>(new TagPoint<T>(name, default_value, count));
