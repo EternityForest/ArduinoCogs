@@ -35,10 +35,10 @@ static void navbar_handler(AsyncWebServerRequest *request)
 static void listdir_handler(AsyncWebServerRequest *request)
 {
     int args = request->args();
-for(int i=0;i<args;i++){
-  Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
-}
-
+    for (int i = 0; i < args; i++)
+    {
+        Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
+    }
 
     JsonDocument doc;
     char resp[32000];
@@ -48,7 +48,6 @@ for(int i=0;i<args;i++){
         request->send(500);
         return;
     }
-    cogs::logError(request->arg("dir").c_str());
 
     auto dir = LittleFS.open(request->arg("dir").c_str(), "r");
     if (!dir)
@@ -88,10 +87,11 @@ for(int i=0;i<args;i++){
 static void handleDownload(AsyncWebServerRequest *request)
 {
 
-int args = request->args();
-for(int i=0;i<args;i++){
-  Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
-}
+    int args = request->args();
+    for (int i = 0; i < args; i++)
+    {
+        Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
+    }
 
     if (!request->hasArg("file"))
     {
@@ -99,18 +99,17 @@ for(int i=0;i<args;i++){
         return;
     }
 
-    cogs::logError(request->arg("file").c_str());
-
     request->send(LittleFS, request->arg("file").c_str());
 }
 
 static void handleUpload(AsyncWebServerRequest *request, String orig_filename, size_t index, uint8_t *data, size_t len, bool final)
 {
 
-int args = request->args();
-for(int i=0;i<args;i++){
-  Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
-}
+    int args = request->args();
+    for (int i = 0; i < args; i++)
+    {
+        Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
+    }
 
     std::string redirect = "/";
     if (request->hasArg("redirect"))
@@ -120,15 +119,18 @@ for(int i=0;i<args;i++){
 
     std::string path;
 
-    if(request->hasArg("path")){
+    if (request->hasArg("path"))
+    {
         path = request->arg("path").c_str();
 
         // Allow auto using the filename
-        if (request->arg("path").endsWith("/")){
+        if (request->arg("path").endsWith("/"))
+        {
             path = path + orig_filename.c_str();
         };
     }
-    else{
+    else
+    {
         request->send(500, "text/plain", "nofnparam");
     }
 
@@ -138,7 +140,8 @@ for(int i=0;i<args;i++){
         request->_tempFile = LittleFS.open(path.c_str(), "w");
     }
 
-    if(!request->_tempFile){
+    if (!request->_tempFile)
+    {
         request->send(500, "text/plain", "cantopenfile");
     }
 
@@ -162,22 +165,21 @@ static void handleSetFile(AsyncWebServerRequest *request)
 {
     if (!request->hasArg("file"))
     {
-        request->send(500,"text/plain","nofileparam");
+        request->send(500, "text/plain", "nofileparam");
         return;
     }
 
     if (!request->hasArg("data"))
     {
-        request->send(500,"text/plain","nodata");
+        request->send(500, "text/plain", "nodata");
         return;
     }
     auto f = LittleFS.open(request->arg("file").c_str(), "w");
     if (!f)
     {
-        request->send(500, "text/plain","cantopenfile");
+        request->send(500, "text/plain", "cantopenfile");
         return;
     }
-
 
     f.print(request->arg("data").c_str());
     f.close();
@@ -201,7 +203,5 @@ namespace cogs_web
         server.on("/api/cogs.setfile", HTTP_POST, handleSetFile);
 
         server.on("/api/cogs.download", HTTP_GET, handleDownload);
-
-
     }
 }

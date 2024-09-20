@@ -31,7 +31,7 @@ namespace cogs_rules
   //! Must be called after any changes to IntTagPoints
   //! Before anything is eval'ed
   //! Will not alter state of any variables that already exist.
-  void refresh_bindings_engine();
+  void refreshBindingsEngine();
 
   /// This number is used throughout the code whenever we need to represent a fraction
   /// As an integer, it is the default fixed point resolution.
@@ -44,9 +44,14 @@ namespace cogs_rules
     int32_t start;
     int32_t duration;
     int32_t alpha;
-    IntFadeClaim(unsigned long start, unsigned long duration, int32_t value, uint16_t alpha);
+    IntFadeClaim(unsigned long start, 
+    unsigned long duration, 
+    int32_t * values,
+    int offset = 0,
+    int count = 1,
+    uint16_t alpha = 16384);
 
-    int32_t applyLayer(int32_t bg);
+    virtual void applyLayer(int32_t * vals, int count) override;
   };
 
   class Binding
@@ -55,10 +60,15 @@ namespace cogs_rules
     te_expr *input_expression;
     std::shared_ptr<IntTagPoint> target;
     std::string target_name;
-    float last_value = -NAN;
-
   public:
-    Binding(std::string target_name, std::string input);
+
+    // A binding can be for an array. This is an index and count for what part
+    // Of the tag point's data to affect.
+    unsigned int multiStart =0;
+    unsigned int multiCount =1;
+
+
+    Binding(const std::string &target_name, const std::string & input);
 
     //! Eval the expression, do change detection.
     //! If the value changes, notify target
@@ -110,10 +120,10 @@ namespace cogs_rules
   private:
   public:
     /// Do not directly create a Clockwork.  Use Clockwork::getClockwork
-    Clockwork(std::string name);
+    explicit Clockwork(const std::string &name);
 
     std::string name;
-    std::string currentState;
+    State * currentState = nullptr;
     unsigned long enteredAt;
 
     //! Eval all clockworks
@@ -125,6 +135,10 @@ namespace cogs_rules
     /// This is the only way to get a clockwork.
     static std::shared_ptr<Clockwork> getClockwork(std::string);
 
+    static inline bool exists(const std::string &name){
+      return allClockworks.contains(name);
+    }
+
     //! Unregister this clockwork from the global list.
     //! The object should not be used after this call.
     void close();
@@ -132,11 +146,11 @@ namespace cogs_rules
     //! A clockwork is a state machine with extra features.
     std::map<std::string, std::shared_ptr<cogs_rules::State>> states;
 
-    /// Create a state object or delete it if it already exists
+    /// Create a state object or get it if it already exists
     std::shared_ptr<cogs_rules::State> getState(std::string);
 
     /// Immediately transition to a new state
-    void gotoState(std::string);
+    void gotoState(const std::string &, unsigned long time = 0);
 
     /// Delete a state
     void removeState(std::string);
@@ -153,5 +167,5 @@ namespace cogs_rules
   std::shared_ptr<cogs_rules::Binding> makeBinding(std::string target_name, std::string input);
   std::shared_ptr<cogs_rules::Clockwork> makeClockwork(std::string name);
 
-  void initializeRulesEngine();
+  void  setupRulesEngine();
 }

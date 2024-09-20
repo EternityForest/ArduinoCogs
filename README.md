@@ -15,6 +15,13 @@ Arduino library for creating rules at runtime, and much more:
 It provides a low-code programming model where you can connect
 "Tag Points" together in a way that will be familiar to anyone used to Excel.
 
+### Tag Points
+
+Every tag point is a list of integers that can be set using a "binding" or read in an expression.
+The expression parser does not support arrays, so reading will 
+
+
+
 The expressions are interpreted as strings, and the intent is to expand this to allow for web-based rule creation.
 
 ## Config files
@@ -84,57 +91,130 @@ Note that this works by going to the default template, which then loads the json
 ## Code Example
 
 ```cpp
+#include "cogs.h"
+#include "LittleFS.h"
+using namespace cogs_rules;
 
 void setup() {
 
+  WiFi.mode(WIFI_STA);
+
+  if (!LittleFS.begin(true)) {
+    Serial.println("LittleFS Mount Failed");
+  }
+
   Serial.begin(115200);
+  Serial.println("Start");
 
-  // Enable Clockworks, bindings, and tag points.
-  cogs_rules::initializeRulesEngine();
+  cogs_reggshell::setupReggshell();
 
-  // Enable serial console
-  cogs_reggshell::initializeReggshell();
+  cogs_rules::setupRulesEngine();
+
+
+
+  // This can be overridden via config file later
+  cogs_web::setDefaultWifi("SSID", "PASSWORD", "nanoplc");
+
+
+  cogs::setDefaultFile("/test.json", "{}");
+
 
   // Create a tag point
-  cogs_rules::IntTagPoint t("foo", 80);
+  auto t = cogs_rules::IntTagPoint::getTag("foo", 80);
 
-  // Set it's "background value" and read it
-  t.setValue(90);
+  // Set it's background value and read it
+  t->setValue(90);
 
-  Serial.println(t.rerender());
+  t->rerender();
 
-  // Override it with Priority 50. Whatever the background value is doesn't matter until we 
+  // Values are actually an array, it just so happens that the default length is 1.
+  // It just makes the code much simpler.
+  Serial.println(t->value[0]);
+
+  // Override it with Priority 50. Whatever the background value is doesn't matter until we
   // Remove this claim.
 
   // Note that this is a shared pointer, you don't have to manually clean it up.
-  auto claim = t.overrideClaim(50, 100);
+  auto claim = t->overrideClaim(50, 100);
 
-  Serial.println(t.rerender());
+  t->rerender();
+  Serial.println(t->value[0]);
+
 
   // Val goes back to 90
-  t.removeClaim(claim);
-
-  Serial.println(t.rerender());
+  t->removeClaim(claim);
 
 
-  // Create a binding that maps an expression "99+50" to the target tag "foo"
-  cogs_rules::Binding b("foo", "99+50");
+
+  // Create a Clockwork, which is like a state machine
+  std::shared_ptr<Clockwork> cw = Clockwork::getClockwork("test_machine");
+
+  //Get the default state
+  std::shared_ptr<State> defaultstate = cw->getState("default");
+
+  std::shared_ptr<State> state2 = cw->getState("state2");
+
+  // As long as that default state is active, we bind the value of foo
+  defaultstate->addBinding("foo", "100 + 50");
 
 
   // We have to cal this before evaluating eny bindings if we
   // change the binding map
-  cogs_rules::refresh_bindings_engine();
+  cogs_rules::refreshBindingsEngine();
 
-  // Nothing happened just yet
-  Serial.println(t.rerender());
+  // Eval all clockworks
+  Clockwork::evalAll();
 
-  // Rules and bindings get executed here
+  // Value should be 150
+  t->rerender();
+  Serial.println(t->value[0]);
 
-  cogs::poll();
+  cw->gotoState("state2");
 
-  // Value should be 149
-  Serial.println(t.rerender());
+  // When we set the val it will not automatically be set back because we are
+  // no longer in the state that has the binding
+
+  t->setValue(5);
+
+  // Eval all clockworks
+  Clockwork::evalAll();
+
+  t->rerender();
+  Serial.println(t->value[0]);
+
+  cw->gotoState("default");
+
+
+
+  cogs::setDefaultFile("/config/automation.json",
+R"(
+{
+    "clockworks" : [
+      {
+        "name": "test_cw",
+        "states": [
+          {
+            "name": "default",
+            "bindings": [{
+              "source": "110 + 1",
+              "target": "foo"
+            }]
+          }
+        ]
+      }
+    ]
 }
+)");
+
+  cogs_web::setupWebServer();
+
+  cogs_editable_automation::setupEditableAutomation();
+}
+
+void loop() {
+  cogs::poll();
+}
+
 ```
 
 
@@ -191,7 +271,7 @@ To use it, call the initialize function.  Serial data will be read in poll();
 
 ```cpp
 // Enable serial console
-cogs_reggshell::initializeReggshell();
+cogs_reggshell::setupReggshell();
 ```
 
 

@@ -5,8 +5,6 @@ using namespace cogs;
 
 namespace cogs
 {
-
-
     unsigned long lastSlowPoll = 0;
     unsigned int slowPollIndex = 0;
 
@@ -20,6 +18,10 @@ namespace cogs
     // Slow poll happens one at a time, and only one handler at a time,
     // so they don't all happen at once and make lag.
     static void doSlowPoll(){
+        if(slowPollIndex >= slowPollHandlers.size()){
+            return;
+        }
+        
         slowPollIndex++;
         slowPollHandlers[slowPollIndex % slowPollHandlers.size()]();
     }

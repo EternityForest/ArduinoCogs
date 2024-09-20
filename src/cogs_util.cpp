@@ -7,7 +7,7 @@ static uint32_t randomState = 1;
 namespace cogs{
 
  
-     uint32_t random()
+     uint32_t random()  //flawfinder: ignore
     {
         /// Adding this seeds it with timing entropy.
         randomState += micros();
@@ -18,13 +18,23 @@ namespace cogs{
         return randomState;
     }
 
-    uint32_t random(uint32_t min, uint32_t max)
+    uint32_t random(uint32_t min, uint32_t max)  //flawfinder: ignore
     {
-        return random() % (max - min) + min;
+        return random() % (max - min) + min;  //flawfinder: ignore
     }
 
-    void setDefaultFile(std::string fn, std::string content){
-        File f = LittleFS.open(fn.c_str(), "r");
+    void ensureDirExists(const std::string &dir){
+        if(!LittleFS.exists(dir.c_str())){
+            LittleFS.mkdir(dir.c_str());
+        }
+    }
+
+    void setDefaultFile(const std::string &fn, const std::string &content){
+        std::string dirname = fn.substr(0, fn.rfind('/'));
+        ensureDirExists(dirname);
+
+        
+        File f = LittleFS.open(fn.c_str(), "r");  //flawfinder: ignore
         if (f){
             if(f.size()> 0){
                 f.close();
@@ -33,16 +43,20 @@ namespace cogs{
             f.close();
         }
 
-        f = LittleFS.open(fn.c_str(), "w");
-        if(!f){
-            cogs::logError("Error opening default file");
+        File f2 = LittleFS.open(fn.c_str(), FILE_WRITE);  //flawfinder: ignore
+        if(!f2){
+            cogs::logError("Error opening file for writing: " + fn);
             return;
         }
-        f.write((const uint8_t*)content.c_str(), content.size());
-        f.close();
+        f2.write(reinterpret_cast<const uint8_t*>(content.c_str()), content.size());
+        f2.close();
     };
 
-    void logError(std::string msg){
+    void logError(const std::string &msg){
+        Serial.println(msg.c_str());
+    }
+
+    void logInfo(const std::string &msg){
         Serial.println(msg.c_str());
     }
 };

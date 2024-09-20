@@ -3,9 +3,9 @@
 
 namespace cogs_reggshell
 {
-    reggshell::Reggshell *interpreter;
+    extern reggshell::Reggshell *interpreter;
 
     //!  Enable the serial terminal shell on
     //!  the serial port.
-    void initializeReggshell();
+    void setupReggshell();
 }

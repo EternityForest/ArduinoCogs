@@ -1,4 +1,3 @@
-#include "FS.h"
 #include <LittleFS.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
@@ -48,9 +47,9 @@ namespace cogs_web
             }
         }
 
-        auto f = LittleFS.open("/config/network.json", "r");
+        auto f = LittleFS.open("/config/network.json", "r"); // flawfinder: ignore
 
-        if (!f || f.isDirectory())
+        if ((!f) || f.isDirectory())
         {
             if (!error_once)
             {
@@ -114,7 +113,7 @@ namespace cogs_web
         cogs_web::check_wifi();
     };
 
-    static void handleEvent(enum GlobalEvents event, int n, std::string path)
+    static void handleEvent(cogs::GlobalEvent event, int n, std::string path)
     {
         if (event == cogs::fileChangeEvent)
         {

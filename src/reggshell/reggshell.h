@@ -40,11 +40,13 @@ namespace reggshell
         char line_buffer[128];
         unsigned char line_buffer_len;
         std::list<ReggshellCommand *> commands;
-        void (*output_callback)(const char *);
+        void (*output_callback)(const char *) = NULL;
+
 
         void addBuiltins();
 
     public:
+        std::list<void (*)(Reggshell *)> statusCallbacks;
 
 
         /// Simple commands
@@ -85,6 +87,12 @@ namespace reggshell
         void println(const char *s);
 
 
+        /// Print numbers to the output
+        void print(float f);
+        void println(float f);
+
+
+
         /// Print help
         void help();
 
@@ -92,6 +100,7 @@ namespace reggshell
 
         /// Set output callback. Defaults to Serial.println
         void setOutputCallback(void (*callback)(const char *));
+
 
         Reggshell(/* args */);
 

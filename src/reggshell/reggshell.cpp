@@ -1,17 +1,25 @@
 #include "reggshell.h"
 #include <Arduino.h>
+#include <stdexcept>
 
 using namespace reggshell;
 
 namespace reggshell
 {
 
+    // Must never be called with corrupted strings, does not check.
     static void doSimpleCommand(Reggshell *reggshell, MatchState *ms, const char *rawline)
     {
-        char name[64];
-        char arg1[64];
-        char arg2[64];
-        char arg3[64];
+        if (strlen(rawline)>64){ // flawfinder: ignore
+            reggshell->println("TOOLONG");
+            return;
+        }
+
+        // Safe to ignore because length check
+        char name[64]; // flawfinder: ignore
+        char arg1[64]; // flawfinder: ignore
+        char arg2[64]; // flawfinder: ignore
+        char arg3[64]; // flawfinder: ignore
 
         ms->GetCapture(name, 0);
 
@@ -63,10 +71,22 @@ namespace reggshell
         this->output_callback = callback;
     }
 
+    void Reggshell::print(float n)
+    {
+        std::string s = std::to_string(n);
+        this->print(s.c_str());
+    }
+    void Reggshell::println(float n)
+    {
+        std::string s = std::to_string(n);
+        this->println(s.c_str());
+    }
+
     void Reggshell::println(const char *s)
     {
         // Defensive programming
-        if(!s){
+        if (!s)
+        {
             s = "NULLPTR";
         }
 
@@ -121,55 +141,69 @@ namespace reggshell
 
     void Reggshell::parseLine(char *line)
     {
+        try{
 
-        if (this->exclusive)
-        {
-            this->exclusive->callback(this, nullptr, line);
-            return;
-        }
-
-        for (auto cmd : this->commands)
-        {
-            int len = strlen(line);
-
-            // outside of exclusive, ignore comment only lines.
-
-            bool found = false;
-            for (int i = 0; i < len; i++)
+            if (this->exclusive)
             {
-                if (line[i] == ' ')
-                {
-                    continue;
+                this->exclusive->callback(this, nullptr, line);
+                return;
+            }
+            else{
+                this->print(">>> ");
+                this->println(line);
+            }
+
+            for (auto cmd : this->commands)
+            {
+                int len = strlen(line); // flawfinder: ignore
+                if(len >256){
+                    this->println("Line too long");
+                    return;
                 }
-                else if (line[i] == '#')
+
+                // outside of exclusive, ignore comment only lines.
+
+                bool found = false;
+                for (int i = 0; i < len; i++)
+                {
+                    if (line[i] == ' ')
+                    {
+                        continue;
+                    }
+                    else if (line[i] == '#')
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                // All whitespace, ignore line
+                if (!found)
                 {
                     return;
                 }
-                else
+
+                MatchState ms;
+                ms.Target(line);
+
+                char result = ms.Match(cmd->pattern.c_str());
+
+                if (result == REGEXP_MATCHED)
                 {
-                    found = true;
-                    break;
+                    this->current = cmd;
+                    cmd->callback(this, &ms, line);
+                    this->current = NULL;
+                    return;
                 }
             }
-
-            // All whitespace, ignore line
-            if (!found)
-            {
-                return;
-            }
-
-            MatchState ms;
-            ms.Target(line);
-
-            char result = ms.Match(cmd->pattern.c_str());
-
-            if (result == REGEXP_MATCHED)
-            {
-                this->current = cmd;
-                cmd->callback(this, &ms, line);
-                this->current = NULL;
-                return;
-            }
+        }
+        catch (std::exception &e){
+            this->println(e.what());
+            return;
         }
 
         this->println("NOSUCHCOMMAND bad line:");
@@ -192,7 +226,7 @@ namespace reggshell
         this->exclusive = NULL;
     }
 
-    void Reggshell::addSimpleCommand(std::string name, void (*callback)(Reggshell *, const char *, const char *, const char *), const char * help)
+    void Reggshell::addSimpleCommand(std::string name, void (*callback)(Reggshell *, const char *, const char *, const char *), const char *help)
     {
         auto cmd = new ReggshellSimpleCommand();
         cmd->name = name;

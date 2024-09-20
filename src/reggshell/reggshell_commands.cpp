@@ -13,12 +13,12 @@ static void byte_to_hex(unsigned char value, char *buffer)
 
 static void addLeadingSlashIfMissing(char *s)
 {
-    char buf[128];
     if (s[0] != '/')
     {
-        strcpy(buf + 1, s);
+        char buf[128]; // flawfinder: ignore
+        strcpy(buf + 1, s); // flawfinder: ignore
         buf[0] = '/';
-        strcpy(s, buf);
+        strcpy(s, buf); // flawfinder: ignore
     }
 }
 
@@ -46,6 +46,11 @@ static File heredocfile;
 
 static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
 {
+    if(strlen(raw)>127){ // flawfinder: ignore
+        rs->println("Line too long");
+        return;
+    }
+
     if (rs->exclusive)
     {
 
@@ -61,17 +66,28 @@ static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
             return;
         }
 
-        heredocfile.write((unsigned char *)raw, strlen(raw));
-        heredocfile.write((unsigned char *)"\n", 1);
+        // Line length already checked
+        heredocfile.write(reinterpret_cast<const unsigned char*>(raw), strlen(raw)); // flawfinder: ignore
+        heredocfile.write(reinterpret_cast<const unsigned char*>("\n"), 1);
     }
 
     else
     {
 
-        char buf[128];
+        char buf[128]; // flawfinder: ignore
         ms->GetCapture(buf, 0);
         addLeadingSlashIfMissing(buf);
-        heredocfile = LittleFS.open(buf, "w");
+
+
+        std::string fn = buf;
+
+        std::string dirname = fn.substr(0, fn.rfind('/'));
+        if(!LittleFS.exists(dirname.c_str())){
+            LittleFS.mkdir(dirname.c_str());
+        }
+
+        // Only trusted users can access this function, safe to ignore
+        heredocfile = LittleFS.open(buf, "w"); // flawfinder: ignore
         rs->takeExclusive();
         rs->print("Opened heredoc: ");
         rs->println(buf);
@@ -80,30 +96,39 @@ static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
 
 static void printSharFile(Reggshell *rs, const char *fn)
 {
+    // Filename is already sanity checked, unsafe string functions are fine
+
+    if(strlen(fn)>64){ // flawfinder: ignore
+        rs->println("Line too long");
+        return;
+    }
 
     bool printAsHex = false;
-    char eof[] = "\n---EOF---";
-    char *matchPointer = eof;
+    const char eof[] = "\n---EOF---";
+    const char *matchPointer = eof;
 
-    char fn2[64];
+    // We already checked fn length
+    char fn2[64]; // flawfinder: ignore
 
-    char real_fn[64];
+    char real_fn[64];// flawfinder: ignore
 
-    strcpy(real_fn, fn);
+    strcpy(real_fn, fn); // flawfinder: ignore
+
     addLeadingSlashIfMissing(real_fn);
 
     // If the filename starts with a slash, it's an absolute path.
     // We don't want that because it wouldn't make sense on linux.
     if (fn[0] == '/')
     {
-        strcpy(fn2, fn);
+        strcpy(fn2, fn); // flawfinder: ignore
     }
     else
     {
-        strcpy(fn2, fn + 1);
+        strcpy(fn2,  fn + 1); // flawfinder: ignore
     }
 
-    File f = LittleFS.open(real_fn, "r");
+    // Only trusted users can access this function, safe to ignore
+    File f = LittleFS.open(real_fn, "r"); // flawfinder: ignore
     if (!f)
     {
         rs->print("Can't open file: ");
@@ -112,7 +137,8 @@ static void printSharFile(Reggshell *rs, const char *fn)
     }
     while (f.available())
     {
-        char c = f.read();
+        // No buffer boundaries to check? What's flawfinder on about?
+        char c = f.read(); // flawfinder: ignore
         if (!isPrintableAscii(c))
         {
             printAsHex = true;
@@ -140,23 +166,28 @@ static void printSharFile(Reggshell *rs, const char *fn)
         }
     }
     f.close();
-    f = LittleFS.open(real_fn, "r");
 
-    char buf[3];
+    // Only trusted users can access this function, safe to ignore
+    f = LittleFS.open(real_fn, "r"); // flawfinder: ignore
+
+    // Just for null terminated hex bytes
+    char buf[3]; //flawfinder: ignore
     buf[2] = 0;
 
-    int count = 0;
 
     rs->println("");
     rs->println("");
 
     if (printAsHex)
     {
+        int count = 0;
+
         rs->print("base64 --decode << \"---EOF---\" >");
         rs->println(fn);
         while (f.available())
         {
-            char c = f.read();
+            // Does flawfinder think we are reading into a buffer?
+            char c = f.read(); // flawfinder: ignore
             byte_to_hex(c, buf);
             rs->print(buf);
 
@@ -176,7 +207,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
 
         while (f.available())
         {
-            char c = f.read();
+            char c = f.read(); // flawfinder: ignore
             buf[0] = c;
             rs->print(buf);
         }
@@ -207,24 +238,25 @@ static void echoCommand(Reggshell *reggshell, const char *arg1, const char *arg2
 }
 
 
-static void ipCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
-{
-    reggshell->print("IP: ");
-    reggshell->println(WiFi.localIP().toString().c_str());
-}
-
-
 static void catCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
 {
-    char fn[64];
-    strcpy(fn, arg1);
+
+    // The command args should already be pre checked for sanity by the parser.
+    char fn[128]; // flawfinder: ignore
+    strcpy(fn, arg1); // flawfinder: ignore
     addLeadingSlashIfMissing(fn);
 
-    char buf[2];
-    File f = LittleFS.open(fn, "r");
+    char buf[2]; // flawfinder: ignore
+    File f = LittleFS.open(fn, "r"); // flawfinder: ignore
     if (!f)
     {
         reggshell->println("Can't open file: ");
+        reggshell->println(arg1);
+        return;
+    }
+    
+    if(f.isDirectory()){
+        reggshell->println("Is a directory: ");
         reggshell->println(arg1);
         return;
     }
@@ -233,7 +265,7 @@ static void catCommand(Reggshell *reggshell, const char *arg1, const char *arg2,
 
     while (f.available())
     {
-        buf[0] = f.read();
+        buf[0] = f.read(); // flawfinder: ignore
         reggshell->print(buf);
     }
     f.close();
@@ -241,7 +273,8 @@ static void catCommand(Reggshell *reggshell, const char *arg1, const char *arg2,
 
 static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
 {
-    char fn[64];
+    char fn[128]; // flawfinder: ignore
+    strcpy(fn, arg1); // flawfinder: ignore
     addLeadingSlashIfMissing(fn);
 
     const char *defaultDir = "/";
@@ -249,28 +282,28 @@ static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, 
 
     if (arg1[0] != 0)
     {
-        dir = LittleFS.open(fn);
+        dir = LittleFS.open(fn); // flawfinder: ignore
     }
 
     else
     {
-        dir = LittleFS.open(defaultDir);
+        dir = LittleFS.open(defaultDir); // flawfinder: ignore
     }
     if (!dir)
     {
         reggshell->println("Can't open dir: ");
-        reggshell->println(arg1);
+        reggshell->println(fn);
         return;
     }
     if (!dir.isDirectory())
     {
         reggshell->println("Not a dir: ");
-        reggshell->println(arg1);
+        reggshell->println(fn);
         return;
     }
 
     reggshell->print("Files in dir: ");
-    reggshell->println(arg1);
+    reggshell->println(fn);
 
     File i = dir.openNextFile();
 
@@ -292,7 +325,8 @@ void Reggshell::help()
     for (auto cmd : this->commands_map)
     {
         this->println(cmd.first.c_str());
-        if(cmd.second->help[0] != 0){
+        if (cmd.second->help[0] != 0)
+        {
             this->println(cmd.second->help);
         }
 
@@ -302,8 +336,47 @@ void Reggshell::help()
 
 static void helpCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
 {
-   reggshell->help();
+    reggshell->help();
 }
+
+static void statusCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
+{
+    reggshell->println("");
+    reggshell->println("Status:");
+
+    reggshell->print("  IP: ");
+    reggshell->println(WiFi.localIP().toString().c_str());
+
+    reggshell->print("  MAC: ");
+    reggshell->println(WiFi.macAddress().c_str());
+
+    reggshell->print("  SSID: ");
+    reggshell->println(WiFi.SSID().c_str());
+
+    reggshell->print("  RSSI: ");
+    reggshell->println(WiFi.RSSI());
+
+    reggshell->print("  Free RAM: ");
+    reggshell->print(((float)ESP.getFreeHeap()) / 1024.0);
+    reggshell->println(" KB");
+
+    reggshell->print("  Uptime: ");
+    reggshell->print(((float)millis()) / 1000.0);
+    reggshell->println(" s");
+
+    reggshell->print("  CPU Temperature: ");
+    reggshell->print(temperatureRead());
+    reggshell->println(" C");
+
+    reggshell->println("");
+
+    for(auto cmd : reggshell->statusCallbacks){
+        cmd(reggshell);
+    }
+
+    reggshell->println("");
+}
+
 
 void Reggshell::addBuiltins()
 {
@@ -313,6 +386,6 @@ void Reggshell::addBuiltins()
     this->addSimpleCommand("reggshar", sharCommand, "Prints a file in shareable format which can be sent to another device");
     this->addSimpleCommand("cat", catCommand, "Prints the contents of a file");
     this->addSimpleCommand("ls", lsCommand, "ls <dir>Prints the contents of a directory");
-    this->addSimpleCommand("ip", ipCommand, "Prints the current network info.");
     this->addSimpleCommand("help", helpCommand, "Prints this help");
+    this->addSimpleCommand("status", statusCommand, "Prints status info");
 }

@@ -8,18 +8,22 @@
  * Utility functions
  */
 
-namespace cogs{
+namespace cogs
+{
 
-//! If a file does not exist or is empty, write the default content.
-void setDefaultFile(std::string fn, std::string content);
-void logError(std::string msg);
+    //! If a file does not exist or is empty, write the default content.
+    void setDefaultFile(const std::string &fn, const std::string &content);
+    void logError(const std::string &msg);
+    void logInfo(const std::string &msg);
 
-/// Random 32 bit int.  Randomness is not cryptographically secure.
-/// But should use real entropy from micros timing in many cases.
-uint32_t random();
+    /// Random 32 bit int.  Randomness is NOT cryptographically secure.
+    /// But should use real entropy from micros timing in many cases.
+    uint32_t random(); //flawfinder: ignore
 
-/// Random in range, min inclusive, max exclusive
-/// random(0, 2) -> 0 or 1
-uint32_t random(uint32_t min, uint32_t max);
+    /// Random in range, min inclusive, max exclusive
+    /// random(0, 2) -> 0 or 1
+    uint32_t random(uint32_t min, uint32_t max);  //flawfinder: ignore
 
+    // Print unit testing for the code itself. Used for dev only.
+    void runUnitTests();
 }

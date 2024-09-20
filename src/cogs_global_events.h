@@ -22,6 +22,8 @@ namespace cogs
         afterWakeEvent = 3,
 
         /// Called when a file has changed, including additions or being deleted
+        /// Not all files will have this event, it must be manually called from whatever
+        /// Changes it
         /// Param0: ignored, param1: file name
         fileChangeEvent = 4
 
