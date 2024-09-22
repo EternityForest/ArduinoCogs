@@ -5,7 +5,7 @@
  *
 
  * This copy of the library has been modified by Daniel Dunn
- * Some features added and more importantly, ALL VARIABLES ARE INTEGERS!!!!!!!
+ * Some features added.
 
  * Copyright (c) 2015-2020 Lewis Van Winkle
  *
@@ -699,7 +699,7 @@ static te_expr *list(state *s) {
 
 /// External variables are all assumed to be integers.
 float te_read_var(const void * addr){
-  return (*(((const int32_t *)addr))) ;
+  return (*(((const float *)addr))) ;
 }
 
 float te_eval(const te_expr *n) {

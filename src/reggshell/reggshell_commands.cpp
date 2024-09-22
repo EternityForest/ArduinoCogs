@@ -30,6 +30,15 @@ static void addLeadingSlashIfMissing(char *s)
 
 static bool isPrintableAscii(char c)
 {
+    if(c =='\n')
+    {
+        return true;
+    }
+
+    if(c == '\t'){
+        return true;
+    }
+
     if (c >= 32 && c <= 126)
     {
         return true;
@@ -41,7 +50,7 @@ static File heredocfile;
 
 static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
 {
-    if (strlen(raw) > 127)
+    if (strlen(raw) > 127) // flawfinder: ignore
     { // flawfinder: ignore
         rs->println("Line too long");
         return;
@@ -92,7 +101,7 @@ static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
 
 static void heredoc_64(Reggshell *rs, MatchState *ms, const char *raw)
 {
-    if (strlen(raw) > 127)
+    if (strlen(raw) > 127) // flawfinder: ignore
     { // flawfinder: ignore
         rs->println("Line too long");
         return;
@@ -147,7 +156,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
 {
     // Filename is already sanity checked, unsafe string functions are fine
 
-    if (strlen(fn) > 64)
+    if (strlen(fn) > 64) // flawfinder: ignore
     { // flawfinder: ignore
         rs->println("Line too long");
         return;
@@ -229,7 +238,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
         unsigned char buf[48]; // flawfinder: ignore
 
         rs->print("base64 --decode << \"---EOF---\" >");
-        rs->println(fn);
+        rs->println(fn2);
         while (f.available())
         {
             // Does flawfinder think we are reading into a buffer?
@@ -255,7 +264,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
         char buf[2]; // flawfinder: ignore
         buf[1] = 0;
         rs->print("cat << \"---EOF---\" >");
-        rs->println(fn);
+        rs->println(fn2);
 
         while (f.available())
         {
@@ -329,7 +338,6 @@ static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, 
     strcpy(fn, arg1); // flawfinder: ignore
     addLeadingSlashIfMissing(fn);
 
-    const char *defaultDir = "/";
     File dir;
 
     if (arg1[0] != 0)
@@ -339,6 +347,7 @@ static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, 
 
     else
     {
+        const char *defaultDir = "/";
         dir = LittleFS.open(defaultDir); // flawfinder: ignore
     }
     if (!dir)

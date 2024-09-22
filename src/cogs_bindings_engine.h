@@ -25,10 +25,25 @@ namespace cogs_rules
 {
   typedef cogs_tagpoints::TagPoint<int32_t> IntTagPoint;
 
+  /// Constants available in the expressions
+  extern std::map<std::string, float *> constants;
+
+  /// 0 argument functions to make available to users
+  extern std::map<std::string, float (*)()> user_functions0;
+  
+  /// 1 argument functions to make available to users
+  extern std::map<std::string, float (*)(float)> user_functions1;
+  
+  /// 2 argument functions to make available to users
+  extern std::map<std::string, float (*)(float)> user_functions2;
+
+
+
+
   class Binding;
   class Clockwork;
 
-  //! Must be called after any changes to IntTagPoints
+  //! Must be called after any changes to IntTagPoints, constants, or user functions
   //! Before anything is eval'ed
   //! Will not alter state of any variables that already exist.
   void refreshBindingsEngine();

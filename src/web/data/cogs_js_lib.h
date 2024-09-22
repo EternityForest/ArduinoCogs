@@ -5,30 +5,7 @@
 static const char cogs_js_lib[] = R"(
 import { html, css, LitElement } from '/builtin/lit.min.js';
 
-
-export class CogsPage extends LitElement {
-    static properties = {
-    };
-
-    constructor()
-    {
-        super();
-    }
-
-    render(){
-    
-    return html`
-        <div id="app">
-            <cogs-builtin-navbar></cogs-builtin-navbar>
-            <main>
-                <slot></slot>
-            </main>
-        </div>
-    `;
-  }
-}
-
-export class NavBar extends LitElement {
+class NavBar extends LitElement {
     static properties = {
         data : {type : Object},
     };
@@ -58,6 +35,4 @@ export class NavBar extends LitElement {
 }
 
 customElements.define('cogs-builtin-navbar', NavBar);
-customElements.define('cogs-page', CogsPage);
-
 )";

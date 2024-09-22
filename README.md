@@ -233,11 +233,12 @@ They use floating point arithmetic, but the actual variables are fixed.
 
 ## Fixed Point Math
 
-To represent fractional values within the tag, we standardize on the special value
-of 16384 to be our resolution.  If you are storing, say, degrees celcius, you would likely
-want to store it as 16384ths of a degree.
+To represent fractional values within the tag, we standardize on the special value of 16384 to be our resolution.  If you are storing, say, degrees celcius, you would likely want to store it as 16384ths of a degree.
 
 This value is available as $res in expressions.
+
+Every tag point has a "scale" property.  If it is set, values will be scaled
+when passing to or from expressions in the web based editor.
 
 
 

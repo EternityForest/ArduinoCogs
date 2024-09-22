@@ -17,6 +17,8 @@ static std::list<Binding> bindings;
 static int global_vars_count = 0;
 static te_variable global_vars[256];
 
+
+
 static void clear_globals()
 {
   int i = 0;
@@ -40,14 +42,13 @@ static void clear_globals()
 };
 
 // Add a new global variable.
-static void append_global(const std::string &name, const int32_t *value)
+static void append_global(const std::string &name, const float *value)
 {
   // Make a C compatible version of the string we need to manually free later
   char *n = static_cast<char *>(malloc(name.size() + 1));
 
-
   n[name.size()] = (char)NULL;
-  memcpy(n, name.c_str(), name.size()); //flawfinder: ignore
+  memcpy(n, name.c_str(), name.size()); // flawfinder: ignore
 
   int i = 0;
   while (1)
@@ -64,27 +65,165 @@ static void append_global(const std::string &name, const int32_t *value)
   }
 };
 
-static int32_t fxp_res_var = FXP_RES;
+// Add a new global variable.
+static void append_func(const std::string &name, void *f, int type)
+{
+  // Make a C compatible version of the string we need to manually free later
+  char *n = static_cast<char *>(malloc(name.size() + 1));
 
-static int32_t dollar_sign_i = 0;
+  n[name.size()] = (char)NULL;
+  memcpy(n, name.c_str(), name.size()); // flawfinder: ignore
+
+  int i = 0;
+  while (1)
+  {
+    if (global_vars[i].name == NULL)
+    {
+      global_vars[i].name = n;
+      global_vars[i].address = f;
+      global_vars[i].context = 0;
+      global_vars[i].type = type;
+      break;
+    }
+    i++;
+  }
+};
+
+static float fxp_res_var = FXP_RES;
+
+static float dollar_sign_i = 0;
+
+static float adcUserFunction(float x)
+{
+  return analogRead(x) / (4095 / 3.3);
+}
+
+static float randomUserFunction()
+{
+  uint16_t r = cogs::random(); // flawfinder: ignore
+  return (float)r / 65535.0f;
+}
+
+// Time in milliseconds, wrapping around every few hours
+// Losing more than 10ms precision.
+
+static float timeUserFunction()
+{
+  int time = millis() % 8388608;
+  return (float)time;
+}
+static int flicker_flames[16];
+static int flicker_flames_lp[16];
+static unsigned long last_flicker_run[16];
+static unsigned long wind_zones[4];
+static unsigned long last_wind_run[4];
+
+static float doFlicker(float idx)
+{
+  int index = idx;
+  int wind_zone = (index / 1024)%4;
+
+  // Calculate simulated wind
+  if (millis() - last_wind_run[wind_zone] > 20)
+  {
+    last_wind_run[wind_zone] = millis();
+
+    if (cogs::random(0, 200) == 0)
+    {
+      wind_zones[wind_zone] = cogs::random(8000, 16384);
+    }
+    if (wind_zones[wind_zone] > 5000)
+    {
+      {
+        wind_zones[wind_zone] -= 40;
+      }
+    }
+  }
+
+  // hide obvious patterns by randomizing the bin.
+  index = (index * 134775813) %16;
+
+  if (millis()-last_flicker_run[index] > 20)
+  {
+    last_flicker_run[index] = millis();
+    if (cogs::random(0, 100000) < wind_zones[wind_zone])
+    {
+      // Always less
+      flicker_flames[index] = cogs::random(flicker_flames[index]/4, flicker_flames[index]);
+    }
+    else
+    {
+      if (flicker_flames[index] < 15947)
+      {
+        flicker_flames[index] += cogs::random(0, 1000);
+      }
+    }
+
+    flicker_flames_lp[index] *= 7;
+    flicker_flames_lp[index] += flicker_flames[index];
+    flicker_flames_lp[index] = flicker_flames_lp[index] /8;
+  }
+
+  return flicker_flames[index];
+}
+
+namespace cogs_rules
+{
+  std::map<std::string, float *> constants;
+  std::map<std::string, float (*)()> user_functions0;
+  std::map<std::string, float (*)(float)> user_functions1;
+  std::map<std::string, float (*)(float)> user_functions2;
+}
+
+void setupBuiltins()
+{
+  cogs_rules::constants["$res"] = &fxp_res_var;
+  cogs_rules::constants["$i"] = &dollar_sign_i;
+  cogs_rules::user_functions1["analogRead"] = &adcUserFunction;
+  cogs_rules::user_functions0["random"] = &randomUserFunction;
+  cogs_rules::user_functions0["millis"] = &timeUserFunction;
+  cogs_rules::user_functions1["flicker"] = &doFlicker;
+}
 
 void cogs_rules::refreshBindingsEngine()
 {
   clear_globals();
 
-  // We check and don't let user target anything starting with $.
-  append_global("$RES", &fxp_res_var);
+  for (const auto &[key, tag] : cogs_rules::constants)
+  {
+    append_global(key, tag);
+  }
 
-  // Used in iteration
-  append_global("$i", &dollar_sign_i);
+  for (const auto &[key, f] : cogs_rules::user_functions0)
+  {
+    append_func(key, reinterpret_cast<void *>(f), TE_FUNCTION0);
+  }
+
+  for (const auto &[key, f] : cogs_rules::user_functions1)
+  {
+    append_func(key, reinterpret_cast<void *>(f), TE_FUNCTION1);
+  }
+
+  for (const auto &[key, f] : cogs_rules::user_functions2)
+  {
+    append_func(key, reinterpret_cast<void *>(f), TE_FUNCTION2);
+  }
 
   for (const auto &[key, tag] : IntTagPoint::all_tags)
   {
 
     /// All variable access just reads the first value, sine tinyexpr doesn't support
     /// Arrays at all.
-    append_global(key, tag->value);
+    append_global(key, &tag->floatFirstValueCache);
   }
+
+  int p = 0;
+  while (global_vars[p].name)
+  {
+    p++;
+  }
+
+  global_vars_count = p;
 };
 
 void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
@@ -136,34 +275,36 @@ Binding::Binding(const std::string &target_name, const std::string &input)
   // A multi-binding.
   MatchState ms;
 
-  if(target_name.size()>255){
+  if (target_name.size() > 255)
+  {
     throw std::runtime_error("Target name too long");
   }
 
-  char tn[256]; //flawfinder: ignore
+  char tn[256];                    // flawfinder: ignore
   strcpy(tn, target_name.c_str()); // flawfinder: ignore
 
   ms.Target(tn);
   if (ms.Match("\\[([0-9]+):([0-9]+)\\]") == REGEXP_MATCHED)
   {
-    char c[256]; //flawfinder: ignore
+    char c[256]; // flawfinder: ignore
     ms.GetCapture(c, 1);
-    this->multiStart = atoi(c); //flawfinder: ignore
+    this->multiStart = atoi(c); // flawfinder: ignore
     ms.GetCapture(c, 2);
-    this->multiCount = atoi(c) - this->multiStart; //flawfinder: ignore
+    this->multiCount = atoi(c) - this->multiStart; // flawfinder: ignore
 
     // Remove the multi specifier part from the target
     this->target_name = target_name.substr(0, target_name.find('['));
   }
-  else{
+  else
+  {
     this->target_name = target_name;
   }
 
   this->input_expression = te_compile(input.c_str(), global_vars, global_vars_count, &err);
   if (err)
   {
-    throw std::runtime_error("Failed to compile binding" + 
-    input + " error:" + std::to_string(err));
+    throw std::runtime_error("Failed to compile binding" +
+                             input + " error:" + std::to_string(err));
   }
 
   if (this->target_name.size() && this->target_name[0] == '$')
@@ -187,8 +328,11 @@ void Binding::eval()
     for (int i = 0; i < this->multiCount; i++)
     {
 
-      // User code will likely want to access the iterator $i
-      dollar_sign_i = this->multiStart + i;
+      if (this->multiCount > 1)
+      {
+        // User code will likely want to access the iterator $i
+        dollar_sign_i = this->multiStart + i;
+      }
 
       float x = te_eval(this->input_expression);
 
@@ -206,6 +350,8 @@ void Binding::eval()
         this->target->setValue(x, this->multiStart + i, 1);
       }
     }
+    // Set it back to 0
+    dollar_sign_i = 0;
   }
 };
 
@@ -281,7 +427,8 @@ void Clockwork::close()
 
 Clockwork::Clockwork(const std::string &name)
 {
-  if(name.size() == 0){
+  if (name.size() == 0)
+  {
     throw std::runtime_error("name empty");
   }
   this->name = name;
@@ -344,7 +491,8 @@ static void onStateTagSet(IntTagPoint *tag)
 
 std::shared_ptr<State> Clockwork::getState(std::string name)
 {
-  if(name.size() == 0){
+  if (name.size() == 0)
+  {
     throw std::runtime_error("name empty");
   }
 
@@ -400,7 +548,6 @@ void Clockwork::eval()
       this->currentState->eval();
     }
   }
-
 }
 
 static void fastPoll()
@@ -408,6 +555,38 @@ static void fastPoll()
   cogs_rules::Clockwork::evalAll();
 }
 
+static void printTagValue(std::shared_ptr<cogs_rules::IntTagPoint> tag, reggshell::Reggshell *rs)
+{
+
+  rs->print("Tag Value: ");
+
+  for (int i = 0; i < 32; i++)
+  {
+    if (i >= tag->count)
+    {
+      break;
+    }
+    rs->print(tag->value[i] / tag->scale);
+    rs->print(", ");
+  }
+
+  rs->println("");
+
+  if (tag->scale)
+  {
+    rs->print("Raw: ");
+    for (int i = 0; i < 32; i++)
+    {
+      if (i >= tag->count)
+      {
+        break;
+      }
+      rs->print(tag->value[i]);
+      rs->print(", ");
+    }
+    rs->println("");
+  }
+}
 /// Reggshell command to read a tag point
 
 static void reggshellReadTagPoint(reggshell::Reggshell *rs, const char *arg1, const char *arg2, const char *arg3)
@@ -417,24 +596,10 @@ static void reggshellReadTagPoint(reggshell::Reggshell *rs, const char *arg1, co
     auto tag = cogs_rules::IntTagPoint::getTag(arg1, 0);
     if (tag)
     {
-      tag->rerender();
-      rs->print("Tag Value: ");
-
-      for (int i = 0; i < 32; i++)
-      {
-        if (i >= tag->count)
-        {
-          break;
-        }
-        rs->print(tag->value[i]);
-        rs->print(", ");
-      }
-      rs->println("");
+      printTagValue(tag, rs);
     }
   }
 }
-
-
 
 static void reggshellWriteTagPoint(reggshell::Reggshell *rs, const char *arg1, const char *arg2, const char *arg3)
 {
@@ -443,54 +608,73 @@ static void reggshellWriteTagPoint(reggshell::Reggshell *rs, const char *arg1, c
     auto tag = cogs_rules::IntTagPoint::getTag(arg1, 0);
     if (tag)
     {
-      // If arg2 contains a dot
-      if (strchr(arg2, '.'))
-      {
-        float val = atof(arg2); //flawfinder: ignore
-        tag->setValue(val * FXP_RES);
-      }
-      else{
-        int val = atoi(arg2); //flawfinder: ignore
-        tag->setValue(val);
-      }
-
+      float val = atof(arg2); // flawfinder: ignore
+      tag->setValue(val * tag->scale);
       tag->rerender();
-      rs->print("New Tag Value: ");
 
-      for (int i = 0; i < 32; i++)
-      {
-        if (i >= tag->count)
-        {
-          break;
-        }
-        rs->print(tag->value[i]);
-        rs->print(", ");
-      }
-      rs->println("");
+      printTagValue(tag, rs);
     }
   }
 }
 
-
-static void statusCallback(reggshell::Reggshell *rs){
+static void statusCallback(reggshell::Reggshell *rs)
+{
   rs->println("\nClockworks: ");
-  for(auto cw : cogs_rules::Clockwork::allClockworks){
+  for (auto cw : cogs_rules::Clockwork::allClockworks)
+  {
     rs->print(cw.first.c_str());
     rs->print(": ");
-    if(cw.second->currentState == NULL){
+    if (cw.second->currentState == NULL)
+    {
       rs->println("null");
     }
     else
     {
+      rs->print("   ");
       rs->println(cw.second->currentState->name.c_str());
     }
   }
 }
 
+static void listTagsCommand(reggshell::Reggshell *rs, const char *arg1, const char *arg2, const char *arg3)
+{
+  for (auto tag : cogs_rules::IntTagPoint::all_tags)
+  {
+    rs->print(tag.first.c_str());
+    rs->print("[");
+    rs->print(std::to_string(tag.second->count).c_str());
+    rs->print("]: ");
+
+    rs->print((float)tag.second->value[0] / (float)tag.second->scale);
+    rs->println(tag.second->unit.c_str());
+  }
+}
+
+static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, const char *rawline)
+{
+  int err = 0;
+  char buf[256]; // flawfinder: ignore
+  ms->GetCapture(buf, 0);
+  te_expr *expr = te_compile(buf, global_vars, global_vars_count, &err);
+
+  if (expr)
+  {
+    rs->println(te_eval(expr));
+    te_free(expr);
+  }
+  if (err)
+  {
+    rs->println(("Error: " + std::to_string(err)).c_str());
+  }
+}
 void cogs_rules::setupRulesEngine()
 {
+  setupBuiltins();
+  cogs_reggshell::interpreter->addCommand("eval (.*)", evalExpressionCommand, "eval <expr> Evaluates any expression. All tag points available as vars");
+  cogs_reggshell::interpreter->addSimpleCommand("tags", listTagsCommand, "list all tags and their first vals");
   cogs_reggshell::interpreter->addSimpleCommand("get", reggshellReadTagPoint, "get <tag> reads a tag point value, up to the first 32 vals");
   cogs_reggshell::interpreter->addSimpleCommand("set", reggshellWriteTagPoint, "set <tag> <value> sets a tag value.  \nIf value is a floating point, it will be multiplied by $res=16384.\n If tag is array, sets every element.");
   cogs_reggshell::interpreter->statusCallbacks.push_back(statusCallback);
   cogs::fastPollHandlers.push_back(fastPoll);
+  refreshBindingsEngine();
 }

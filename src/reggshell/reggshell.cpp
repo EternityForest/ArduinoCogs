@@ -10,7 +10,8 @@ namespace reggshell
     // Must never be called with corrupted strings, does not check.
     static void doSimpleCommand(Reggshell *reggshell, MatchState *ms, const char *rawline)
     {
-        if (strlen(rawline)>64){ // flawfinder: ignore
+        if (strlen(rawline) > 64)
+        { // flawfinder: ignore
             reggshell->println("TOOLONG");
             return;
         }
@@ -50,7 +51,6 @@ namespace reggshell
         this->exclusive = NULL;
 
         this->addBuiltins();
-        this->addCommand("([%a%d_]+) *([%a%d_\\./]*) *([%a%d_\\./]*) *([%a%d_\\./]*)", doSimpleCommand);
     }
 
     Reggshell::~Reggshell()
@@ -113,16 +113,21 @@ namespace reggshell
         }
     }
 
-    void Reggshell::addCommand(std::string pattern, void (*callback)(Reggshell *, MatchState *, const char *rawline))
+    void Reggshell::addCommand(const std::string &pattern, void (*callback)(Reggshell *, MatchState *, const char *rawline), const char *help)
     {
         auto cmd = new ReggshellCommand();
         cmd->pattern = pattern;
         cmd->callback = callback;
         this->commands.push_back(cmd);
+        if(help)
+        {
+            this->documentation[pattern] = help;
+        }
     }
 
     void Reggshell::parseChar(unsigned char c)
     {
+
         if (c == '\r')
         {
             return;
@@ -135,58 +140,67 @@ namespace reggshell
             return;
         }
 
+        if (this->line_buffer_len > 120)
+        {
+            this->println("Line too long");
+            return;
+        }
+
         this->line_buffer[this->line_buffer_len] = c;
         this->line_buffer_len++;
     }
 
     void Reggshell::parseLine(char *line)
     {
-        try{
+        try
+        {
 
             if (this->exclusive)
             {
                 this->exclusive->callback(this, nullptr, line);
                 return;
             }
-            else{
+            else
+            {
                 this->print(">>> ");
                 this->println(line);
             }
 
+            int len = strlen(line); // flawfinder: ignore
+            if (len > 256)
+            {
+                this->println("Line too long");
+                return;
+            }
+
+            // outside of exclusive, ignore comment only lines.
+
+            bool found = false;
+            for (int i = 0; i < len; i++)
+            {
+                if (line[i] == ' ')
+                {
+                    continue;
+                }
+                else if (line[i] == '#')
+                {
+                    return;
+                }
+                else
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            // All whitespace, ignore line
+            if (!found)
+            {
+                return;
+            }
+
             for (auto cmd : this->commands)
             {
-                int len = strlen(line); // flawfinder: ignore
-                if(len >256){
-                    this->println("Line too long");
-                    return;
-                }
-
-                // outside of exclusive, ignore comment only lines.
-
-                bool found = false;
-                for (int i = 0; i < len; i++)
-                {
-                    if (line[i] == ' ')
-                    {
-                        continue;
-                    }
-                    else if (line[i] == '#')
-                    {
-                        return;
-                    }
-                    else
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-
-                // All whitespace, ignore line
-                if (!found)
-                {
-                    return;
-                }
-
                 MatchState ms;
                 ms.Target(line);
 
@@ -200,8 +214,21 @@ namespace reggshell
                     return;
                 }
             }
+
+            // Check simple commands last
+            MatchState ms;
+            ms.Target(line);
+            char result = ms.Match("([%a%d_]+) *([%a%d_\\./]*) *([%a%d_\\./]*) *(.*)");
+            if (result == REGEXP_MATCHED)
+            {
+                this->current = NULL;
+                doSimpleCommand(this, &ms, line);
+                return;
+            }
+
         }
-        catch (std::exception &e){
+        catch (std::exception &e)
+        {
             this->println(e.what());
             return;
         }
@@ -226,7 +253,7 @@ namespace reggshell
         this->exclusive = NULL;
     }
 
-    void Reggshell::addSimpleCommand(std::string name, void (*callback)(Reggshell *, const char *, const char *, const char *), const char *help)
+    void Reggshell::addSimpleCommand(const std::string & name, void (*callback)(Reggshell *, const char *, const char *, const char *), const char *help)
     {
         auto cmd = new ReggshellSimpleCommand();
         cmd->name = name;

@@ -52,9 +52,18 @@ namespace cogs_tagpoints
     ~TagPoint();
 
 
+    // The last rendered first value, converted to a float.
+    float floatFirstValueCache;
+
     /// Tag points can represent multiple values.  Normally a tag only has one value
     /// but some are arrays
     int count = 1;
+
+    /// The scale is a multiplier used to convert floats to the actual tag value.
+    int scale = 1;
+
+    /// The unit of the tag. Used for display purposes mostly.
+    std::string unit;
 
 
     /// Map of all tags of the given type
@@ -85,7 +94,7 @@ namespace cogs_tagpoints
       if(count == 0){
         throw std::runtime_error("0-length tag not allowed");
       }
-      
+
       if (!TagPoint<T>::all_tags.contains(name))
       {
         TagPoint<T>::all_tags[name] = std::shared_ptr<TagPoint<T>>(new TagPoint<T>(name, default_value, count));
@@ -204,7 +213,6 @@ namespace cogs_tagpoints
     {
       c->value[i] = value;
     }
-
     c->priority = layer;
 
     this->claims[layer] = p;
@@ -281,6 +289,9 @@ namespace cogs_tagpoints
       if (memcmp(this->value, this->background_value, sizeof(T) * this->count) != 0)
       {
         memcpy(this->value, this->background_value, sizeof(T) * this->count); // flawfinder: ignore
+        
+        this->floatFirstValueCache = ((float)this->value[0])/this->scale;
+
         for (const auto subscriber : this->subscribers)
         {
           subscriber(this);
@@ -333,6 +344,8 @@ namespace cogs_tagpoints
     {
       func(this);
     }
+
+    this->floatFirstValueCache = ((float)this->value[0])/this->scale;
   };
 
   template class TagPoint<int32_t>;

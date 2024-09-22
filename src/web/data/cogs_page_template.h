@@ -8,6 +8,7 @@ static const char cogs_page_template[] = R"(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="cogs-page-title">Cogs</title>
     <link rel="stylesheet" href="/builtin/barrel.css">
+    <script src="/builtin/cogs.js"></script>
 </head>
 <body>
     
@@ -22,7 +23,13 @@ async function f(){
 f()
 </script>
 
-<page-root></page-root>
+<header>
+    <cogs-builtin-navbar></cogs-builtin-navbar>
+</header>
+
+<main>
+    <page-root></page-root>
+</main>
 </body>
 </html>
 )";

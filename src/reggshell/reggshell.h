@@ -52,6 +52,8 @@ namespace reggshell
         /// Simple commands
         std::map<std::string, ReggshellSimpleCommand *> commands_map;
 
+        std::map<std::string, std::string> documentation;
+
         /// If parsing in exclusive mode, this command gets every line
         /// no matter what.
         ReggshellCommand *exclusive = NULL;
@@ -77,9 +79,9 @@ namespace reggshell
 
 
         /// Add a nonsimple command.  Lines matching pattern will be passed to callback
-        void addCommand(std::string pattern, void (*callback)(Reggshell *, MatchState *, const char * rawline));
+        void addCommand(const std::string & pattern, void (*callback)(Reggshell *, MatchState *, const char * rawline), const char * help = NULL);
 
-        void addSimpleCommand(std::string name, void (*callback)(Reggshell*, const char *, const char *, const char *), const char * help = NULL);
+        void addSimpleCommand(const std::string & name, void (*callback)(Reggshell*, const char *, const char *, const char *), const char * help = NULL);
 
 
         /// Print to the output.
