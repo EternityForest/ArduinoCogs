@@ -2,20 +2,15 @@
 #include <LittleFS.h>
 #include <WiFi.h>
 #include <Arduino.h>
+#include "util/base64.h"
 
 using namespace reggshell;
-
-static void byte_to_hex(unsigned char value, char *buffer)
-{
-    buffer[0] = "0123456789ABCDEF"[(value >> 4) & 0xF];
-    buffer[1] = "0123456789ABCDEF"[value & 0xF];
-}
 
 static void addLeadingSlashIfMissing(char *s)
 {
     if (s[0] != '/')
     {
-        char buf[128]; // flawfinder: ignore
+        char buf[128];      // flawfinder: ignore
         strcpy(buf + 1, s); // flawfinder: ignore
         buf[0] = '/';
         strcpy(s, buf); // flawfinder: ignore
@@ -46,7 +41,8 @@ static File heredocfile;
 
 static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
 {
-    if(strlen(raw)>127){ // flawfinder: ignore
+    if (strlen(raw) > 127)
+    { // flawfinder: ignore
         rs->println("Line too long");
         return;
     }
@@ -67,8 +63,8 @@ static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
         }
 
         // Line length already checked
-        heredocfile.write(reinterpret_cast<const unsigned char*>(raw), strlen(raw)); // flawfinder: ignore
-        heredocfile.write(reinterpret_cast<const unsigned char*>("\n"), 1);
+        heredocfile.write(reinterpret_cast<const unsigned char *>(raw), strlen(raw)); // flawfinder: ignore
+        heredocfile.write(reinterpret_cast<const unsigned char *>("\n"), 1);
     }
 
     else
@@ -78,11 +74,64 @@ static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
         ms->GetCapture(buf, 0);
         addLeadingSlashIfMissing(buf);
 
+        std::string fn = buf;
+
+        std::string dirname = fn.substr(0, fn.rfind('/'));
+        if (!LittleFS.exists(dirname.c_str()))
+        {
+            LittleFS.mkdir(dirname.c_str());
+        }
+
+        // Only trusted users can access this function, safe to ignore
+        heredocfile = LittleFS.open(buf, "w"); // flawfinder: ignore
+        rs->takeExclusive();
+        rs->print("Opened heredoc: ");
+        rs->println(buf);
+    }
+}
+
+static void heredoc_64(Reggshell *rs, MatchState *ms, const char *raw)
+{
+    if (strlen(raw) > 127)
+    { // flawfinder: ignore
+        rs->println("Line too long");
+        return;
+    }
+
+    if (rs->exclusive)
+    {
+
+        if (strcmp(raw, "---EOF---") == 0)
+        {
+            rs->println("closing heredoc");
+            if (heredocfile)
+            {
+                heredocfile.flush();
+                heredocfile.close();
+            }
+            rs->releaseExclusive();
+            return;
+        }
+
+        std::string d = base64_decode(std::string(raw));
+
+        // Line length already checked
+        heredocfile.write(reinterpret_cast<const unsigned char *>(raw), strlen(raw)); // flawfinder: ignore
+        heredocfile.write(reinterpret_cast<const unsigned char *>("\n"), 1);
+    }
+
+    else
+    {
+
+        char buf[128]; // flawfinder: ignore
+        ms->GetCapture(buf, 0);
+        addLeadingSlashIfMissing(buf);
 
         std::string fn = buf;
 
         std::string dirname = fn.substr(0, fn.rfind('/'));
-        if(!LittleFS.exists(dirname.c_str())){
+        if (!LittleFS.exists(dirname.c_str()))
+        {
             LittleFS.mkdir(dirname.c_str());
         }
 
@@ -98,7 +147,8 @@ static void printSharFile(Reggshell *rs, const char *fn)
 {
     // Filename is already sanity checked, unsafe string functions are fine
 
-    if(strlen(fn)>64){ // flawfinder: ignore
+    if (strlen(fn) > 64)
+    { // flawfinder: ignore
         rs->println("Line too long");
         return;
     }
@@ -110,7 +160,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
     // We already checked fn length
     char fn2[64]; // flawfinder: ignore
 
-    char real_fn[64];// flawfinder: ignore
+    char real_fn[64]; // flawfinder: ignore
 
     strcpy(real_fn, fn); // flawfinder: ignore
 
@@ -124,7 +174,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
     }
     else
     {
-        strcpy(fn2,  fn + 1); // flawfinder: ignore
+        strcpy(fn2, fn + 1); // flawfinder: ignore
     }
 
     // Only trusted users can access this function, safe to ignore
@@ -170,17 +220,13 @@ static void printSharFile(Reggshell *rs, const char *fn)
     // Only trusted users can access this function, safe to ignore
     f = LittleFS.open(real_fn, "r"); // flawfinder: ignore
 
-    // Just for null terminated hex bytes
-    char buf[3]; //flawfinder: ignore
-    buf[2] = 0;
-
-
     rs->println("");
     rs->println("");
 
     if (printAsHex)
     {
-        int count = 0;
+        int p = 0;
+        unsigned char buf[48]; // flawfinder: ignore
 
         rs->print("base64 --decode << \"---EOF---\" >");
         rs->println(fn);
@@ -188,19 +234,25 @@ static void printSharFile(Reggshell *rs, const char *fn)
         {
             // Does flawfinder think we are reading into a buffer?
             char c = f.read(); // flawfinder: ignore
-            byte_to_hex(c, buf);
-            rs->print(buf);
+            buf[p] = c;
+            p++;
 
-            count++;
-            if (count > 40)
+            if (p == 48)
             {
-                rs->println("");
-                count = 0;
+                rs->println(base64_encode(buf, 48).c_str());
+                p = 0;
             }
         }
+
+        if (p > 0)
+        {
+            rs->println(base64_encode(buf, 48).c_str());
+        }
+        rs->println("");
     }
     else
     {
+        char buf[2]; // flawfinder: ignore
         buf[1] = 0;
         rs->print("cat << \"---EOF---\" >");
         rs->println(fn);
@@ -237,16 +289,15 @@ static void echoCommand(Reggshell *reggshell, const char *arg1, const char *arg2
     }
 }
 
-
 static void catCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
 {
 
     // The command args should already be pre checked for sanity by the parser.
-    char fn[128]; // flawfinder: ignore
+    char fn[128];     // flawfinder: ignore
     strcpy(fn, arg1); // flawfinder: ignore
     addLeadingSlashIfMissing(fn);
 
-    char buf[2]; // flawfinder: ignore
+    char buf[2];                     // flawfinder: ignore
     File f = LittleFS.open(fn, "r"); // flawfinder: ignore
     if (!f)
     {
@@ -254,8 +305,9 @@ static void catCommand(Reggshell *reggshell, const char *arg1, const char *arg2,
         reggshell->println(arg1);
         return;
     }
-    
-    if(f.isDirectory()){
+
+    if (f.isDirectory())
+    {
         reggshell->println("Is a directory: ");
         reggshell->println(arg1);
         return;
@@ -273,7 +325,7 @@ static void catCommand(Reggshell *reggshell, const char *arg1, const char *arg2,
 
 static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
 {
-    char fn[128]; // flawfinder: ignore
+    char fn[128];     // flawfinder: ignore
     strcpy(fn, arg1); // flawfinder: ignore
     addLeadingSlashIfMissing(fn);
 
@@ -324,10 +376,21 @@ void Reggshell::help()
     this->println("Commands:");
     for (auto cmd : this->commands_map)
     {
+        bool needMargin = strchr(cmd.second->help, '\n');
+
+        // Multiline help strings get margins for readability.
+        if (needMargin)
+        {
+            this->println("");
+        }
         this->println(cmd.first.c_str());
         if (cmd.second->help[0] != 0)
         {
             this->println(cmd.second->help);
+            if (needMargin)
+            {
+                this->println("");
+            }
         }
 
         this->println("");
@@ -370,17 +433,18 @@ static void statusCommand(Reggshell *reggshell, const char *arg1, const char *ar
 
     reggshell->println("");
 
-    for(auto cmd : reggshell->statusCallbacks){
+    for (auto cmd : reggshell->statusCallbacks)
+    {
         cmd(reggshell);
     }
 
     reggshell->println("");
 }
 
-
 void Reggshell::addBuiltins()
 {
     this->addCommand("cat *<< *\"---EOF---\" *> *(.*)", heredoc);
+    this->addCommand("base64 --decode *<< *\"---EOF---\" *> *(.*)", heredoc_64);
 
     this->addSimpleCommand("echo", echoCommand, "Echoes the arguments");
     this->addSimpleCommand("reggshar", sharCommand, "Prints a file in shareable format which can be sent to another device");

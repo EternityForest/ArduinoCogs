@@ -12,7 +12,7 @@ namespace cogs
     std::list<void (*)()> fastPollHandlers;
     std::vector<void (*)()> slowPollHandlers;
 
-    std::list<void (*)(cogs::GlobalEvent, int, std::string)> globalEventHandlers;
+    std::list<void (*)(cogs::GlobalEvent, int,const std::string &)> globalEventHandlers;
 
 
     // Slow poll happens one at a time, and only one handler at a time,
@@ -21,7 +21,7 @@ namespace cogs
         if(slowPollIndex >= slowPollHandlers.size()){
             return;
         }
-        
+
         slowPollIndex++;
         slowPollHandlers[slowPollIndex % slowPollHandlers.size()]();
     }
@@ -37,7 +37,7 @@ namespace cogs
             doSlowPoll();
         } 
     }
-    void triggerGlobalEvent(GlobalEvent event, int param1, std::string param2)
+    void triggerGlobalEvent(GlobalEvent event, int param1, const std::string &param2)
     {
         for (auto e : globalEventHandlers)
         {

@@ -433,6 +433,45 @@ static void reggshellReadTagPoint(reggshell::Reggshell *rs, const char *arg1, co
     }
   }
 }
+
+
+
+static void reggshellWriteTagPoint(reggshell::Reggshell *rs, const char *arg1, const char *arg2, const char *arg3)
+{
+  if (cogs_rules::IntTagPoint::exists(arg1))
+  {
+    auto tag = cogs_rules::IntTagPoint::getTag(arg1, 0);
+    if (tag)
+    {
+      // If arg2 contains a dot
+      if (strchr(arg2, '.'))
+      {
+        float val = atof(arg2); //flawfinder: ignore
+        tag->setValue(val * FXP_RES);
+      }
+      else{
+        int val = atoi(arg2); //flawfinder: ignore
+        tag->setValue(val);
+      }
+
+      tag->rerender();
+      rs->print("New Tag Value: ");
+
+      for (int i = 0; i < 32; i++)
+      {
+        if (i >= tag->count)
+        {
+          break;
+        }
+        rs->print(tag->value[i]);
+        rs->print(", ");
+      }
+      rs->println("");
+    }
+  }
+}
+
+
 static void statusCallback(reggshell::Reggshell *rs){
   rs->println("\nClockworks: ");
   for(auto cw : cogs_rules::Clockwork::allClockworks){
@@ -450,7 +489,8 @@ static void statusCallback(reggshell::Reggshell *rs){
 
 void cogs_rules::setupRulesEngine()
 {
-  cogs_reggshell::interpreter->addSimpleCommand("get", reggshellReadTagPoint, "Read a tag point value, up to the first 32 vals");
+  cogs_reggshell::interpreter->addSimpleCommand("get", reggshellReadTagPoint, "get <tag> reads a tag point value, up to the first 32 vals");
+  cogs_reggshell::interpreter->addSimpleCommand("set", reggshellWriteTagPoint, "set <tag> <value> sets a tag value.  \nIf value is a floating point, it will be multiplied by $res=16384.\n If tag is array, sets every element.");
   cogs_reggshell::interpreter->statusCallbacks.push_back(statusCallback);
   cogs::fastPollHandlers.push_back(fastPoll);
 }

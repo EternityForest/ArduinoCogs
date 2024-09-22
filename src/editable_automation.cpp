@@ -9,6 +9,10 @@
 #include "cogs_bindings_engine.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
+#include "web/cogs_web.h"
+#include "web/data/cogs_automation_schema.h"
+
+
 
 using namespace cogs_rules;
 
@@ -76,6 +80,8 @@ static void _loadFromFile()
 
         auto new_clockwork = Clockwork::getClockwork(clockworkData["name"].as<std::string>());
 
+        webClockworks[clockworkData["name"].as<std::string>()] = new_clockwork;
+        
         JsonVariant states = clockworkData["states"];
         if (!states.is<JsonArray>())
         {
@@ -123,7 +129,7 @@ static void loadFromFile(){
     }
 }
 
-static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, std::string filename)
+static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::string & filename)
 {
     if (evt == cogs::fileChangeEvent)
     {
@@ -137,5 +143,13 @@ static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, std::string file
 void cogs_editable_automation::setupEditableAutomation()
 {
     loadFromFile();
+
+    cogs_web::server.on("/builtin/schemas/automation.json", HTTP_GET, [](AsyncWebServerRequest *request)
+                    { request->send(200, "application/json", cogs_automation_schema); });
+
+    // Add a navbar entry allowing editing of automation.json
+    cogs_web::NavBarEntry::create("Automation Rules", 
+    "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/automation.json&filename=/config/automation.json");
+    
     cogs::globalEventHandlers.push_back(fileChangeHandler);
 }

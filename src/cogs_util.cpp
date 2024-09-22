@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 #include "cogs_util.h"
+#include "cogs_global_events.h"
 
 static uint32_t randomState = 1;
 
@@ -50,6 +51,7 @@ namespace cogs{
         }
         f2.write(reinterpret_cast<const uint8_t*>(content.c_str()), content.size());
         f2.close();
+        cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, fn);
     };
 
     void logError(const std::string &msg){

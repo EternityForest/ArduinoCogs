@@ -34,14 +34,14 @@ namespace cogs
     /*!
 
     @example
-    void someFunction(GlobalEvent event, int param, std::string param2){
+    void someFunction(GlobalEvent event, int param, const std::string & param2){
      // do stuff
     }
 
     cogs::globalEventHandlers.push_back(someFunction);
 
     */
-    extern std::list<void (*)(cogs::GlobalEvent, int, std::string)> globalEventHandlers;
+    extern std::list<void (*)(cogs::GlobalEvent, int, const std::string &)> globalEventHandlers;
 
 
     //! Put functions here if you want them to be called every loop
@@ -54,7 +54,7 @@ namespace cogs
     //! Trigger a global event.  All handlers will be called.
     //! @example cogs::triggerGlobalEvent(cogs::bootEvent);
 
-    void triggerGlobalEvent(GlobalEvent event, int param1, std::string param2 );
+    void triggerGlobalEvent(GlobalEvent event, int param1, const std::string &param2 );
 
     //! Poll all registered loop functions.
     //! Call this in a loop as fast as you can!

@@ -106,6 +106,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Start");
 
+  // Attaches a serial terminal command shell interpreter
   cogs_reggshell::setupReggshell();
 
   cogs_rules::setupRulesEngine();
@@ -182,9 +183,8 @@ void setup() {
   t->rerender();
   Serial.println(t->value[0]);
 
-  cw->gotoState("default");
 
-
+  // The end user settable automation rules are defined here in this file
 
   cogs::setDefaultFile("/config/automation.json",
 R"(
@@ -264,10 +264,12 @@ Min is inclusive, max is not.
 
 ## Reggshell
 
-Reggshell is a regex-based fake shell language, that exists mostly to transfer files and debug.
-It's really more of serial file transfer protocol.
+Reggshell is a regex-based fake shell language, that exists mostly to transfer files and debug. It's really more of serial file transfer protocol.
 
 To use it, call the initialize function.  Serial data will be read in poll();
+
+Unlike a real shell there are no pipes or chaining or working directory.
+Command output is purely human readable or meant to be copied and pasted somewhere.
 
 ```cpp
 // Enable serial console
@@ -277,19 +279,35 @@ cogs_reggshell::setupReggshell();
 
 ### Commands
 
+#### Status
+
+Prints status info like the IP address, the states of all clockworks, etc.
+
+In C++ code you can add extra stuff to this command:
+
+```cpp
+void statusCallback(reggshell::Reggshell * rs){
+  // Note the leading spaces, Command output should use indentation
+  // For visual effect.
+  rs.println("   foo: 78978")
+}
+cogs_reggshell::interpreter->statusCallbacks.push_back(statusCallback);
+```
+
 #### cat << "---EOF---" > FILENAME
 
-You can use here docs, but only with this one specific delimiter.
-There is no cat command, pipes, redirects, or any of that, it just fakes it for this one specific
-pattern, for compatibility.
+You can use here docs, but only with this one specific delimiter, which must be quoted.
 
-There is also no working directory. Paths are always relative to root, and must not start with a slash.
+There is no cat command, pipes, redirects, or any of that, it just fakes it for this one specific pattern, for compatibility.
+
+There is also no working directory. Paths are always relative to root, and *must not start with a slash*.
+
 This is so you can run the command on a Linux machine too, to put the file in the current directory.
 
 
 #### reggshar FILENAME
 
-Prints out a file as a here doc that you can use to transfer the file to another machine.
+Prints out a file as a here doc that you can use to transfer the file to another machine, or to Linux.
 
 #### echo WORD
 

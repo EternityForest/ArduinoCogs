@@ -10,7 +10,6 @@
 #include "web/data/cogs_json_schemas.h"
 #include "web/data/cogs_js_lib.h"
 #include "web/data/cogs_barrel_css.h"
-
 void setup_builtin_static()
 {
     cogs_web::server.on("/builtin/lit.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -48,6 +47,7 @@ void setup_builtin_static()
     cogs_web::server.on("/builtin/schemas/object.json", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/json", generic_object_schema); });
 
+    // Automation schema is included on demand in editable automation
     cogs_web::server.on("/builtin/cogs.js", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/javascript", cogs_js_lib); });
 }

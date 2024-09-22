@@ -35,6 +35,7 @@ void cogs::runUnitTests()
     check(c->value[0], 60);
 
     t->removeClaim(c);
+    check(c->value[0], 90);
 
     auto t2 = cogs_rules::IntTagPoint::getTag("array", 80, 32);
     check(t2->count, 32);

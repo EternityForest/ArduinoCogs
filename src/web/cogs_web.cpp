@@ -113,7 +113,7 @@ namespace cogs_web
         cogs_web::check_wifi();
     };
 
-    static void handleEvent(cogs::GlobalEvent event, int n, std::string path)
+    static void handleEvent(cogs::GlobalEvent event, int n, const std::string & path)
     {
         if (event == cogs::fileChangeEvent)
         {
