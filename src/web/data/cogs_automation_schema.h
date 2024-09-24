@@ -31,12 +31,26 @@ static const char cogs_automation_schema[] = R"(
                     "properties": {
                       "src": {
                         "title": "Source Expression",
-                        "type": "string"
+                        "type": "string",
+                        "options": {
+                            "inputAttributes": {
+                                "datalist":  "tags"
+                            }
+                        }
                       },
                       "dest": {
                         "title": "Destination Variable",
-                        "type": "string"
-                      }
+                        "type": "string",
+                        "options": {
+                            "inputAttributes": {
+                                "datalist":  "expr_completions"
+                            }
+                        }
+                      },
+                      "onchange": {
+                         "type": "boolean",
+                         "title": "Only set target when value changes",
+                     }
                     },
                     "title": "Binding",
                     "type": "object"

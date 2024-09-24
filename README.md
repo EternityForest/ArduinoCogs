@@ -1,8 +1,18 @@
-# arduino-cogs
-Arduino library for creating rules at runtime, and much more:
+# arduino-cogs ⚙️
+
+![AI Generated image of a clockmaker's workshop in a graveyard](img/logo.avif)
+
+> Meanwhile the luminosity increased, waned again, then assumed a pale,
+> outré colour or blend of colours which I could neither place nor describe. > Tillinghast had been watching me, and noted my puzzled expression.
+> - H.P. Lovecraft
+
+Arduino library for creating rules at runtime, and much more.
+
+Altogether, it is somewhat like an OS or framework, but made of modular pieces that can be used independently.
+
+Features:
 
 * Global event handlers, slow and fast poll functions
-* JSON-based configuration and schema editor
 * Serial console that supports here docs for easy inital setup
 * Web UI with GUI editors(Powered by JSON schema)
 * Rules engine parses expressions at runtime
@@ -10,19 +20,37 @@ Arduino library for creating rules at runtime, and much more:
 * Everything is extensible and plugin based, easy to add new apps to a sketch.
 
 
-### The rules engine
+### The rules engine 📜
+
+> Hey! It's dangerous for a little kid like you to come out here. 
+> You might fall down!
+> Goron, Ocarina of Time
 
 It provides a low-code programming model where you can connect
 "Tag Points" together in a way that will be familiar to anyone used to Excel.
 
-### Tag Points
+### Clockworks
 
-Every tag point is a list of integers that can be set using a "binding" or read in an expression.
-The expression parser does not support arrays, so reading will 
+A clockwork is like a state machine.  At any point it can be in one of it's
+states, and each state may have ay number of bindings attached.
+
+A binding is a rule that says "While this state is active, set this variable to this expression".
+
+You might, for instance, map a switch input to an LED.
+
+Bindings have an "onchange" setting, which means the value is only set
+when the output of the expression changes.  This is for things like controlling one light from two switches, so they will not fight each other
+when one isn't changing.
+
+### Tag Points/Variables
+
+These are just lists of numbers. Most of the time, they only contain one number. They are used to control things or read from sensors.
+
+Internally, they are stored as integers. However they are converted using
+the tag's scale factor to floating point for evaluating expressions.
 
 
 
-The expressions are interpreted as strings, and the intent is to expand this to allow for web-based rule creation.
 
 ## Config files
 
@@ -34,6 +62,15 @@ from things you might want to reuse.
 ```json
 {"hostname": "DeviceNameHere"}
 ```
+
+### /config/automation.json
+
+Contains all the clockworks and bindings
+
+### /config/network.json
+
+The WiFi connection info.
+
 
 
 ## Web features

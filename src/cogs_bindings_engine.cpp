@@ -1,10 +1,12 @@
 #include <Arduino.h>
+#include <math.h>
 #include "cogs_bindings_engine.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
 #include <Regexp.h>
 #include "reggshell/reggshell.h"
 #include "cogs_reggshell.h"
+
 
 using namespace cogs_rules;
 
@@ -16,8 +18,6 @@ static std::list<Binding> bindings;
 /// Be requested until they actually are.
 static int global_vars_count = 0;
 static te_variable global_vars[256];
-
-
 
 static void clear_globals()
 {
@@ -121,7 +121,7 @@ static unsigned long last_wind_run[4];
 static float doFlicker(float idx)
 {
   int index = idx;
-  int wind_zone = (index / 1024)%4;
+  int wind_zone = (index / 1024) % 4;
 
   // Calculate simulated wind
   if (millis() - last_wind_run[wind_zone] > 20)
@@ -141,15 +141,15 @@ static float doFlicker(float idx)
   }
 
   // hide obvious patterns by randomizing the bin.
-  index = (index * 134775813) %16;
+  index = (index * 134775813) % 16;
 
-  if (millis()-last_flicker_run[index] > 20)
+  if (millis() - last_flicker_run[index] > 20)
   {
     last_flicker_run[index] = millis();
     if (cogs::random(0, 100000) < wind_zones[wind_zone])
     {
       // Always less
-      flicker_flames[index] = cogs::random(flicker_flames[index]/4, flicker_flames[index]);
+      flicker_flames[index] = cogs::random(flicker_flames[index] / 4, flicker_flames[index]);
     }
     else
     {
@@ -161,7 +161,7 @@ static float doFlicker(float idx)
 
     flicker_flames_lp[index] *= 7;
     flicker_flames_lp[index] += flicker_flames[index];
-    flicker_flames_lp[index] = flicker_flames_lp[index] /8;
+    flicker_flames_lp[index] = flicker_flames_lp[index] / 8;
   }
 
   return flicker_flames[index];
@@ -318,6 +318,8 @@ Binding::Binding(const std::string &target_name, const std::string &input)
       this->target = IntTagPoint::all_tags[this->target_name];
     }
   }
+
+  this->lastState = reinterpret_cast<int *>(malloc(sizeof(int) * this->multiCount));
 };
 
 void Binding::eval()
@@ -347,7 +349,25 @@ void Binding::eval()
 
       if (this->target)
       {
-        this->target->setValue(x, this->multiStart + i, 1);
+        if (this->onchange)
+        {
+          if (x != this->lastState[i])
+          {
+
+            /// nan is the special flag meaning we are in an unknown state
+            /// And thus cannot do change detection yet, so we don't
+            /// Act until it changes again.
+            if (this->lastState[i] != NAN)
+            {
+              this->target->setValue(x*this->target->scale, this->multiStart + i, 1);
+            }
+            this->lastState[i] = x;
+          }
+        }
+        else
+        {
+          this->target->setValue(x*this->target->scale, this->multiStart + i, 1);
+        }
       }
     }
     // Set it back to 0
@@ -362,8 +382,10 @@ Binding::~Binding()
 
 void Binding::reset()
 {
-  // // This is our no data state.
-  // this->last_value = -NAN;
+  for (int i = 0; i < this->multiCount; i++)
+  {
+    this->lastState[i] = 0;
+  }
 }
 
 void State::eval()
@@ -464,6 +486,12 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
   else
   {
     this->enteredAt = time;
+  }
+
+  // Reset change detection state
+  if (this->currentState)
+  {
+    this->currentState->reset();
   }
 }
 

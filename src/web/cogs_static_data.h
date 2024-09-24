@@ -47,6 +47,12 @@ void setup_builtin_static()
     cogs_web::server.on("/builtin/schemas/object.json", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/json", generic_object_schema); });
 
+    cogs_web::server.on("/builtin/schemas/network.json", HTTP_GET, [](AsyncWebServerRequest *request)
+                        { request->send(200, "application/json", wifi_schema); });
+
+    cogs_web::server.on("/builtin/schemas/device.json", HTTP_GET, [](AsyncWebServerRequest *request)
+                        { request->send(200, "application/json", device_schema); });
+
     // Automation schema is included on demand in editable automation
     cogs_web::server.on("/builtin/cogs.js", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/javascript", cogs_js_lib); });

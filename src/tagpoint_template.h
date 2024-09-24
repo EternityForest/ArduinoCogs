@@ -65,6 +65,8 @@ namespace cogs_tagpoints
     /// The unit of the tag. Used for display purposes mostly.
     std::string unit;
 
+    std::string description;
+
 
     /// Map of all tags of the given type
     inline static std::map<std::string, std::shared_ptr<TagPoint>> all_tags;

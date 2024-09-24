@@ -10,6 +10,8 @@
 
 namespace cogs
 {
+    //! Get the hostname of the device, from /config/device.json
+    std::string getHostname();
 
     //! If a file does not exist or is empty, write the default content.
     void setDefaultFile(const std::string &fn, const std::string &content);
@@ -23,6 +25,7 @@ namespace cogs
     /// Random in range, min inclusive, max exclusive
     /// random(0, 2) -> 0 or 1
     uint32_t random(uint32_t min, uint32_t max);  //flawfinder: ignore
+
 
     // Print unit testing for the code itself. Used for dev only.
     void runUnitTests();

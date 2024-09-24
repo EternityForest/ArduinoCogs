@@ -70,7 +70,7 @@ namespace cogs_web
 
     //! Enable managing the WiFi based on the config file
     void manageWifi();
-    
+
     //! Set up and enable the web UI for cogs.
     void setupWebServer();
 
@@ -78,7 +78,15 @@ namespace cogs_web
     /// /config/network.json can override these settings with the corresponding keys.
     void setDefaultWifi(std::string ssid, std::string password, std::string hostname);
 
+    //! Make a json document with this key and val and push it everywhere.
+    void wsBroadcast(const char * key, const char * val);
+
+    //! Push all tag point changes to web UI
+    void exposeTagPoint(std::shared_ptr<cogs_rules::IntTagPoint>);
+
     /// Private
     void setup_cogs_core_web_apis();
+    //Called internally
+    void setupWebSocketServer();
 
 }

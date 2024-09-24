@@ -81,7 +81,7 @@ static void _loadFromFile()
         auto new_clockwork = Clockwork::getClockwork(clockworkData["name"].as<std::string>());
 
         webClockworks[clockworkData["name"].as<std::string>()] = new_clockwork;
-        
+
         JsonVariant states = clockworkData["states"];
         if (!states.is<JsonArray>())
         {
@@ -102,7 +102,11 @@ static void _loadFromFile()
             for (auto bindingData : bindings.as<JsonArray>())
             {
                 cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
-                s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
+                auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
+                if(bindingData.containsKey("onchange")){
+                    b->onchange = bindingData["onchange"].as<bool>();
+                }
+
             }
         }
         // State doesn't exist, use default
@@ -140,10 +144,56 @@ static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::strin
     }
 }
 
+
+
+static void listTargetsApi(AsyncWebServerRequest *request){
+    JsonDocument doc;
+
+    // Add every tag point name to the enum property
+    for(auto tagPoint : cogs_rules::IntTagPoint::all_tags){
+        doc["tags"][tagPoint.first] = tagPoint.second->unit+" "+tagPoint.second->description;        
+    }
+    char * buf = reinterpret_cast<char *>(malloc(8192));
+    if(!buf){
+        request->send(500);
+        return;
+    }
+    serializeJson(doc, buf, 8192);
+    request->send(200, "application/json", buf);
+    free(buf);}
+
+static void exprDatalist(AsyncWebServerRequest *request){
+    JsonDocument doc;
+    for(auto tagPoint : cogs_rules::IntTagPoint::all_tags){
+        doc["datalist"][tagPoint.first] = tagPoint.second->unit+" "+tagPoint.second->description;        
+    }
+    for(auto f : cogs_rules::user_functions0){
+        doc["datalist"][f.first+"()"] = "";
+    }
+    for(auto f : cogs_rules::user_functions1){
+        doc["datalist"][f.first+"(x)"] = "";
+    }
+    for(auto f : cogs_rules::user_functions2){
+        doc["datalist"][f.first+"(a,b)"] = "";
+    }
+    for(auto f : cogs_rules::constants){
+        doc["datalist"][f.first] = std::to_string(*f.second);
+    }
+    char * buf = reinterpret_cast<char *>(malloc(8192));
+    if(!buf){
+        request->send(500);
+        return;
+    }
+    serializeJson(doc, buf, 8192);
+    request->send(200, "application/json", buf);
+    free(buf);
+}
 void cogs_editable_automation::setupEditableAutomation()
 {
     loadFromFile();
 
+    cogs_web::server.on("/api/tags", HTTP_GET, listTargetsApi);
+    cogs_web::server.on("/api/expr", HTTP_GET, exprDatalist);
     cogs_web::server.on("/builtin/schemas/automation.json", HTTP_GET, [](AsyncWebServerRequest *request)
                     { request->send(200, "application/json", cogs_automation_schema); });
 

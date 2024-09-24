@@ -34,10 +34,26 @@ export class PageRoot extends LitElement {
         document.head.appendChild(jes);
         var t = this;
 
+        t.data = {
+            expr_completions : [],
+            tags : [],
+        };
+
         // Wait till the script we need is loaded
         jes.addEventListener('load', async () => {
             const response = await fetch(schema_url);
             const schema_data = await response.json();
+            const raw = JSON.stringify(schema_data);
+
+            if("expr_completions" in raw) {
+                const expr_completions = await fetch('/api/expr_completions');
+                t.data.expr_completions = (await expr_completions.json())['datalist'];
+            }
+
+            if("tags" in raw) {
+                const tags = await fetch('/api/tags');
+                t.data.tags = (await tags.json())['tags'];
+            }
 
             editor = new JSONEditor(t.shadowRoot.getElementById("editor_holder"), {
                 schema: schema_data
@@ -66,7 +82,17 @@ export class PageRoot extends LitElement {
     render() {
         return html`
         <div>
-            <div id="editor_holder"></div>s
+        <datalist id="tags">
+            ${Object.entries(this.data.tags).map(([key, value]) => html`
+            <option value="${key}">${value}"></option>
+            `)}
+        </datalist>
+        <datalist id="expr_completions">
+            ${Object.entries(this.data.expr_completions).map(([key, value]) => html`
+            <option value="${key}">${value}"></option>
+            `)}
+        </datalist>
+            <div id="editor_holder"></div>
             <button @click=${this.handleSubmit}>Submit</button>
         </div>
         `;

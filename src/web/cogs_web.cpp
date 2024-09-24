@@ -1,11 +1,13 @@
 #include <LittleFS.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
+#include <ESPmDNS.h>
 #include <string.h>
 
 #include "cogs_web.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
+#include "cogs_bindings_engine.h"
 
 using namespace cogs_web;
 
@@ -20,9 +22,16 @@ namespace cogs_web
 
     bool error_once = false;
 
+    bool mdns_started = false;
+
+    std::string localIp = "";
+
     void setupWebServer()
     {
         cogs_web::setup_cogs_core_web_apis();
+
+        NavBarEntry::create("Network", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/network.json&filename=/config/network.json");
+        NavBarEntry::create("Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
                   { request->redirect("/default-template?load-module=/builtin/welcome_page"); });
@@ -39,6 +48,41 @@ namespace cogs_web
     /// Poll this periodically to check if wifi is connected.
     void check_wifi(bool force = false)
     {
+        if (!mdns_started)
+        {
+            if (WiFi.status() == WL_CONNECTED)
+            {
+                MDNS.begin(cogs::getHostname().c_str());
+                mdns_started = true;
+            }
+        }
+
+
+        // Mdns lib doesn't handle IP changes, should do something
+        // About that
+        // if (WiFi.status() == WL_CONNECTED)
+        // {
+        //     std::string ip = WiFi.localIP().toString().c_str();
+        //     if (localIp != ip)
+        //     {
+        //         if (ip == "0.0.0.0")
+        //         {
+        //         }
+        //         else
+        //         {
+
+        //             if (localIp != "")
+        //             {
+        //                 ESP.restart();
+        //             }
+        //             else
+        //             {
+        //                 localIp = ip;
+        //             }
+        //         }
+        //     }
+        // }
+
         if (!force)
         {
             if (WiFi.status() == WL_CONNECTED)
@@ -108,12 +152,14 @@ namespace cogs_web
         cogs::setDefaultFile("/config/network.json",
                              "{\"ssid\":\"" + ssid +
                                  "\",\n\"password\":\"" + password +
-                                 "\",\n\"hostname\":\"" + hostname +
+                                 "\"\n}");
+        cogs::setDefaultFile("/config/device.json",
+                             "{\"hostname\":\"" + hostname +
                                  "\"\n}");
         cogs_web::check_wifi();
     };
 
-    static void handleEvent(cogs::GlobalEvent event, int n, const std::string & path)
+    static void handleEvent(cogs::GlobalEvent event, int n, const std::string &path)
     {
         if (event == cogs::fileChangeEvent)
         {
@@ -135,5 +181,4 @@ namespace cogs_web
         cogs::globalEventHandlers.push_back(&handleEvent);
         cogs::slowPollHandlers.push_back(&slowPoll);
     }
-
 }

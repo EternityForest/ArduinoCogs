@@ -82,6 +82,12 @@ namespace cogs_rules
     unsigned int multiStart =0;
     unsigned int multiCount =1;
 
+    /// If True, only act when value changes
+    bool onchange = false;
+
+    /// Array tracking the last value of the binding.
+    /// Used for change detection.
+    int * lastState = nullptr;
 
     Binding(const std::string &target_name, const std::string & input);
 
