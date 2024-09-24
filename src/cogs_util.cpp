@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include "cogs_util.h"
 #include "cogs_global_events.h"
+#include "web/cogs_web.h"
 
 static uint32_t randomState = 1;
 
@@ -63,10 +64,12 @@ namespace cogs
     void logError(const std::string &msg)
     {
         Serial.println(msg.c_str());
+        cogs_web::wsBroadcast("error", msg.c_str());
     }
 
     void logInfo(const std::string &msg)
-    {
+    {        
+        cogs_web::wsBroadcast("info", msg.c_str());
         Serial.println(msg.c_str());
     }
 

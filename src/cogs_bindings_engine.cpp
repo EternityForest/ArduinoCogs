@@ -349,7 +349,11 @@ void Binding::eval()
 
       if (this->target)
       {
-        if (this->onchange)
+        if(this->frozen)
+        {
+
+        }
+        else if (this->onchange)
         {
           if (x != this->lastState[i])
           {
@@ -357,7 +361,9 @@ void Binding::eval()
             /// nan is the special flag meaning we are in an unknown state
             /// And thus cannot do change detection yet, so we don't
             /// Act until it changes again.
-            if (this->lastState[i] != NAN)
+
+            // If onenter is true, we act on enter no matter what
+            if ((this->lastState[i] != NAN) || this->onenter)
             {
               this->target->setValue(x*this->target->scale, this->multiStart + i, 1);
             }
@@ -367,6 +373,10 @@ void Binding::eval()
         else
         {
           this->target->setValue(x*this->target->scale, this->multiStart + i, 1);
+        }
+
+        if(this->freeze){
+          this->frozen = true;
         }
       }
     }
@@ -382,6 +392,7 @@ Binding::~Binding()
 
 void Binding::reset()
 {
+  this->frozen = false;
   for (int i = 0; i < this->multiCount; i++)
   {
     this->lastState[i] = 0;
@@ -698,6 +709,14 @@ static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, cons
 void cogs_rules::setupRulesEngine()
 {
   setupBuiltins();
+  auto t = cogs_rules::IntTagPoint::getTag("temp1", 0);
+  t->scale = 16384;
+  t = cogs_rules::IntTagPoint::getTag("temp2", 0);
+  t->scale = 16384;
+  t= cogs_rules::IntTagPoint::getTag("temp3", 0);
+  t->scale = 16384;
+
+
   cogs_reggshell::interpreter->addCommand("eval (.*)", evalExpressionCommand, "eval <expr> Evaluates any expression. All tag points available as vars");
   cogs_reggshell::interpreter->addSimpleCommand("tags", listTagsCommand, "list all tags and their first vals");
   cogs_reggshell::interpreter->addSimpleCommand("get", reggshellReadTagPoint, "get <tag> reads a tag point value, up to the first 32 vals");

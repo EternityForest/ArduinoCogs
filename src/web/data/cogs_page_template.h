@@ -8,7 +8,7 @@ static const char cogs_page_template[] = R"(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="cogs-page-title">Cogs</title>
     <link rel="stylesheet" href="/builtin/barrel.css">
-    <script src="/builtin/cogs.js"></script>
+    <script src="/builtin/cogs.js" type="module"></script>
 </head>
 <body>
     

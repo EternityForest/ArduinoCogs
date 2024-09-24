@@ -52,7 +52,7 @@ static void onEvent(AsyncWebSocket *server,
         JsonDocument doc;
 
         for(auto tp: cogs_rules::IntTagPoint::all_tags){
-            doc['vals'][tp.first] = tp.second->value[0];
+            doc["vals"][tp.first] = tp.second->value[0];
         }
         char * buf = reinterpret_cast<char *>(malloc(8192));
         if(!buf){

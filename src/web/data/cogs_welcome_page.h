@@ -1,6 +1,8 @@
 
 static const char welcome_page[] = R"(
 import { html, css, LitElement } from '/builtin/lit.min.js';
+import styles from '/builtin/barrel.css' with { type: 'css' }; 
+
 
 // A plugin page only requires a these two exports. 
 
@@ -9,6 +11,8 @@ export const metadata = {
 }
 
 export class PageRoot extends LitElement {
+    static styles = [styles];
+
     static properties = {
         name : {type : String},
     };

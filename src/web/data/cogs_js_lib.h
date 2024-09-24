@@ -4,8 +4,11 @@
 
 static const char cogs_js_lib[] = R"(
 import { html, css, LitElement } from '/builtin/lit.min.js';
+import styles from '/builtin/barrel.css' with { type: 'css' }; 
 
 class NavBar extends LitElement {
+    static styles = [styles];
+    
     static properties = {
         data : {type : Object},
     };
@@ -13,11 +16,14 @@ class NavBar extends LitElement {
     constructor()
     {
         super();
+        this.data = {"entries":{}}
+        var t = this;
 
         async function getData() {
             var x = await fetch('/api/cogs.navbar');
-            this.data = await x.json();
+            t.data = await x.json();
         }
+        getData();
     }
 
     render(){
@@ -26,7 +32,7 @@ class NavBar extends LitElement {
         <nav>
         <div class="tool-bar">
             ${Object.entries(this.data.entries).map(([key, value]) => html`
-            <li><a href="${value.url}">${value.title}</a></li>
+            <a href="${value.url}">${value.title}</a>
             `)}
         </div>
         </nav>

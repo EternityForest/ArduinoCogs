@@ -28,6 +28,7 @@
 #include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
+#include "cogs_bindings_engine.h"
 
 namespace cogs_web
 {

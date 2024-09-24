@@ -29,27 +29,28 @@ static const char cogs_automation_schema[] = R"(
                   "description": "While a state is active, a binding sets the value of a variable. similar to spreadsheet expressions",
                   "items": {
                     "properties": {
-                      "src": {
+                      "source": {
                         "title": "Source Expression",
                         "type": "string",
                         "options": {
                             "inputAttributes": {
-                                "datalist":  "tags"
+                                "list":  "tags"
                             }
                         }
                       },
-                      "dest": {
-                        "title": "Destination Variable",
+                      "target": {
+                        "title": "Target Variable",
                         "type": "string",
                         "options": {
                             "inputAttributes": {
-                                "datalist":  "expr_completions"
+                                "list":  "expr_completions"
                             }
                         }
                       },
-                      "onchange": {
-                         "type": "boolean",
-                         "title": "Only set target when value changes",
+                      "mode": {
+                         "type": "string",
+                         "enum": ["onchange", "onenter", "onframe"],
+                         "title": "Mode"
                      }
                     },
                     "title": "Binding",

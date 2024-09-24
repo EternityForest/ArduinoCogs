@@ -75,6 +75,9 @@ namespace cogs_rules
     te_expr *input_expression;
     std::shared_ptr<IntTagPoint> target;
     std::string target_name;
+
+    /// Don't run till unfrozen
+    bool frozen = false;
   public:
 
     // A binding can be for an array. This is an index and count for what part
@@ -82,8 +85,17 @@ namespace cogs_rules
     unsigned int multiStart =0;
     unsigned int multiCount =1;
 
-    /// If True, only act when value changes
+
+    /// If True, act once when entering a state, even if no changes
+    bool onenter = false;
+
+    /// If True, only act when value changes, and on enter if
+    /// onenter is set.
     bool onchange = false;
+
+
+    /// Only act once on enter no matter what.
+    bool freeze = false;
 
     /// Array tracking the last value of the binding.
     /// Used for change detection.

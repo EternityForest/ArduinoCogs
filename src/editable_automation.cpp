@@ -103,8 +103,20 @@ static void _loadFromFile()
             {
                 cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
                 auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
-                if(bindingData.containsKey("onchange")){
-                    b->onchange = bindingData["onchange"].as<bool>();
+                
+                if(bindingData.containsKey("mode")){
+                    std::string mode = bindingData["mode"].as<std::string>();
+                    if(mode == "onchange"){
+                        b->onchange = true;
+                    }
+                    if(mode == "onenter"){
+                        b->onenter = true;
+                        b->freeze = true;
+                    }
+                    if(mode == "onframe"){
+                        b->onchange = false;
+                        b->freeze = false;
+                    }
                 }
 
             }

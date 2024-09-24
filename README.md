@@ -49,8 +49,8 @@ These are just lists of numbers. Most of the time, they only contain one number.
 Internally, they are stored as integers. However they are converted using
 the tag's scale factor to floating point for evaluating expressions.
 
-
-
+There are three temp variables, temp1, temp2, and temp3, all of which have scale factor 16384. They can store up to the value 262721 in floating point,
+with about 0.000061 resolution.
 
 ## Config files
 

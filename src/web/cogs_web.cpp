@@ -7,7 +7,6 @@
 #include "cogs_web.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
-#include "cogs_bindings_engine.h"
 
 using namespace cogs_web;
 
