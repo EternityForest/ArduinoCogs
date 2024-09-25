@@ -103,7 +103,7 @@ export class PageRoot extends LitElement {
 
                 const response2 = await fetch(fileurl);
                 const filedata = await response2.json();
-                lastSavedVersion = raw;
+                lastSavedVersion = filedata;
 
                 editor.setValue(filedata);
             }
