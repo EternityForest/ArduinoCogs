@@ -27,7 +27,7 @@ var lastSavedVersion = null;
 
 window.addEventListener("beforeunload", function (e) {
 
-    if(JSON.stringify(editor.getValue(), null, 2) == lastSavedVersion) {
+    if(JSON.stringify(editor.getValue()) == JSON.stringify(lastSavedVersion)) {
         return;
     }
     var confirmationMessage = 'If you leave before saving, your changes will be lost.';
@@ -78,7 +78,6 @@ export class PageRoot extends LitElement {
             const response = await fetch(schema_url);
             const schema_data = await response.json();
             const raw = JSON.stringify(schema_data);
-            lastSavedVersion = raw;
 
             if(t.data.needsMetadata) {
             
@@ -107,6 +106,7 @@ export class PageRoot extends LitElement {
 
             const response2 = await fetch(fileurl);
             const filedata = await response2.json();
+            lastSavedVersion = raw;
 
             editor.setValue(filedata);
             }

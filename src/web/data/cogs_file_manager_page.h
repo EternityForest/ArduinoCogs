@@ -1,5 +1,6 @@
 
 static const char filemanager_js[] = R"(
+
 const urlParams = new URLSearchParams(window.location.search);
 
 var dir = urlParams.get('dir');
@@ -29,11 +30,17 @@ export class PageRoot extends LitElement {
     constructor()
     {
         super();
-        this.data = {"files":{},"dirs":{}};
+        this.data = {"files":{},"dirs":{},"path": dir};
+        var t = this;
     
         async function getData() {
-            var x = await fetch('/api/cogs.listdir?dir=' + dir);
+            var d = dir
+            if(!d.startsWith("/")){
+                d = "/" + dir
+            }
+            var x = await fetch('/api/cogs.listdir?dir=' + d);
             var y= await x.json();
+            y.dirs = y.dirs || {}
             y.path = dir;
             t.data = y;
         }
@@ -41,7 +48,7 @@ export class PageRoot extends LitElement {
     }
 
      
-    }
+    
 
     async handleDelete(path) {
         if(!confirm("Delete "+path+"?")) {
@@ -93,6 +100,7 @@ export class PageRoot extends LitElement {
         return html`
         <div>
         <h2>${this.data.path}</h2>
+        <p>Free flash: ${this.data.freeflash} of ${this.data.totalflash}</p>
         <form method="POST" enctype="multipart/form-data" target="/api/cogs.upload">
             <input type="file" name="file" id="file">
             <input type="hidden" name="path" id="path" value="${this.data.path}">
@@ -101,16 +109,16 @@ export class PageRoot extends LitElement {
 
         <ul>
             ${Object.entries(this.data.dirs).map(([key, value]) => html`
-            <li><a href="/builtin/files/&path=${this.data.path}/${key}">${key}(${value})/</a>
+            <li><a href="/default-template?load-module=/builtin/files_app.js&dir=${this.data.path}/${key}">${key}/</a>
             <button onclick="handleDelete('${key}');">Delete</button>
-            <li>
+            </li>
             `)}
 
             ${Object.entries(this.data.files).map(([key, value]) => html`
-            <li><a href="/api/cogs.download/&file=${this.data.path}/${key}">${key}(${value})/</a>
+            <li><a href="/api/cogs.download/?file=${this.data.path}/${key}">${key}(${value})</a>
             <button onclick="handleRenameRequest('${key}');">Rename</button>
             <button onclick="handleDelete('${key}');">Delete</button>
-            <li>
+            </li>
             `)}
         </ul>
 
