@@ -37,8 +37,8 @@ static void listdir_handler(AsyncWebServerRequest *request)
 {
     JsonDocument doc;
 
-    doc['freeflash'] = LittleFS.totalBytes() - LittleFS.usedBytes();
-    doc['totalflash'] = LittleFS.totalBytes();
+    doc["freeflash"] = LittleFS.totalBytes() - LittleFS.usedBytes();
+    doc["totalflash"] = LittleFS.totalBytes();
 
     char resp[4096];
 

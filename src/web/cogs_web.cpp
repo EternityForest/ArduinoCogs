@@ -16,7 +16,7 @@ namespace cogs_web
 {
 
     std::list<NavBarEntry *> navBarEntries;
-#include "web/data/cogs_page_template.h"
+#include "web/generated_data/page_template_html_gz.h"
 #include "web/data/cogs_welcome_page.h"
 
     bool error_once = false;
@@ -25,6 +25,19 @@ namespace cogs_web
 
     std::string localIp = "";
 
+    void sendGzipFile(AsyncWebServerRequest *request,
+                           const unsigned char *data,
+                           unsigned int size,
+                           const char *mime)
+    {
+        AsyncWebServerResponse *response = request->beginResponse(200,
+                                                                  mime,
+                                                                  data,
+                                                                  size);
+        response->addHeader("Content-Encoding", "gzip");
+        response->addHeader("Cache-Control", "public, max-age=604800");
+        request->send(response);
+    }
     void setupWebServer()
     {
         cogs_web::setup_cogs_core_web_apis();
@@ -37,7 +50,7 @@ namespace cogs_web
                   { request->redirect("/default-template?load-module=/builtin/welcome_page"); });
 
         server.on("/default-template", HTTP_GET, [](AsyncWebServerRequest *request)
-                  { request->send(200, "text/html", cogs_page_template); });
+                  { cogs_web::sendGzipFile(request, page_template_html_gz, sizeof(page_template_html_gz), "text/html"); });
 
         server.on("/builtin/welcome_page", HTTP_GET, [](AsyncWebServerRequest *request)
                   { request->send(200, "application/javascript", welcome_page); });

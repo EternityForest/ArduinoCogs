@@ -1,5 +1,3 @@
-
-static const char jsoneditor_js[] = R"(
 const urlParams = new URLSearchParams(window.location.search);
 
 const schema_url = urlParams.get('schema');
@@ -15,10 +13,10 @@ var editor = null
 // detect the customprops url parameter
 var additionalproperties = urlParams.get('additionalproperties');
 
-if(additionalproperties) {
+if (additionalproperties) {
     additionalproperties = true;
 }
-else{
+else {
     additionalproperties = false;
 }
 
@@ -27,7 +25,7 @@ var lastSavedVersion = null;
 
 window.addEventListener("beforeunload", function (e) {
 
-    if(JSON.stringify(editor.getValue()) == JSON.stringify(lastSavedVersion)) {
+    if (JSON.stringify(editor.getValue()) == JSON.stringify(lastSavedVersion)) {
         return;
     }
     var confirmationMessage = 'If you leave before saving, your changes will be lost.';
@@ -38,7 +36,7 @@ window.addEventListener("beforeunload", function (e) {
 
 
 import { html, css, LitElement } from '/builtin/lit.min.js';
-import styles from '/builtin/barrel.css' with { type: 'css' }; 
+import styles from '/builtin/barrel.css' with { type: 'css' };
 
 // A plugin page only requires a these two exports. 
 
@@ -50,18 +48,17 @@ export class PageRoot extends LitElement {
     static styles = [styles];
 
     static properties = {
-        data : {type : Object},
+        data: { type: Object },
     };
-    
-    constructor()
-    {
+
+    constructor() {
         super();
-        this.data = {"tags":{},"expr_completions":{}, "needsMetadata":true};
-    
+        this.data = { "tags": {}, "expr_completions": {}, "needsMetadata": true };
+
     }
 
     updated() {
-        if(this.initialized) {
+        if (this.initialized) {
             return;
         }
 
@@ -79,36 +76,36 @@ export class PageRoot extends LitElement {
             const schema_data = await response.json();
             const raw = JSON.stringify(schema_data);
 
-            if(t.data.needsMetadata) {
-            
-                if(raw.includes ("expr_completions")) {
+            if (t.data.needsMetadata) {
+
+                if (raw.includes("expr_completions")) {
                     const expr_completions = await fetch('/api/expr');
                     t.data.expr_completions = (await expr_completions.json())['datalist'];
                 }
 
-                if(raw.includes("tags")) {
+                if (raw.includes("tags")) {
                     const tags = await fetch('/api/tags');
                     t.data.tags = (await tags.json())['tags'];
                 }
                 t.requestUpdate();
                 t.data.needsMetadata = false;
-            
 
-            editor = new JSONEditor(t.shadowRoot.getElementById("editor_holder"), {
-                schema: schema_data,
-                disable_array_delete_all_rows: true,
-                array_controls_top: true,
-                disable_array_delete_last_row: true,
-                disable_edit_json: true,
-                disable_properties: !additionalproperties,
-                theme: "barebones"
-            });
 
-            const response2 = await fetch(fileurl);
-            const filedata = await response2.json();
-            lastSavedVersion = raw;
+                editor = new JSONEditor(t.shadowRoot.getElementById("editor_holder"), {
+                    schema: schema_data,
+                    disable_array_delete_all_rows: true,
+                    array_controls_top: true,
+                    disable_array_delete_last_row: true,
+                    disable_edit_json: true,
+                    disable_properties: !additionalproperties,
+                    theme: "barebones"
+                });
 
-            editor.setValue(filedata);
+                const response2 = await fetch(fileurl);
+                const filedata = await response2.json();
+                lastSavedVersion = raw;
+
+                editor.setValue(filedata);
             }
         });
 
@@ -119,7 +116,7 @@ export class PageRoot extends LitElement {
         fd.append('file', filename);
         fd.append('data', JSON.stringify(editor.getValue(), null, 2));
 
-        try{
+        try {
             await fetch('/api/cogs.setfile', {
                 method: 'POST',
                 body: fd
@@ -129,7 +126,7 @@ export class PageRoot extends LitElement {
 
             alert("Saved!");
         }
-        catch(err) {
+        catch (err) {
             alert("Error: " + err);
         }
     }
@@ -154,4 +151,3 @@ export class PageRoot extends LitElement {
         `;
     }
 }
-)";

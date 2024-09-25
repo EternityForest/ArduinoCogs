@@ -10,7 +10,7 @@
 #include "cogs_util.h"
 #include "cogs_global_events.h"
 #include "web/cogs_web.h"
-#include "web/data/cogs_automation_schema.h"
+#include "web/generated_data/automation_schema_json_gz.h"
 
 
 
@@ -207,7 +207,7 @@ void cogs_editable_automation::setupEditableAutomation()
     cogs_web::server.on("/api/tags", HTTP_GET, listTargetsApi);
     cogs_web::server.on("/api/expr", HTTP_GET, exprDatalist);
     cogs_web::server.on("/builtin/schemas/automation.json", HTTP_GET, [](AsyncWebServerRequest *request)
-                    { request->send(200, "application/json", cogs_automation_schema); });
+                    { cogs_web::sendGzipFile(request, automation_schema_json_gz, sizeof(automation_schema_json_gz), "application/json"); });
 
     // Add a navbar entry allowing editing of automation.json
     cogs_web::NavBarEntry::create("Automation Rules", 

@@ -1,22 +1,16 @@
-
-
-// Our all-in-one javascript library for cogs.
-
-static const char cogs_js_lib[] = R"(
 import { html, css, LitElement } from '/builtin/lit.min.js';
-import styles from '/builtin/barrel.css' with { type: 'css' }; 
+import styles from '/builtin/barrel.css' with { type: 'css' };
 
 class NavBar extends LitElement {
     static styles = [styles];
-    
+
     static properties = {
-        data : {type : Object},
+        data: { type: Object },
     };
 
-    constructor()
-    {
+    constructor() {
         super();
-        this.data = {"entries":{}}
+        this.data = { "entries": {} }
         var t = this;
 
         async function getData() {
@@ -26,9 +20,9 @@ class NavBar extends LitElement {
         getData();
     }
 
-    render(){
-    
-    return html`
+    render() {
+
+        return html`
         <nav>
         <div class="tool-bar">
             ${Object.entries(this.data.entries).map(([key, value]) => html`
@@ -37,8 +31,7 @@ class NavBar extends LitElement {
         </div>
         </nav>
     `;
-  }
+    }
 }
 
 customElements.define('cogs-builtin-navbar', NavBar);
-)";
