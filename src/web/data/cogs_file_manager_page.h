@@ -1,0 +1,121 @@
+
+static const char filemanager_js[] = R"(
+const urlParams = new URLSearchParams(window.location.search);
+
+var dir = urlParams.get('dir');
+if(!dir) {
+    dir = '/';
+}
+if(dir.endsWith('/')) {
+    dir = dir.substring(0, dir.length - 1);
+}
+
+import { html, css, LitElement } from '/builtin/lit.min.js';
+import styles from '/builtin/barrel.css' with { type: 'css' }; 
+
+// A plugin page only requires a these two exports. 
+
+export const metadata = {
+    title: "Cogs",
+}
+
+export class PageRoot extends LitElement {
+    static styles = [styles];
+
+    static properties = {
+        data : {type : Object},
+    };
+    
+    constructor()
+    {
+        super();
+        this.data = {"files":{},"dirs":{}};
+    
+        async function getData() {
+            var x = await fetch('/api/cogs.listdir?dir=' + dir);
+            var y= await x.json();
+            y.path = dir;
+            t.data = y;
+        }
+        getData();
+    }
+
+     
+    }
+
+    async handleDelete(path) {
+        if(!confirm("Delete "+path+"?")) {
+            return;
+        }
+        if(path.startsWith('/config')) {
+            alert("Error: Cannot delete config files");
+            return;
+        }
+        var fd = new FormData();
+        fd.append('file', dir+"/"+path);
+
+        try{
+            await fetch('/api/cogs.deletefile', {
+                method: 'POST',
+                body: fd
+            })
+
+            window.location.reload();
+        }
+        catch(err) {
+            alert("Error: " + err);
+        }
+    }
+
+    async handleRenameRequest(path) {
+        var fd = new FormData();
+        fd.append('file', dir+"/"+path);
+        var n = prompt("Enter new name:",dir+"/"+path);
+        if(n.indexOf("'") != -1 || n.indexOf('"') != -1) {
+            alert("Error: name cannot contain quotes");   
+        }
+        fd.append('newname', n);
+        try{
+            await fetch('/api/cogs.renamefile', {
+                method: 'POST',
+                body: fd
+            })
+
+            window.location.reload();
+        }
+        catch(err) {
+            alert("Error: " + err);
+        }
+    }
+
+
+    render() {
+        return html`
+        <div>
+        <h2>${this.data.path}</h2>
+        <form method="POST" enctype="multipart/form-data" target="/api/cogs.upload">
+            <input type="file" name="file" id="file">
+            <input type="hidden" name="path" id="path" value="${this.data.path}">
+            <input type="submit" value="Upload File">
+        </form>
+
+        <ul>
+            ${Object.entries(this.data.dirs).map(([key, value]) => html`
+            <li><a href="/builtin/files/&path=${this.data.path}/${key}">${key}(${value})/</a>
+            <button onclick="handleDelete('${key}');">Delete</button>
+            <li>
+            `)}
+
+            ${Object.entries(this.data.files).map(([key, value]) => html`
+            <li><a href="/api/cogs.download/&file=${this.data.path}/${key}">${key}(${value})/</a>
+            <button onclick="handleRenameRequest('${key}');">Rename</button>
+            <button onclick="handleDelete('${key}');">Delete</button>
+            <li>
+            `)}
+        </ul>
+
+        </div>
+        `;
+    }
+}
+)";

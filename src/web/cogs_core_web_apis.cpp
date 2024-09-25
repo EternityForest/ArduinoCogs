@@ -24,24 +24,20 @@ static void navbar_handler(AsyncWebServerRequest *request)
     {
         doc["entries"][ctr]["title"] = e->title;
         doc["entries"][ctr]["url"] = e->url;
+        ctr++;
     }
 
-    char output[2048];
-    serializeJson(doc, output, 2048);
+    char output[4096];
+    serializeJson(doc, output, 4096);
 
     request->send(200, "application/json", output);
 }
 
 static void listdir_handler(AsyncWebServerRequest *request)
 {
-    int args = request->args();
-    for (int i = 0; i < args; i++)
-    {
-        Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
-    }
-
     JsonDocument doc;
-    char resp[32000];
+
+    char resp[4096];
 
     if (!request->hasArg("dir"))
     {
@@ -63,24 +59,29 @@ static void listdir_handler(AsyncWebServerRequest *request)
 
     File f = dir.openNextFile();
 
+    // Hang onto refs because json lib might not copy
+    std::list<std::string> strs;
+
     while (f)
     {
-
-        doc["files"][dir.name()]["size"] = f.size();
-
         if (f.isDirectory())
         {
-            doc["files"][dir.name()]["type"] = "dir";
+            auto s = std::string(f.name());
+            strs.push_back(s);
+            doc["dirs"][s] = "";
+
         }
         else
         {
-            doc["files"][dir.name()]["type"] = "file";
+            auto s = std::string(f.name());
+            strs.push_back(s);
+            doc["files"][s] = f.size();
         }
 
         f = dir.openNextFile();
     }
 
-    serializeJson(doc, resp, 32000);
+    serializeJson(doc, resp, 4096);
     request->send(200, "application/json", resp);
 }
 
@@ -187,6 +188,40 @@ static void handleSetFile(AsyncWebServerRequest *request)
     request->send(200);
 }
 
+static void handleDeleteFile(AsyncWebServerRequest *request){
+
+    if (!request->hasArg("file"))
+    {
+        request->send(500, "text/plain", "nofileparam");
+        return;
+    }
+
+    LittleFS.remove(request->arg("file").c_str());
+    cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
+    request->send(200);
+}
+
+static void handleRenameFile(AsyncWebServerRequest *request){
+
+    if (!request->hasArg("file"))
+    {
+        request->send(500, "text/plain", "nofileparam");
+        return;
+    } 
+    if (!request->hasArg("newname"))
+    {
+        request->send(500, "text/plain", "nofileparam");
+        return;
+    }
+    
+    std::string fn = request->arg("newname").c_str();
+    std::string dirname = fn.substr(0, fn.rfind('/'));
+    cogs::ensureDirExists(dirname);
+
+    LittleFS.rename(request->arg("file").c_str(), request->arg("newname").c_str());
+    cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
+    request->send(200);
+}
 namespace cogs_web
 {
 
@@ -203,5 +238,8 @@ namespace cogs_web
         server.on("/api/cogs.setfile", HTTP_POST, handleSetFile);
 
         server.on("/api/cogs.download", HTTP_GET, handleDownload);
+
+        server.on("/api/cogs.deletefile", HTTP_POST, handleDeleteFile);
+        server.on("/api/cogs.renamefile", HTTP_POST, handleRenameFile);
     }
 }

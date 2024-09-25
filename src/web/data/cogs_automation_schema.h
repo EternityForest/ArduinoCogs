@@ -1,10 +1,14 @@
 // This schema is for the automation.json file.
 static const char cogs_automation_schema[] = R"(
 {
-  "properties": {
+"options": {
+    "disable_collapse": true
+},
+"properties": {
     "clockworks": {
       "description": "A clockwork is a virtual timer machine that can trigger different actions in different conditions",
       "format": "tabs-top",
+
       "items": {
         "properties": {
           "name": {
@@ -14,6 +18,9 @@ static const char cogs_automation_schema[] = R"(
           "states": {
             "description": "A state represents a mode, status, or condition that a Clockwork can be in.",
             "format": "tabs-top",
+            "options": {
+                "disable_collapse": true
+            },
             "items": {
               "id": "state",
               "headerTemplate": "{{name}}",
@@ -27,14 +34,20 @@ static const char cogs_automation_schema[] = R"(
                 },
                 "bindings": {
                   "description": "While a state is active, a binding sets the value of a variable. similar to spreadsheet expressions",
+                  "options": {
+                        "disable_collapse": true
+                  },
                   "items": {
+                    "options":{
+                         "disable_collapse": true
+                    },
                     "properties": {
                       "source": {
                         "title": "Source Expression",
                         "type": "string",
                         "options": {
                             "inputAttributes": {
-                                "list":  "tags"
+                                "list":  "expr_completions"
                             }
                         }
                       },
@@ -43,7 +56,7 @@ static const char cogs_automation_schema[] = R"(
                         "type": "string",
                         "options": {
                             "inputAttributes": {
-                                "list":  "expr_completions"
+                                "list":  "tags"
                             }
                         }
                       },

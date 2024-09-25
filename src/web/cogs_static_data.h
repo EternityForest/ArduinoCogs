@@ -10,6 +10,21 @@
 #include "web/data/cogs_json_schemas.h"
 #include "web/data/cogs_js_lib.h"
 #include "web/data/cogs_barrel_css.h"
+#include "web/data/cogs_file_manager_page.h"
+
+void sendCacheableFile(AsyncWebServerRequest *request,
+                       const char *data,
+                       unsigned int size,
+                       const char *mime)
+{
+    AsyncWebServerResponse *response = request->beginResponse(200,
+                                                              mime,
+                                                              (const uint8_t *)data,
+                                                              size);
+    response->addHeader("Cache-Control", "public, max-age=604800");
+    request->send(response);
+}
+
 void setup_builtin_static()
 {
     cogs_web::server.on("/builtin/lit.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -43,6 +58,12 @@ void setup_builtin_static()
 
     cogs_web::server.on("/builtin/jsoneditor_app.js", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/javascript", jsoneditor_js); });
+
+    cogs_web::server.on("/builtin/files_app.js", HTTP_GET, [](AsyncWebServerRequest *request)
+                        { sendCacheableFile(request,
+                                            filemanager_js,
+                                            sizeof(filemanager_js),
+                                            "application/javascript"); });
 
     cogs_web::server.on("/builtin/schemas/object.json", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/json", generic_object_schema); });

@@ -29,4 +29,8 @@ namespace cogs
 
     // Print unit testing for the code itself. Used for dev only.
     void runUnitTests();
+
+    /// Create a directory if it does not exist
+    void ensureDirExists(const std::string &dir);
+
 }

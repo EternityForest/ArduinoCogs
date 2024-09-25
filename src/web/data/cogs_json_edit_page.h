@@ -12,11 +12,22 @@ var fileuploadurl = new URL('/api/cogs.upload', window.location.origin);
 fileuploadurl.searchParams.append('file', filename);
 var editor = null
 
+// detect the customprops url parameter
+var additionalproperties = urlParams.get('additionalproperties');
+
+if(additionalproperties) {
+    additionalproperties = true;
+}
+else{
+    additionalproperties = false;
+}
+
+
 var lastSavedVersion = null;
 
 window.addEventListener("beforeunload", function (e) {
 
-    if(JSON.stringify(editor.getValue()) == lastSavedVersion) {
+    if(JSON.stringify(editor.getValue(), null, 2) == lastSavedVersion) {
         return;
     }
     var confirmationMessage = 'If you leave before saving, your changes will be lost.';
@@ -55,6 +66,7 @@ export class PageRoot extends LitElement {
         }
 
 
+
         var jes = document.createElement('script')
         jes.type = "module"
         jes.src = '/builtin/jsoneditor.min.js'
@@ -84,7 +96,13 @@ export class PageRoot extends LitElement {
             
 
             editor = new JSONEditor(t.shadowRoot.getElementById("editor_holder"), {
-                schema: schema_data
+                schema: schema_data,
+                disable_array_delete_all_rows: true,
+                array_controls_top: true,
+                disable_array_delete_last_row: true,
+                disable_edit_json: true,
+                disable_properties: !additionalproperties,
+                theme: "barebones"
             });
 
             const response2 = await fetch(fileurl);
@@ -96,15 +114,24 @@ export class PageRoot extends LitElement {
 
     }
 
-    handleSubmit() {
+    async handleSubmit() {
         var fd = new FormData();
         fd.append('file', filename);
-        fd.append('data', JSON.stringify(editor.getValue()));
+        fd.append('data', JSON.stringify(editor.getValue(), null, 2));
 
-        fetch('/api/cogs.setfile', {
-            method: 'POST',
-            body: fd
-        })
+        try{
+            await fetch('/api/cogs.setfile', {
+                method: 'POST',
+                body: fd
+            })
+
+            lastSavedVersion = JSON.stringify(editor.getValue(), null, 2);
+
+            alert("Saved!");
+        }
+        catch(err) {
+            alert("Error: " + err);
+        }
     }
 
 

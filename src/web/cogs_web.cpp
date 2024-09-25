@@ -29,8 +29,9 @@ namespace cogs_web
     {
         cogs_web::setup_cogs_core_web_apis();
 
-        NavBarEntry::create("Network", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/network.json&filename=/config/network.json");
-        NavBarEntry::create("Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
+        cogs_web::NavBarEntry::create("Network", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/network.json&filename=/config/network.json");
+        cogs_web::NavBarEntry::create("Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
+        cogs_web::NavBarEntry::create("Files", "/default-template?load-module=/builtin/files_app.js");
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
                   { request->redirect("/default-template?load-module=/builtin/welcome_page"); });
@@ -55,7 +56,6 @@ namespace cogs_web
                 mdns_started = true;
             }
         }
-
 
         // Mdns lib doesn't handle IP changes, should do something
         // About that
