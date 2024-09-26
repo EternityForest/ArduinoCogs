@@ -18,6 +18,9 @@ namespace cogs
     void logError(const std::string &msg);
     void logInfo(const std::string &msg);
 
+    // Delay till next frame
+    void waitFrame();
+
     /// Random 32 bit int.  Randomness is NOT cryptographically secure.
     /// But should use real entropy from micros timing in many cases.
     uint32_t random(); //flawfinder: ignore

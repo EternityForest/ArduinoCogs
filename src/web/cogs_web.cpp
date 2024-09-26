@@ -7,6 +7,7 @@
 #include "cogs_web.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
+#include "web/generated_data/nord_css_gz.h"
 
 using namespace cogs_web;
 
@@ -38,6 +39,11 @@ namespace cogs_web
         response->addHeader("Cache-Control", "public, max-age=604800");
         request->send(response);
     }
+
+    void setupDefaultWebTheme(){
+        cogs::setDefaultFile("/api/cogs.theme.css", std::string(reinterpret_cast<const char *>(nord_css_gz), sizeof(nord_css_gz)));
+    }
+
     void setupWebServer()
     {
         cogs_web::setup_cogs_core_web_apis();
@@ -45,6 +51,7 @@ namespace cogs_web
         cogs_web::NavBarEntry::create("Network", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/network.json&filename=/config/network.json");
         cogs_web::NavBarEntry::create("Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
         cogs_web::NavBarEntry::create("Files", "/default-template?load-module=/builtin/files_app.js");
+        cogs_web::NavBarEntry::create("Dashboard", "/default-template?load-module=/builtin/dashboard_app.js");
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
                   { request->redirect("/default-template?load-module=/builtin/welcome_page"); });

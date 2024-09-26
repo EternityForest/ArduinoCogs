@@ -11,15 +11,16 @@ if (dir.endsWith('/')) {
 
 import { html, css, LitElement } from '/builtin/lit.min.js';
 import styles from '/builtin/barrel.css' with { type: 'css' };
+import theme from '/api/cogs.theme.css' with { type: 'css' };
 
-// A plugin page only requires a these two exports. 
+// A plugin page only requires a these two exports.
 
 export const metadata = {
     title: "Cogs",
 }
 
 export class PageRoot extends LitElement {
-    static styles = [styles];
+    static styles = [styles, theme];
 
     static properties = {
         data: { type: Object },

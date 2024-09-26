@@ -26,11 +26,27 @@ namespace cogs
         return random() % (max - min) + min; // flawfinder: ignore
     }
 
+    void waitFrame()
+    {
+        delay(20);
+    }
+
     void ensureDirExists(const std::string &dir)
     {
-        if (!LittleFS.exists(dir.c_str()))
-        {
-            LittleFS.mkdir(dir.c_str());
+        int safety = 24;
+        std::string dirname = dir;
+
+        while(dirname.size() > 1){
+            safety--;
+            if (safety < 0)
+            {
+                break;
+            }
+            if (!LittleFS.exists(dirname.c_str()))
+            {
+                LittleFS.mkdir(dirname.c_str());
+            }
+            dirname = dirname.substr(0, dirname.rfind('/'));
         }
     }
 

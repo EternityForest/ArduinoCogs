@@ -40,12 +40,15 @@ namespace cogs_web
 
     extern std::list<cogs_web::NavBarEntry *> navBarEntries;
 
-    // Send a gzipped file with the encoding header
+    /// Send a gzipped file with the encoding header
     void sendGzipFile(AsyncWebServerRequest *request,
                            const unsigned char *data,
                            unsigned int size,
                            const char *mime);
 
+
+    //! If /api/cogs.theme.css does not exist, set it to a basic Nord colors theme
+    void setupDefaultWebTheme();
 
     //! Represents one entry in the nav bar.  On creation, it is automatically active.
     //! Used by plugins.  Created with cogs_web::NavBarEntry::create(title, url)

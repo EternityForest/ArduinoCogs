@@ -8,11 +8,13 @@
 #include <stdint.h>
 #include <cstring>
 #include "cogs_util.h"
+#include "cogs_global_events.h"
 
 extern "C"
 {
 #include "tinyexpr/tinyexpr.h"
 }
+
 
 namespace cogs_tagpoints
 {
@@ -62,6 +64,23 @@ namespace cogs_tagpoints
     /// The scale is a multiplier used to convert floats to the actual tag value.
     int scale = 1;
 
+    /// The range of values.  Used for metadata only, for performance reasons
+    /// We do not constrain automatically in most cases
+    int min = INT32_MIN;
+    /// The range of values.  Used for metadata only, for performance reasons
+    /// We do not constrain automatically in most cases
+    int max = INT32_MAX;
+    /// The range of values.  Used for metadata only, for performance reasons
+    /// We do not constrain automatically in most cases
+    int step = 1;
+
+
+    /// The min value considered normal
+    int lo=INT32_MIN;
+
+    /// The max value considered normal. Used for web display.
+    int hi=INT32_MAX;
+
     /// The unit of the tag. Used for display purposes mostly.
     std::string unit;
 
@@ -89,6 +108,8 @@ namespace cogs_tagpoints
 
     inline static std::shared_ptr<TagPoint<T>> getTag(std::string name, T default_value, int count = 1)
     {
+      bool is_new = !TagPoint<T>::all_tags.contains(name);
+
       if(name.size() == 0){
         throw std::runtime_error("name empty");
       }
@@ -102,6 +123,10 @@ namespace cogs_tagpoints
         TagPoint<T>::all_tags[name] = std::shared_ptr<TagPoint<T>>(new TagPoint<T>(name, default_value, count));
       }
 
+      if (is_new)
+      {
+        cogs::triggerGlobalEvent(cogs::tagCreatedEvent, 0, name);
+      }
       return TagPoint<T>::all_tags[name];
     }
 

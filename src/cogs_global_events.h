@@ -25,7 +25,12 @@ namespace cogs
         /// Not all files will have this event, it must be manually called from whatever
         /// Changes it
         /// Param0: ignored, param1: file name
-        fileChangeEvent = 4
+        fileChangeEvent = 4,
+
+
+        /// A tag point has been created
+        tagCreatedEvent = 5
+
 
     };
 

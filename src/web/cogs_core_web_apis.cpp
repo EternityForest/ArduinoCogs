@@ -10,6 +10,7 @@
 #include "web/cogs_static_data.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
+#include "cogs_bindings_engine.h"
 
 /// Handles requests to /api/cogs.navbar by returning a JSON list of the nav bar entries
 
@@ -92,10 +93,6 @@ static void handleDownload(AsyncWebServerRequest *request)
 {
 
     int args = request->args();
-    for (int i = 0; i < args; i++)
-    {
-        Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
-    }
 
     if (!request->hasArg("file"))
     {
@@ -110,10 +107,6 @@ static void handleUpload(AsyncWebServerRequest *request, String orig_filename, s
 {
 
     int args = request->args();
-    for (int i = 0; i < args; i++)
-    {
-        Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
-    }
 
     std::string redirect = "/";
     if (request->hasArg("redirect"))
@@ -225,12 +218,61 @@ static void handleRenameFile(AsyncWebServerRequest *request){
     cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
     request->send(200);
 }
+
+static void handleGetTagInfo(AsyncWebServerRequest *request)
+{
+
+    if (!request->hasArg("tag"))
+    {
+        request->send(500, "text/plain", "nofileparam");
+        return;
+    }
+    std::string tagname = request->arg("tag").c_str();
+    if (!cogs_rules::IntTagPoint::exists(tagname))
+    {
+        request->send(500, "text/plain", "tagnotfound");
+        return;
+    }
+    auto tag = cogs_rules::IntTagPoint::getTag(tagname,0,1);
+
+    JsonDocument doc;
+    doc["max"] = tag->max;
+    doc["min"] = tag->min;
+    doc["unit"] = tag->unit;
+    doc["step"] = tag->step;
+    doc["hi"] = tag->hi;
+    doc["lo"] = tag->lo;
+    doc["scale"] = tag->scale;
+    doc["firstValue"] = tag->value[0];
+    doc["length"] = tag->count;
+
+    char buf[256];
+    serializeJson(doc, buf, 256);
+
+    request->send(200, "text/plain", buf);
+
+}
+
+static void listTags(AsyncWebServerRequest *request){
+    JsonDocument doc = JsonDocument();
+    for(auto tagPoint : cogs_rules::IntTagPoint::all_tags){
+        doc["tags"][tagPoint.first] = tagPoint.second->value[0];        
+    }
+    
+    char buf[2048];
+    serializeJson(doc, buf, 2048);
+
+    request->send(200, "text/plain", buf);
+}
+
+
 namespace cogs_web
 {
 
     void setup_cogs_core_web_apis()
     {
         setup_builtin_static();
+        setupWebSocketServer();
 
         server.on("/api/cogs.navbar", HTTP_GET, navbar_handler);
         server.on("/api/cogs.listdir", HTTP_GET, listdir_handler);
@@ -244,5 +286,9 @@ namespace cogs_web
 
         server.on("/api/cogs.deletefile", HTTP_POST, handleDeleteFile);
         server.on("/api/cogs.renamefile", HTTP_POST, handleRenameFile);
+
+        server.on("/api/cogs.tag", HTTP_GET, handleGetTagInfo);
+
+        server.on("/api/cogs.tags", HTTP_GET, listTags);
     }
 }
