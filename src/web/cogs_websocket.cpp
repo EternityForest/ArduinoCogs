@@ -21,7 +21,7 @@ static void handleWsData(char *d)
             if (cogs_rules::IntTagPoint::exists(kv.key().c_str()))
             {
                 auto t = cogs_rules::IntTagPoint::getTag(kv.key().c_str(), 0, 1);
-                t->setValue(kv.value().as<int>(), 0, 1);
+                t->setValue(v, 0, 1);
                 if(t->value[0] != v){
                     pushTagPointValue(t.get());
                 }
@@ -101,14 +101,8 @@ static void onEvent(AsyncWebSocket *server,
     }
     else if (type == WS_EVT_DATA)
     {
-            Serial.println("WS data");
-
-
         // data packet
         AwsFrameInfo *info = (AwsFrameInfo *)arg;
-            Serial.println(info->final);
-            Serial.println(info->index);
-            Serial.println(info->len);
         if (info->final && info->index == 0 && info->len == len)
         {
             // the whole message is in a single frame and we got all of it's data

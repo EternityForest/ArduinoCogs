@@ -256,21 +256,9 @@ var CogsApi = function () {
 
                 var resp = r['var']
                 //Iterate messages
-                for (var n = 0; n < resp.length; n++) {
-                    i = resp[n]
+                for (var n in resp) {
                     for (j in apiobj.serverMsgCallbacks[i[0]]) {
-                        if (resp[n].length > 1) {
-                            apiobj.serverMsgCallbacks[i[0]][j](resp[n][1]);
-                        }
-                        else {
-                            if (this.alreadyPostedAlertOnce) { }
-                            else {
-                                this.alreadyPostedAlertOnce = true
-                                if (this.enableWidgetGoneAlert) {
-                                    alert("A widget used by this page no longer exists on the server.  Try refreshing later.")
-                                }
-                            }
-                        }
+                        apiobj.serverMsgCallbacks[n][j](resp[n][1]);
                     }
                 }
             }
