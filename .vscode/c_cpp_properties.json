@@ -4,7 +4,8 @@
             "name": "Arduino",
             "includePath": [
                 "${workspaceFolder}/**",
-                "~/.arduino15/packages/esp32/hardware/esp32/*/libraries",
+                "~/.arduino15/packages/esp32/hardware/esp32/*/libraries/*",
+                "~/.arduino15/packages/esp32/hardware/esp32/*/libraries/*/src",
                 "~/.arduino15/packages/esp32/hardware/esp32/*/cores/esp32",
                 "~/.arduino15/packages/esp32/tools/esp32-arduino-libs/*/esp32/include/freertos/FreeRTOS-Kernel/include",
                 "~/.arduino15/packages/esp32/tools/esp32-arduino-libs/*/esp32/include/freertos/FreeRTOS-Kernel",

@@ -3,7 +3,6 @@
 #include "cogs_global_events.h"
 
 #include <string>
-#include "AudioOutput.h"
 #include "AudioOutputI2S.h"
 #include "AudioOutputMixer.h"
 #include "AudioOutputBuffer.h"

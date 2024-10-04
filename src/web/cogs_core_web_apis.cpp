@@ -281,7 +281,7 @@ static void listTags(AsyncWebServerRequest *request){
     cogs::lock();
     JsonDocument doc = JsonDocument();
     for(auto const & tagPoint : cogs_rules::IntTagPoint::all_tags){
-        doc["tags"][tagPoint.first] = tagPoint.second->value[0];        
+        doc["tags"][tagPoint->name] = tagPoint->value[0];        
     }
     
     char buf[2048];

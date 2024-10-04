@@ -168,7 +168,7 @@ static void listTargetsApi(AsyncWebServerRequest *request)
     // Add every tag point name to the enum property
     for (auto const &tagPoint : cogs_rules::IntTagPoint::all_tags)
     {
-        doc["tags"][tagPoint.first] = tagPoint.second->unit + " " + tagPoint.second->description;
+        doc["tags"][tagPoint->name] = std::string(tagPoint->unit->c_str());
     }
     char *buf = reinterpret_cast<char *>(malloc(8192));
     if (!buf)
@@ -186,7 +186,8 @@ static void exprDatalist(AsyncWebServerRequest *request)
     JsonDocument doc;
     for (auto const &tagPoint : cogs_rules::IntTagPoint::all_tags)
     {
-        doc["datalist"][tagPoint.first] = tagPoint.second->unit + " " + tagPoint.second->description;
+        doc["datalist"][tagPoint->name] = std::string(tagPoint->unit->c_str()) +
+        " " + std::string(tagPoint->description->c_str())
     }
     for (auto const &f : cogs_rules::user_functions0)
     {

@@ -104,7 +104,7 @@ static void onEvent(AsyncWebSocket *server,
     {
         cogs::lock();
         // data packet
-        AwsFrameInfo *info = (AwsFrameInfo *)arg;
+        AwsFrameInfo *info = reinterpret_cast<AwsFrameInfo *>(arg);
         if (info->final && info->index == 0 && info->len == len)
         {
             // the whole message is in a single frame and we got all of it's data
@@ -136,10 +136,10 @@ void cogs_web::setupWebSocketServer()
 
     for (auto const & tp : cogs_rules::IntTagPoint::all_tags)
     {
-        if (tp.first[0] == '_')
+        if (tp->name[0] == '_')
         {
             continue;
         }
-        cogs_web::exposeTagPoint(tp.second);
+        cogs_web::exposeTagPoint(tp);
     }
 }

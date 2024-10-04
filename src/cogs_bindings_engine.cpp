@@ -332,9 +332,9 @@ Binding::Binding(const std::string &target_name, const std::string &input)
   }
   else
   {
-    if (IntTagPoint::all_tags.contains(this->target_name))
+    if (IntTagPoint::exists(this->target_name))
     {
-      this->target = IntTagPoint::all_tags[this->target_name];
+      this->target = IntTagPoint::getTag(this->target_name,0,1);
     }
   }
 
@@ -360,9 +360,9 @@ void Binding::eval()
       // Maybe the tag was made after the binding.
       if (!this->target)
       {
-        if (IntTagPoint::all_tags.contains(this->target_name))
+        if (IntTagPoint::exists(this->target_name))
         {
-          this->target = IntTagPoint::all_tags[this->target_name];
+          this->target = IntTagPoint::getTag(this->target_name,0,1);
         }
       }
 
@@ -698,13 +698,13 @@ static void listTagsCommand(reggshell::Reggshell *rs, const char *arg1, const ch
 {
   for (auto  const & tag : cogs_rules::IntTagPoint::all_tags)
   {
-    rs->print(tag.first.c_str());
+    rs->print(tag->name.c_str());
     rs->print("[");
-    rs->print(std::to_string(tag.second->count).c_str());
+    rs->print(std::to_string(tag->count).c_str());
     rs->print("]: ");
 
-    rs->print((float)tag.second->value[0] / (float)tag.second->scale);
-    rs->println(tag.second->unit.c_str());
+    rs->print((float)tag->value[0] / (float)tag->scale);
+    rs->println(tag->unit->c_str());
   }
 }
 

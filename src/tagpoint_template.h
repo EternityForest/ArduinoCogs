@@ -19,11 +19,12 @@ namespace cogs_tagpoints
 
   template <typename T>
   class TagPointClaim;
-  
-  bool claimCmpGreater(const std::shared_ptr<TagPointClaim<T>> &a, const std::shared_ptr<TagPointClaim<T>> &b){
+
+  template <typename T>
+  bool claimCmpGreater(const std::shared_ptr<TagPointClaim<T>> a, const std::shared_ptr<TagPointClaim<T>> b)
+  {
     return a->priority < b->priority;
   }
-
 
   /// A tag point is a container representing a subscribable value.
   /// They may be of any type, however int32 is the standard type
@@ -53,7 +54,7 @@ namespace cogs_tagpoints
     void clean_finished();
 
   public:
-    TagPoint(std::string n, T val, int count = 1);
+    TagPoint(const std::string & n, T val, int count = 1);
     ~TagPoint();
 
     // The last rendered first value, converted to a float.
@@ -104,7 +105,7 @@ namespace cogs_tagpoints
 
     inline static std::shared_ptr<TagPoint<T>> getTag(std::string name, T default_value, int count = 1)
     {
-      bool is_new = !TagPoint<T>::all_tags.contains(name);
+      bool is_new = !TagPoint<T>::exists(name);
 
       if (name.size() == 0)
       {
@@ -116,19 +117,28 @@ namespace cogs_tagpoints
         throw std::runtime_error("0-length tag not allowed");
       }
 
-      if (!TagPoint<T>::all_tags.contains(name))
+      if (!TagPoint<T>::exists(name))
       {
-        TagPoint<T>::all_tags[name] = std::shared_ptr<TagPoint<T>>(new TagPoint<T>(name, default_value, count));
+        TagPoint<T>::all_tags.push_back(std::shared_ptr<TagPoint<T>>(new TagPoint<T>(name, default_value, count)));
       }
 
       if (is_new)
       {
         cogs::triggerGlobalEvent(cogs::tagCreatedEvent, 0, name);
       }
-      return TagPoint<T>::all_tags[name];
+
+      for (auto const &tag : TagPoint<T>::all_tags)
+      {
+        if (tag->name == name)
+        {
+          return tag;
+        }
+      }
+
+      throw std::runtime_error("??");
     }
 
-    inline static bool exists(std::string name)
+    inline static bool exists(const std::string &name)
     {
       for (auto const &tag : TagPoint<T>::all_tags)
       {
@@ -136,13 +146,20 @@ namespace cogs_tagpoints
         {
           return true;
         }
-        return false;
       }
+      return false;
     }
     //! Unregister a tag. It should not be used after that.
     void unregister()
     {
-      TagPoint<T>::all_tags.erase(name);
+      for (auto tag = TagPoint<T>::all_tags.begin(); tag != TagPoint<T>::all_tags.end(); tag++)
+      {
+        if ((*tag)->name == name)
+        {
+          TagPoint<T>::all_tags.erase(tag);
+          break;
+        }
+      }
     }
 
     /// Recalculates value, applying all claim layers
@@ -155,9 +172,9 @@ namespace cogs_tagpoints
     }
 
     //! Set the unit of the tag. Uses string interning for efficiency
-    void setUnit(const std::string &unit)
+    void setUnit(const std::string &u)
     {
-      this->unit = cogs::getSharedString(unit);
+      this->unit = cogs::getSharedString(std::string(u));
     }
 
     //! Create an override claim
@@ -190,12 +207,12 @@ namespace cogs_tagpoints
   };
 
   template <typename T>
-  TagPoint<T>::TagPoint(std::string n, T val, int count)
+  TagPoint<T>::TagPoint(const std::string & n, T val, int count)
   {
     this->name = n;
     // Dynamic allocation because we don't know how big this will be.
-    this->background_value = (T *)malloc(sizeof(T) * count);
-    this->value = (T *)malloc(sizeof(T) * count);
+    this->background_value = reinterpret_cast<T *>(malloc(sizeof(T) * count));
+    this->value = reinterpret_cast<T *>(malloc(sizeof(T) * count));
 
     // Set the value to be all the same
     for (int i = 0; i < count; i++)
@@ -243,7 +260,7 @@ namespace cogs_tagpoints
     }
     while (finished_count)
     {
-      this->claims.erase(0);
+      this->claims.erase(this->claims.begin());
       finished_count--;
     }
   };
@@ -262,7 +279,7 @@ namespace cogs_tagpoints
     c->priority = layer;
 
     this->claims[layer] = p;
-    std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater);
+    std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater<T>);
 
     return p;
   }
@@ -270,10 +287,15 @@ namespace cogs_tagpoints
   template <typename T>
   void TagPoint<T>::removeClaim(std::shared_ptr<TagPointClaim<T>> c)
   {
-    if (this->claims[c->priority] == c)
+    for (auto it = this->claims.begin(); it != this->claims.end(); it++)
     {
-      this->claims.erase(c->priority);
+      if (c.get() == it->get())
+      {
+        this->claims.erase(it);
+        break;
+      }
     }
+
     this->rerender();
   }
 
@@ -284,7 +306,7 @@ namespace cogs_tagpoints
     if (func)
     {
       // Ensure idempotency
-      this->subscribers.remove(func);
+      this->unsubscribe(func);
       this->subscribers.push_back(func);
     }
   };
@@ -292,7 +314,14 @@ namespace cogs_tagpoints
   template <typename T>
   void TagPoint<T>::unsubscribe(void (*func)(TagPoint<T> *))
   {
-    this->subscribers.remove(func);
+    for(auto it = this->subscribers.begin(); it != this->subscribers.end(); it++)
+    {
+      if (*it == func)
+      {
+        this->subscribers.erase(it);
+        break;
+      }
+    }
   };
 
   template <typename T>
@@ -340,7 +369,7 @@ namespace cogs_tagpoints
   void TagPoint<T>::addClaim(std::shared_ptr<TagPointClaim<T>> claim)
   {
     this->claims[claim->priority] = claim;
-    std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater);
+    std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater<T>);
   };
 
   template <typename T>
@@ -400,7 +429,7 @@ namespace cogs_tagpoints
     // Delete finished claims
     while (finished_count)
     {
-      this->claims.erase(0);
+      this->claims.erase(this->claims.begin());
       finished_count--;
     }
 

@@ -29,7 +29,7 @@ namespace cogs_gpio{
         bool isInterruptDriven = false;
         bool activeHigh = false;
         bool lastInputLevel = false;
-        CogsSimpleInput(const JsonVariant &config);
+        explicit CogsSimpleInput(const JsonVariant &config);
         ~CogsSimpleInput();
         void poll();
 
