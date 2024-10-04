@@ -1,0 +1,58 @@
+{
+  "properties": {
+    "inputs": {
+      "items": {
+        "id": "input",
+        "headerTemplate": "{{name}}",
+        "watch": {
+            "name": "input.name"
+        },
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pullup": {
+            "title": "Internal Pullup",
+            "type": "boolean",
+            "description": "If set, pull to 3.3V if possible"
+          },
+          "activeHigh": {
+            "title": "Active High",
+            "type": "boolean",
+            "description": "If unset, input is active when the voltage is low"
+          },
+          "activeTarget": {
+            "title": "Active Target",
+            "type": "string",
+            "description": "Variable to set when pin becomes active",
+            "options": {
+                "inputAttributes": {
+                    "list": "tags"
+                }
+            }
+          },
+          "inactiveTarget": {
+            "title": "Inactive Target",
+            "type": "string",
+            "description": "Variable to set when pin becomes inactive",
+            "options": {
+                "inputAttributes": {
+                    "list": "tags"
+                }
+            }
+          },
+          "pin": {
+            "$ref": "/gpio/input_pin_schema.json"
+          }
+        },
+        "title": "",
+        "type": "object"
+      },
+      "title": "Inputs",
+      "type": "array"
+    }
+  },
+  "title": "GPIO",
+  "type": "object"
+}

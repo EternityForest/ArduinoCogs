@@ -18,10 +18,11 @@ using namespace cogs_web;
 
 static void navbar_handler(AsyncWebServerRequest *request)
 {
+    cogs::lock();
     JsonDocument doc;
 
     int ctr = 0;
-    for (auto e : navBarEntries)
+    for (auto const & e : navBarEntries)
     {
         doc["entries"][ctr]["title"] = e->title;
         doc["entries"][ctr]["url"] = e->url;
@@ -32,10 +33,14 @@ static void navbar_handler(AsyncWebServerRequest *request)
     serializeJson(doc, output, 4096);
 
     request->send(200, "application/json", output);
+
+    cogs::unlock();
 }
 
 static void listdir_handler(AsyncWebServerRequest *request)
 {
+    cogs::lock();
+
     JsonDocument doc;
 
     doc["freeflash"] = LittleFS.totalBytes() - LittleFS.usedBytes();
@@ -46,25 +51,25 @@ static void listdir_handler(AsyncWebServerRequest *request)
     if (!request->hasArg("dir"))
     {
         request->send(500);
-        return;
+        goto done;
     }
 
     auto dir = LittleFS.open(request->arg("dir").c_str(), "r");
     if (!dir)
     {
         request->send(404);
-        return;
+        goto done;
     }
     if (!dir.isDirectory())
     {
         request->send(404);
-        return;
+        goto done;
     }
 
     File f = dir.openNextFile();
 
     // Hang onto refs because json lib might not copy
-    std::list<std::string> strs;
+    std::vector<std::string> strs;
 
     while (f)
     {
@@ -87,26 +92,29 @@ static void listdir_handler(AsyncWebServerRequest *request)
 
     serializeJson(doc, resp, 4096);
     request->send(200, "application/json", resp);
+
+    done:
+      cogs::unlock();
 }
 
 static void handleDownload(AsyncWebServerRequest *request)
 {
-
-    int args = request->args();
-
+    cogs::lock();
     if (!request->hasArg("file"))
     {
         request->send(500, "text/plain", "nofileparam");
-        return;
+        goto done;
     }
 
     request->send(LittleFS, request->arg("file").c_str());
+
+    done:
+      cogs::unlock();
 }
 
 static void handleUpload(AsyncWebServerRequest *request, String orig_filename, size_t index, uint8_t *data, size_t len, bool final)
 {
-
-    int args = request->args();
+    cogs::lock();
 
     std::string redirect = "/";
     if (request->hasArg("redirect"))
@@ -156,36 +164,43 @@ static void handleUpload(AsyncWebServerRequest *request, String orig_filename, s
 
         request->redirect(redirect.c_str());
     }
+
+    cogs::unlock();
 }
 
 static void handleSetFile(AsyncWebServerRequest *request)
 {
+    cogs::lock()
     if (!request->hasArg("file"))
     {
         request->send(500, "text/plain", "nofileparam");
-        return;
+        goto done;
     }
 
     if (!request->hasArg("data"))
     {
         request->send(500, "text/plain", "nodata");
-        return;
+        goto done;
     }
     auto f = LittleFS.open(request->arg("file").c_str(), "w");
     if (!f)
     {
         request->send(500, "text/plain", "cantopenfile");
-        return;
+        goto done;
     }
 
     f.print(request->arg("data").c_str());
     f.close();
     cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
     request->send(200);
+
+    done:
+      cogs::unlock();
 }
 
 static void handleDeleteFile(AsyncWebServerRequest *request){
 
+    cogs::lock();
     if (!request->hasArg("file"))
     {
         request->send(500, "text/plain", "nofileparam");
@@ -195,19 +210,22 @@ static void handleDeleteFile(AsyncWebServerRequest *request){
     LittleFS.remove(request->arg("file").c_str());
     cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
     request->send(200);
+
+    cogs::unlock();
 }
 
 static void handleRenameFile(AsyncWebServerRequest *request){
 
+    cogs::lock();
     if (!request->hasArg("file"))
     {
         request->send(500, "text/plain", "nofileparam");
-        return;
+        goto done;
     } 
     if (!request->hasArg("newname"))
     {
         request->send(500, "text/plain", "nofileparam");
-        return;
+        goto done;
     }
     
     std::string fn = request->arg("newname").c_str();
@@ -217,21 +235,25 @@ static void handleRenameFile(AsyncWebServerRequest *request){
     LittleFS.rename(request->arg("file").c_str(), request->arg("newname").c_str());
     cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
     request->send(200);
+
+    done:
+      cogs::unlock();
 }
 
 static void handleGetTagInfo(AsyncWebServerRequest *request)
 {
 
+    cogs::lock();
     if (!request->hasArg("tag"))
     {
         request->send(500, "text/plain", "nofileparam");
-        return;
+        goto done;
     }
     std::string tagname = request->arg("tag").c_str();
     if (!cogs_rules::IntTagPoint::exists(tagname))
     {
         request->send(500, "text/plain", "tagnotfound");
-        return;
+        goto done;
     }
     auto tag = cogs_rules::IntTagPoint::getTag(tagname,0,1);
 
@@ -239,7 +261,7 @@ static void handleGetTagInfo(AsyncWebServerRequest *request)
     doc["max"] = tag->max;
     doc["min"] = tag->min;
     doc["unit"] = tag->unit;
-    doc["step"] = tag->step;
+    doc["step"] = 1.0/float(tag->scale);
     doc["hi"] = tag->hi;
     doc["lo"] = tag->lo;
     doc["scale"] = tag->scale;
@@ -251,11 +273,14 @@ static void handleGetTagInfo(AsyncWebServerRequest *request)
 
     request->send(200, "text/plain", buf);
 
+    done:
+      cogs::unlock();
 }
 
 static void listTags(AsyncWebServerRequest *request){
+    cogs::lock();
     JsonDocument doc = JsonDocument();
-    for(auto tagPoint : cogs_rules::IntTagPoint::all_tags){
+    for(auto const & tagPoint : cogs_rules::IntTagPoint::all_tags){
         doc["tags"][tagPoint.first] = tagPoint.second->value[0];        
     }
     
@@ -263,6 +288,8 @@ static void listTags(AsyncWebServerRequest *request){
     serializeJson(doc, buf, 2048);
 
     request->send(200, "text/plain", buf);
+
+    cogs::unlock();
 }
 
 

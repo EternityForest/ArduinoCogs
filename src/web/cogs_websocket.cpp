@@ -7,6 +7,7 @@
 AsyncWebSocket ws("/api/ws");
 static void pushTagPointValue(cogs_rules::IntTagPoint *tp);
 
+
 static void handleWsData(char *d)
 {
     JsonDocument doc;
@@ -33,7 +34,7 @@ static void handleWsData(char *d)
 void cogs_web::wsBroadcast(const char *key, const char *data)
 {
     JsonDocument doc;
-    doc[key] = data;
+    doc["vars"][key] = data;
     char *buf = reinterpret_cast<char *>(malloc(512));
     if (!buf)
     {
@@ -101,6 +102,7 @@ static void onEvent(AsyncWebSocket *server,
     }
     else if (type == WS_EVT_DATA)
     {
+        cogs::lock();
         // data packet
         AwsFrameInfo *info = (AwsFrameInfo *)arg;
         if (info->final && info->index == 0 && info->len == len)
@@ -116,6 +118,8 @@ static void onEvent(AsyncWebSocket *server,
         {
             cogs::logError("Multiple frames not supported");
         }
+
+        cogs::unlock();
     }
 }
 
@@ -130,7 +134,7 @@ void cogs_web::setupWebSocketServer()
     cogs_web::server.addHandler(&ws);
     cogs::slowPollHandlers.push_back(slowPoll);
 
-    for (auto tp : cogs_rules::IntTagPoint::all_tags)
+    for (auto const & tp : cogs_rules::IntTagPoint::all_tags)
     {
         if (tp.first[0] == '_')
         {

@@ -99,14 +99,23 @@ export class PageRoot extends LitElement {
                     disable_array_delete_last_row: true,
                     disable_edit_json: true,
                     disable_properties: !additionalproperties,
+                    ajax: true,
                     theme: "barebones"
                 });
 
-                const response2 = await fetch(fileurl);
-                const filedata = await response2.json();
-                lastSavedVersion = filedata;
+                let filedata = {}
 
-                editor.setValue(filedata);
+                try{
+                     const response2 = await fetch(fileurl);
+                     filedata = await response2.json();
+                     editor.setValue(filedata);
+
+                }
+                catch(e){
+                     alert("No file found, creating.");
+                }
+                lastSavedVersion = editor.getValue();
+
             }
         });
 

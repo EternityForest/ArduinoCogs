@@ -1,6 +1,6 @@
 
 #pragma once
-#include <list>
+#include <vector>
 #include <map>
 #include <string>
 
@@ -39,14 +39,14 @@ namespace reggshell
     private:
         char line_buffer[128];
         unsigned char line_buffer_len;
-        std::list<ReggshellCommand *> commands;
+        std::vector<ReggshellCommand *> commands;
         void (*output_callback)(const char *) = NULL;
 
 
         void addBuiltins();
 
     public:
-        std::list<void (*)(Reggshell *)> statusCallbacks;
+        std::vector<void (*)(Reggshell *)> statusCallbacks;
 
 
         /// Simple commands

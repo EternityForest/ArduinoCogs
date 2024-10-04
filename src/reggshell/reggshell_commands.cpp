@@ -370,7 +370,15 @@ static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, 
 
     while (i)
     {
-        reggshell->print("  ");
+        reggshell->print("  -");
+        if(i.isDirectory())
+        {
+            reggshell->print("📂");
+        }
+        else
+        {
+            reggshell->print("📰");
+        }
         reggshell->println(i.name());
         i = dir.openNextFile();
     }
@@ -383,7 +391,7 @@ void Reggshell::help()
 {
     this->println("");
     this->println("Commands:");
-    for (auto cmd : this->commands_map)
+    for (auto const & cmd : this->commands_map)
     {
         bool needMargin = strchr(cmd.second->help, '\n');
 
@@ -442,7 +450,7 @@ static void statusCommand(Reggshell *reggshell, const char *arg1, const char *ar
 
     reggshell->println("");
 
-    for (auto cmd : reggshell->statusCallbacks)
+    for (auto const & cmd : reggshell->statusCallbacks)
     {
         cmd(reggshell);
     }

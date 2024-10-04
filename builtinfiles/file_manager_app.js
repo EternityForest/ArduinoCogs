@@ -98,7 +98,7 @@ export class PageRoot extends LitElement {
         return html`
         <div>
         <h2>${this.data.path}</h2>
-        <p>Free flash: ${this.data.freeflash} of ${this.data.totalflash}</p>
+        <p>Free flash: ${(this.data.freeflash/1048576).toPrecision(3)}MiB of ${(this.data.totalflash/1048576).toPrecision(3)}MiB</p>
         <form method="POST" enctype="multipart/form-data" target="/api/cogs.upload">
             <input type="file" name="file" id="file">
             <input type="hidden" name="path" id="path" value="${this.data.path}">

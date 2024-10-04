@@ -1,6 +1,8 @@
 import { html, css, LitElement } from '/builtin/lit.min.js';
 import styles from '/builtin/barrel.css' with { type: 'css' };
 import theme from '/api/cogs.theme.css' with { type: 'css' };
+import picodash from '/builtin/picodash.min.js'
+
 
 class NavBar extends LitElement {
     static styles = [styles, theme];
@@ -96,7 +98,7 @@ var CogsApi = function () {
         lastDidSnackbarError: 0,
         first_error: 1,
         serverMsgCallbacks: {
-            "__WIDGETERROR__": [
+            "__ERROR__": [
                 function (m) {
                     console.error(m);
                     if (lastDidSnackbarError < Date.now() + 60000) {
@@ -105,21 +107,9 @@ var CogsApi = function () {
                     }
                 }
             ],
-            "__SHOWMESSAGE__": [
-                function (m) {
-                    alert(m);
-                }
-            ],
-            "__SHOWSNACKBAR__": [
+            "__NOTIFICATION__": [
                 function (m) {
                     CogsWidgetApiSnackbar(m[0], m[1]);
-                }
-            ],
-
-            "__KEYMAP__": [
-                function (m) {
-                    self.uuidToWidgetId[m[0]] = m[1];
-                    self.widgetIDtoUUID[m[1]] = m[0];
                 }
             ],
 
@@ -128,14 +118,7 @@ var CogsApi = function () {
                     window.location.reload();
                 }
             ]
-
-
         },
-
-        //Unused for now
-        uuidToWidgetId: {},
-        widgetIDtoUUID: {},
-
 
         subscriptions: [],
         connection: 0,
@@ -146,7 +129,6 @@ var CogsApi = function () {
         poll_ratelimited: function () { },
 
         subscribe: function (key, callback) {
-
 
             if (key in this.serverMsgCallbacks) {
                 this.serverMsgCallbacks[key].push(callback);
@@ -167,12 +149,6 @@ var CogsApi = function () {
             }
 
             if (arr.length == 0) {
-
-                //Delete the now unused mapping
-                if (key in this.uuidToWidgetId) {
-                    delete this.widgetIDtoUUID[this.uuidToWidgetId[key]];
-                    delete this.uuidToWidgetId[key];
-                }
                 delete this.serverMsgCallbacks[key]
             }
         },
@@ -335,7 +311,6 @@ window.addEventListener('load', function () {
 })
 
 
-import picodash from '/builtin/picodash.min.js'
 
 
 

@@ -1,5 +1,6 @@
 
 #include "cogs_global_events.h"
+#include "cogs_util.h"
 
 using namespace cogs;
 
@@ -9,10 +10,10 @@ namespace cogs
     unsigned int slowPollIndex = 0;
 
 
-    std::list<void (*)()> fastPollHandlers;
+    std::vector<void (*)()> fastPollHandlers;
     std::vector<void (*)()> slowPollHandlers;
 
-    std::list<void (*)(cogs::GlobalEvent, int,const std::string &)> globalEventHandlers;
+    std::vector<void (*)(cogs::GlobalEvent, int,const std::string &)> globalEventHandlers;
 
 
     // Slow poll happens one at a time, and only one handler at a time,
@@ -28,7 +29,7 @@ namespace cogs
 
 
     void poll(){
-        for (auto e : fastPollHandlers){
+        for (auto const & e : fastPollHandlers){
             e();
         }
 
@@ -39,10 +40,41 @@ namespace cogs
     }
     void triggerGlobalEvent(GlobalEvent event, int param1, const std::string &param2)
     {
-        for (auto e : globalEventHandlers)
+        for (auto const & e : globalEventHandlers)
         {
+            try{
             e(event, param1, param2);
+            }catch(std::exception err){
+                cogs::logError("Error in global event handler for " +
+                std::to_string(event) + ":\n" +
+                std::string(err.what()));
+            }
         }
+    }
+
+    void registerFastPollHandler(void (*handler)())
+    {
+        for(const auto i : fastPollHandlers){
+            if(i == handler){
+                return;
+            }
+        }
+        fastPollHandlers.push_back(handler);
+    }
+    void unregisterFastPollHandler(void (*handler)())
+    {
+        bool found = false;
+        for(const auto i :fastPollHandlers)
+        {
+            if(i == handler){
+                found = true;
+                break;
+            }
+        }
+        if(!found){
+            return;
+        }
+        fastPollHandlers.remove(handler);
     }
 
 }

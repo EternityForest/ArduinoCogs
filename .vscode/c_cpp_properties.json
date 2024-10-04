@@ -4,8 +4,12 @@
             "name": "Arduino",
             "includePath": [
                 "${workspaceFolder}/**",
-                "~/.arduino15/packages/esp32/hardware/esp32/*/libraries/**",
-                " ~/.arduino15/packages/esp32/hardware/esp32/*/cores/esp32/",
+                "~/.arduino15/packages/esp32/hardware/esp32/*/libraries",
+                "~/.arduino15/packages/esp32/hardware/esp32/*/cores/esp32",
+                "~/.arduino15/packages/esp32/tools/esp32-arduino-libs/*/esp32/include/freertos/FreeRTOS-Kernel/include",
+                "~/.arduino15/packages/esp32/tools/esp32-arduino-libs/*/esp32/include/freertos/FreeRTOS-Kernel",
+                "~/.arduino15/packages/esp32/tools/esp32-arduino-libs/*/esp32s3/include/freertos/esp_additions/include/freertos",
+                "~/.arduino15/packages/esp32/tools/esp32-arduino-libs/*/esp32s3/qio_qspi/include",
                 "~/Arduino/libraries/**"
             ],
             "defines": [],

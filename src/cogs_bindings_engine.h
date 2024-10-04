@@ -9,7 +9,7 @@
 #include <tr1/unordered_map>
 #include <string>
 #include <map>
-#include <list>
+#include <vector>
 #include <cstring>
 
 #include <memory>
@@ -37,8 +37,8 @@ namespace cogs_rules
   /// 2 argument functions to make available to users
   extern std::map<std::string, float (*)(float)> user_functions2;
 
-
-
+  /// compile an expression, that will have access to cogs vars.
+  te_expr * compileExpression(const std::string &input);
 
   class Binding;
   class Clockwork;
@@ -132,7 +132,7 @@ namespace cogs_rules
 
     std::string name;
     //! List of bindings which shall be evaluated only when the state is active
-    std::list<std::shared_ptr<cogs_rules::Binding>> bindings;
+    std::vector<std::shared_ptr<cogs_rules::Binding>> bindings;
 
     //! Reviewuate all bindings in this state.
     void eval();
@@ -194,7 +194,7 @@ namespace cogs_rules
 
   private:
     /// Clockworks can own tag points. They are auto unregistered.
-    std::list<std::shared_ptr<IntTagPoint>> tags;
+    std::vector<std::shared_ptr<IntTagPoint>> tags;
   };
 
   std::shared_ptr<cogs_rules::Binding> makeBinding(std::string target_name, std::string input);

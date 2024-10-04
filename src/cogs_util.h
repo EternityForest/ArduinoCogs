@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <string>
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 /**
  * @file
@@ -10,6 +12,14 @@
 
 namespace cogs
 {
+    extern SemaphoreHandle_t mutex;
+
+    // Get the GIL
+    void lock();
+
+    // Release the GIL
+    void unlock();
+
     //! Get the hostname of the device, from /config/device.json
     std::string getHostname();
 
@@ -35,5 +45,15 @@ namespace cogs
 
     /// Create a directory if it does not exist
     void ensureDirExists(const std::string &dir);
+
+    /// Increment that never returns 0 or negative, used when you just need to
+    /// Make a value change as a trigger signal.
+    int bang(int);
+
+    /// Return a shared pointer to a string. May perform string interning
+    /// and give you a string that already exists.
+    /// This is not fast, don't use it in performance critical code.
+    std::shared_ptr<const std::string> getSharedString(const std::string &str);
+
 
 }

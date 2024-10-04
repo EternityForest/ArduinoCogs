@@ -7,10 +7,9 @@
 #include "reggshell/reggshell.h"
 #include "cogs_reggshell.h"
 
-
 using namespace cogs_rules;
 
-static std::list<Binding> bindings;
+static std::vector<Binding> bindings;
 
 /// This is a set of tinyexpr variables.
 /// Note that we have modified tinyexpr so values are not floats,
@@ -18,6 +17,17 @@ static std::list<Binding> bindings;
 /// Be requested until they actually are.
 static int global_vars_count = 0;
 static te_variable global_vars[256];
+
+te_expr * cogs_rules::compileExpression(const std::string &input)
+{
+  int err = 0;
+  auto x = te_compile(input.c_str(), global_vars, global_vars_count, &err);
+  if (err)
+  {
+    throw std::runtime_error("Failed to compile binding" + input + " error:" + std::to_string(err));
+  }
+  return x;
+}
 
 static void clear_globals()
 {
@@ -128,9 +138,9 @@ static float doFlicker(float idx)
   {
     last_wind_run[wind_zone] = millis();
 
-    if (cogs::random(0, 200) == 0)
+    if (cogs::random(0, 200) == 0) // flawfinder: ignore
     {
-      wind_zones[wind_zone] = cogs::random(8000, 16384);
+      wind_zones[wind_zone] = cogs::random(8000, 16384); // flawfinder: ignore
     }
     if (wind_zones[wind_zone] > 5000)
     {
@@ -146,16 +156,16 @@ static float doFlicker(float idx)
   if (millis() - last_flicker_run[index] > 20)
   {
     last_flicker_run[index] = millis();
-    if (cogs::random(0, 100000) < wind_zones[wind_zone])
+    if (cogs::random(0, 100000) < wind_zones[wind_zone]) // flawfinder: ignore
     {
       // Always less
-      flicker_flames[index] = cogs::random(flicker_flames[index] / 4, flicker_flames[index]);
+      flicker_flames[index] = cogs::random(flicker_flames[index] / 4, flicker_flames[index]); // flawfinder: ignore
     }
     else
     {
       if (flicker_flames[index] < 15947)
       {
-        flicker_flames[index] += cogs::random(0, 1000);
+        flicker_flames[index] += cogs::random(0, 1000); // flawfinder: ignore
       }
     }
 
@@ -175,6 +185,21 @@ namespace cogs_rules
   std::map<std::string, float (*)(float)> user_functions2;
 }
 
+// Used when you want to make something change.
+// Always returns positive int different from input.
+float fbang(float x){
+  int v = x;
+  v+=1;
+  if(v>1048576){
+    return 1;
+  }
+  if(v<1){
+    return 1;
+  }
+  return v;
+}
+
+
 void setupBuiltins()
 {
   cogs_rules::constants["$res"] = &fxp_res_var;
@@ -183,6 +208,7 @@ void setupBuiltins()
   cogs_rules::user_functions0["random"] = &randomUserFunction;
   cogs_rules::user_functions0["millis"] = &timeUserFunction;
   cogs_rules::user_functions1["flicker"] = &doFlicker;
+  cogs_rules::user_functions1["bang"] = &fbang;
 }
 
 void cogs_rules::refreshBindingsEngine()
@@ -209,12 +235,12 @@ void cogs_rules::refreshBindingsEngine()
     append_func(key, reinterpret_cast<void *>(f), TE_FUNCTION2);
   }
 
-  for (const auto &[key, tag] : IntTagPoint::all_tags)
+  for (const auto &tag : IntTagPoint::all_tags)
   {
 
     /// All variable access just reads the first value, sine tinyexpr doesn't support
     /// Arrays at all.
-    append_global(key, &tag->floatFirstValueCache);
+    append_global(tag->name, &tag->floatFirstValueCache);
   }
 
   int p = 0;
@@ -269,8 +295,6 @@ void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
 
 Binding::Binding(const std::string &target_name, const std::string &input)
 {
-  int err = 0;
-
   // Look for something like [1:4] at the end of the target, which would make this
   // A multi-binding.
   MatchState ms;
@@ -300,12 +324,7 @@ Binding::Binding(const std::string &target_name, const std::string &input)
     this->target_name = target_name;
   }
 
-  this->input_expression = te_compile(input.c_str(), global_vars, global_vars_count, &err);
-  if (err)
-  {
-    throw std::runtime_error("Failed to compile binding" +
-                             input + " error:" + std::to_string(err));
-  }
+  this->input_expression = compileExpression(input);
 
   if (this->target_name.size() && this->target_name[0] == '$')
   {
@@ -349,9 +368,8 @@ void Binding::eval()
 
       if (this->target)
       {
-        if(this->frozen)
+        if (this->frozen)
         {
-
         }
         else if (this->onchange)
         {
@@ -365,17 +383,18 @@ void Binding::eval()
             // If onenter is true, we act on enter no matter what
             if ((this->lastState[i] != NAN) || this->onenter)
             {
-              this->target->setValue(x*this->target->scale, this->multiStart + i, 1);
+              this->target->setValue(x * this->target->scale, this->multiStart + i, 1);
             }
             this->lastState[i] = x;
           }
         }
         else
         {
-          this->target->setValue(x*this->target->scale, this->multiStart + i, 1);
+          this->target->setValue(x * this->target->scale, this->multiStart + i, 1);
         }
 
-        if(this->freeze){
+        if (this->freeze)
+        {
           this->frozen = true;
         }
       }
@@ -659,7 +678,7 @@ static void reggshellWriteTagPoint(reggshell::Reggshell *rs, const char *arg1, c
 static void statusCallback(reggshell::Reggshell *rs)
 {
   rs->println("\nClockworks: ");
-  for (auto cw : cogs_rules::Clockwork::allClockworks)
+  for (auto const & cw : cogs_rules::Clockwork::allClockworks)
   {
     rs->print(cw.first.c_str());
     rs->print(": ");
@@ -677,7 +696,7 @@ static void statusCallback(reggshell::Reggshell *rs)
 
 static void listTagsCommand(reggshell::Reggshell *rs, const char *arg1, const char *arg2, const char *arg3)
 {
-  for (auto tag : cogs_rules::IntTagPoint::all_tags)
+  for (auto  const & tag : cogs_rules::IntTagPoint::all_tags)
   {
     rs->print(tag.first.c_str());
     rs->print("[");
@@ -691,19 +710,21 @@ static void listTagsCommand(reggshell::Reggshell *rs, const char *arg1, const ch
 
 static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, const char *rawline)
 {
-  int err = 0;
   char buf[256]; // flawfinder: ignore
   ms->GetCapture(buf, 0);
-  te_expr *expr = te_compile(buf, global_vars, global_vars_count, &err);
+  try
+  {
+    te_expr *expr = compileExpression(buf);
 
-  if (expr)
-  {
-    rs->println(te_eval(expr));
-    te_free(expr);
+    if (expr)
+    {
+      rs->println(te_eval(expr));
+      te_free(expr);
+    }
   }
-  if (err)
+  catch (std::exception &e)
   {
-    rs->println(("Error: " + std::to_string(err)).c_str());
+    rs->println(e.what());
   }
 }
 void cogs_rules::setupRulesEngine()
@@ -713,9 +734,8 @@ void cogs_rules::setupRulesEngine()
   t->scale = 16384;
   t = cogs_rules::IntTagPoint::getTag("temp2", 0);
   t->scale = 16384;
-  t= cogs_rules::IntTagPoint::getTag("temp3", 0);
+  t = cogs_rules::IntTagPoint::getTag("temp3", 0);
   t->scale = 16384;
-
 
   cogs_reggshell::interpreter->addCommand("eval (.*)", evalExpressionCommand, "eval <expr> Evaluates any expression. All tag points available as vars");
   cogs_reggshell::interpreter->addSimpleCommand("tags", listTagsCommand, "list all tags and their first vals");

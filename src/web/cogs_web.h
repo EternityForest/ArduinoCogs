@@ -18,7 +18,7 @@
 
 #pragma once
 #include <string>
-#include <list>
+#include <vector>
 #include <Arduino.h>
 #ifdef ESP32
 #include <WiFi.h>
@@ -28,7 +28,7 @@
 #include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
-#include "cogs_bindings_engine.h"
+#include "../cogs_bindings_engine.h"
 
 namespace cogs_web
 {
@@ -38,7 +38,7 @@ namespace cogs_web
 
     class NavBarEntry;
 
-    extern std::list<cogs_web::NavBarEntry *> navBarEntries;
+    extern std::vector<cogs_web::NavBarEntry *> navBarEntries;
 
     /// Send a gzipped file with the encoding header
     void sendGzipFile(AsyncWebServerRequest *request,

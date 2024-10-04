@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
+        "fbang",
         "flawfinder",
+        "gpio",
         "heredocfile",
         "idempotency",
         "jsoneditor",
@@ -8,6 +10,7 @@
         "Nyffenegger",
         "onchange",
         "onclick",
+        "pullup",
         "reggshar",
         "reggshell",
         "Reviewuate",

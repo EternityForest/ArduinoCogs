@@ -3,7 +3,8 @@
 ![AI Generated image of a clockmaker's workshop in a graveyard](img/logo.avif)
 
 > Meanwhile the luminosity increased, waned again, then assumed a pale,
-> outré colour or blend of colours which I could neither place nor describe. > Tillinghast had been watching me, and noted my puzzled expression.
+> outré colour or blend of colours which I could neither place nor describe.
+> Tillinghast had been watching me, and noted my puzzled expression.
 > - H.P. Lovecraft
 
 Arduino library for creating rules at runtime, and much more.
@@ -19,12 +20,47 @@ Features:
 * State machines you can configure at runtime
 * Everything is extensible and plugin based, easy to add new apps to a sketch.
 
+## Simple Code Example
+
+This is all you need to get started!
+
+```cpp
+#include "cogs.h"
+#include "LittleFS.h"
+
+void setup() {
+
+  WiFi.mode(WIFI_STA);
+
+  if (!LittleFS.begin(true)) {
+    Serial.println("LittleFS Mount Failed");
+  }
+
+  Serial.begin(115200);
+  Serial.println("Start");
+
+  // Attaches a serial terminal command shell interpreter
+  cogs_reggshell::setupReggshell();
+
+  cogs_rules::setupRulesEngine();
+
+  // This can be overridden via config file later
+  cogs_web::setDefaultWifi("SSID", "PASSWORD", "nanoplc");
+  cogs_web::setupWebServer();
+  cogs_editable_automation::setupEditableAutomation();
+}
+
+void loop() {
+  cogs::poll();
+}
+
+```
 
 ### The rules engine 📜
 
-> Hey! It's dangerous for a little kid like you to come out here. 
+> Hey! It's dangerous for a little kid like you to come out here.
 > You might fall down!
-> Goron, Ocarina of Time
+> - Goron, Ocarina of Time
 
 It provides a low-code programming model where you can connect
 "Tag Points" together in a way that will be familiar to anyone used to Excel.
@@ -75,6 +111,10 @@ The WiFi connection info.
 
 ## Web features
 
+> twenty-one degrees and thirteen minutes-northeast and by north - main branch seventh limb east side \
+> - Poe
+
+
 Cogs includes an optional web server, powered by ESPAsyncwebserver, making it easy to extend with your own pages.
 
 The web server provides a small set of APIs, mostly for editing files.
@@ -103,15 +143,27 @@ Afterwards it will show up in any recent browser at `http://YourHostname.local`
 
 ### Builtin Static resources
 
+Cogs uses the Barrel.css framework, lit.js for templating, and picodash for
+displaying values.
+
 * /builtin/barrel.css
-* /builtin/lit.js
+* /builtin/lit.min.js
+* /builtin/picodash.min.js
+* /builtin/jsoneditor.min.js
+
+There is also one special file providing the websocket APIs:
+
 * /builtin/cogs.js
+
 
 ### The page template
 
 To make a page, make a js file that exports PageRoot(a Lit component), and metadata(a dict that must have a title).
 
 That component can be loaded into the default template at "/default-template?load-module=/my/page/url"
+
+You can use `cogs_web::NavBarEntry::create(title,url)` to then add your shiny new page to
+the top menu bar.
 
 Nothing in cogs uses any server-side templating, just pure client-side.
 
@@ -126,6 +178,8 @@ Note that this works by going to the default template, which then loads the json
 
 
 ## Code Example
+> Forty, left five minus over crest opens over 40, tightens four plus, into triple caution right four over big jump off camber
+
 
 ```cpp
 #include "cogs.h"

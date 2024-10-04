@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <list>
+#include <vector>
 #include <vector>
 #include <Arduino.h>
 
@@ -46,11 +46,11 @@ namespace cogs
     cogs::globalEventHandlers.push_back(someFunction);
 
     */
-    extern std::list<void (*)(cogs::GlobalEvent, int, const std::string &)> globalEventHandlers;
+    extern std::vector<void (*)(cogs::GlobalEvent, int, const std::string &)> globalEventHandlers;
 
 
     //! Put functions here if you want them to be called every loop
-    extern std::list<void (*)()> fastPollHandlers;
+    extern std::vector<void (*)()> fastPollHandlers;
 
 
     //! Put functions here if you want them to be called every few seconds.
@@ -64,4 +64,9 @@ namespace cogs
     //! Poll all registered loop functions.
     //! Call this in a loop as fast as you can!
     void poll();
+
+    /// Add a fast handler if it is not already there
+    void registerFastPollHandler(void (*handler)());
+    /// Unregister a fast handler if it is there
+    void unregisterFastPollHandler(void (*handler)());
 }

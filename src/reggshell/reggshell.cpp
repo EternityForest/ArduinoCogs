@@ -55,12 +55,12 @@ namespace reggshell
 
     Reggshell::~Reggshell()
     {
-        for (auto cmd : this->commands)
+        for (auto const & cmd : this->commands)
         {
             delete cmd;
         }
 
-        for (auto cmd : this->commands_map)
+        for (auto const & cmd : this->commands_map)
         {
             delete cmd.second;
         }
@@ -199,7 +199,7 @@ namespace reggshell
                 return;
             }
 
-            for (auto cmd : this->commands)
+            for (auto const &cmd : this->commands)
             {
                 MatchState ms;
                 ms.Target(line);

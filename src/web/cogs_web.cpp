@@ -16,7 +16,7 @@ AsyncWebServer cogs_web::server(80);
 namespace cogs_web
 {
 
-    std::list<NavBarEntry *> navBarEntries;
+    std::vector<NavBarEntry *> navBarEntries;
 #include "web/generated_data/page_template_html_gz.h"
 #include "web/data/cogs_welcome_page.h"
 

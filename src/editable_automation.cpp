@@ -1,6 +1,6 @@
 #include "editable_automation.h"
 #include <string>
-#include <list>
+#include <vector>
 #include <map>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -11,8 +11,6 @@
 #include "cogs_global_events.h"
 #include "web/cogs_web.h"
 #include "web/generated_data/automation_schema_json_gz.h"
-
-
 
 using namespace cogs_rules;
 
@@ -46,7 +44,7 @@ static void _loadFromFile()
         throw std::runtime_error("No clockworks in automation.json");
     }
 
-    for (auto clockworkData : clockworks.as<JsonArray>())
+    for (auto const & clockworkData : clockworks.as<JsonArray>())
     {
 
         std::string state = "default";
@@ -88,7 +86,7 @@ static void _loadFromFile()
             throw std::runtime_error(clockworkData["name"].as<std::string>() + " has no states.");
         }
 
-        for (auto stateData : states.as<JsonArray>())
+        for (auto const & stateData : states.as<JsonArray>())
         {
             auto s = new_clockwork->getState(stateData["name"].as<std::string>());
 
@@ -99,26 +97,29 @@ static void _loadFromFile()
             }
 
             // Now add the bindings
-            for (auto bindingData : bindings.as<JsonArray>())
+            for (auto const & bindingData : bindings.as<JsonArray>())
             {
                 cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
                 auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
-                
-                if(bindingData.containsKey("mode")){
+
+                if (bindingData.containsKey("mode"))
+                {
                     std::string mode = bindingData["mode"].as<std::string>();
-                    if(mode == "onchange"){
+                    if (mode == "onchange")
+                    {
                         b->onchange = true;
                     }
-                    if(mode == "onenter"){
+                    if (mode == "onenter")
+                    {
                         b->onenter = true;
                         b->freeze = true;
                     }
-                    if(mode == "onframe"){
+                    if (mode == "onframe")
+                    {
                         b->onchange = false;
                         b->freeze = false;
                     }
                 }
-
             }
         }
         // State doesn't exist, use default
@@ -137,15 +138,19 @@ static void _loadFromFile()
 }
 
 // Wrap it in an exception handler
-static void loadFromFile(){
-    try{
+static void loadFromFile()
+{
+    try
+    {
         _loadFromFile();
-    }catch(std::exception &e){
+    }
+    catch (std::exception &e)
+    {
         cogs::logError(e.what());
     }
 }
 
-static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::string & filename)
+static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::string &filename)
 {
     if (evt == cogs::fileChangeEvent)
     {
@@ -156,43 +161,52 @@ static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::strin
     }
 }
 
-
-
-static void listTargetsApi(AsyncWebServerRequest *request){
+static void listTargetsApi(AsyncWebServerRequest *request)
+{
     JsonDocument doc;
 
     // Add every tag point name to the enum property
-    for(auto tagPoint : cogs_rules::IntTagPoint::all_tags){
-        doc["tags"][tagPoint.first] = tagPoint.second->unit+" "+tagPoint.second->description;        
+    for (auto const &tagPoint : cogs_rules::IntTagPoint::all_tags)
+    {
+        doc["tags"][tagPoint.first] = tagPoint.second->unit + " " + tagPoint.second->description;
     }
-    char * buf = reinterpret_cast<char *>(malloc(8192));
-    if(!buf){
+    char *buf = reinterpret_cast<char *>(malloc(8192));
+    if (!buf)
+    {
         request->send(500);
         return;
     }
     serializeJson(doc, buf, 8192);
     request->send(200, "application/json", buf);
-    free(buf);}
+    free(buf);
+}
 
-static void exprDatalist(AsyncWebServerRequest *request){
+static void exprDatalist(AsyncWebServerRequest *request)
+{
     JsonDocument doc;
-    for(auto tagPoint : cogs_rules::IntTagPoint::all_tags){
-        doc["datalist"][tagPoint.first] = tagPoint.second->unit+" "+tagPoint.second->description;        
+    for (auto const &tagPoint : cogs_rules::IntTagPoint::all_tags)
+    {
+        doc["datalist"][tagPoint.first] = tagPoint.second->unit + " " + tagPoint.second->description;
     }
-    for(auto f : cogs_rules::user_functions0){
-        doc["datalist"][f.first+"()"] = "";
+    for (auto const &f : cogs_rules::user_functions0)
+    {
+        doc["datalist"][f.first + "()"] = "";
     }
-    for(auto f : cogs_rules::user_functions1){
-        doc["datalist"][f.first+"(x)"] = "";
+    for (auto const &f : cogs_rules::user_functions1)
+    {
+        doc["datalist"][f.first + "(x)"] = "";
     }
-    for(auto f : cogs_rules::user_functions2){
-        doc["datalist"][f.first+"(a,b)"] = "";
+    for (auto const &f : cogs_rules::user_functions2)
+    {
+        doc["datalist"][f.first + "(a,b)"] = "";
     }
-    for(auto f : cogs_rules::constants){
+    for (auto const &f : cogs_rules::constants)
+    {
         doc["datalist"][f.first] = std::to_string(*f.second);
     }
-    char * buf = reinterpret_cast<char *>(malloc(8192));
-    if(!buf){
+    char *buf = reinterpret_cast<char *>(malloc(8192));
+    if (!buf)
+    {
         request->send(500);
         return;
     }
@@ -207,11 +221,11 @@ void cogs_editable_automation::setupEditableAutomation()
     cogs_web::server.on("/api/tags", HTTP_GET, listTargetsApi);
     cogs_web::server.on("/api/expr", HTTP_GET, exprDatalist);
     cogs_web::server.on("/builtin/schemas/automation.json", HTTP_GET, [](AsyncWebServerRequest *request)
-                    { cogs_web::sendGzipFile(request, automation_schema_json_gz, sizeof(automation_schema_json_gz), "application/json"); });
+                        { cogs_web::sendGzipFile(request, automation_schema_json_gz, sizeof(automation_schema_json_gz), "application/json"); });
 
     // Add a navbar entry allowing editing of automation.json
-    cogs_web::NavBarEntry::create("Automation Rules", 
-    "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/automation.json&filename=/config/automation.json");
-    
+    cogs_web::NavBarEntry::create("Automation Rules",
+                                  "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/automation.json&filename=/config/automation.json");
+
     cogs::globalEventHandlers.push_back(fileChangeHandler);
 }

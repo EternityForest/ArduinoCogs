@@ -7,8 +7,58 @@
 
 static uint32_t randomState = 1;
 
+static unsigned long errorHorizon = 0;
+static int errorCount = 0;
+
 namespace cogs
 {
+
+    const std::string emptyString = "";
+    const std::shared_ptr<const std::string> emptySharedString = std::shared_ptr<const std::string>(&emptyString);
+
+    std::vector<std::shared_ptr<const std::string>> stringPool;
+
+    std::shared_ptr<const std::string> getSharedString(const std::string &str){
+        if(str.size() == 0){
+            return emptySharedString;
+        }
+        
+        for(auto const &e : stringPool){
+            if(e->compare(str) == 0){
+                return e;
+            }
+        }
+        if(stringPool.size() > 32){
+            stringPool.pop_front();
+        }
+
+        std::shared_ptr<const std::string> ret = std::make_shared<const std::string>(str);
+        if(str.size()<16){
+            stringPool.push_back(ret);
+        }
+
+        return ret;
+    }
+
+    SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
+
+    void lock(){
+        if(!xSemaphoreTake(mutex, pdMS_TO_TICKS(60000))){
+            throw std::runtime_error("Timed out waiting for mutex");
+        };
+    }
+
+    void unlock(){
+        xSemaphoreGive(mutex);
+    }
+    
+    int bang(int v){
+        v++;
+        if(v < 1){
+            v = 1;
+        }
+        return v;
+    }
 
     uint32_t random() // flawfinder: ignore
     {
@@ -79,8 +129,19 @@ namespace cogs
 
     void logError(const std::string &msg)
     {
+        // Allow an error to be logged every 10 seconds
+        // But also we allow bursts of 10
+        errorCount -= (millis() - errorHorizon) / 10000;
+        if (errorCount < 0)
+        {
+            errorCount = 0;
+        }
+        if(errorCount > 10){
+            return;
+        }
+
         Serial.println(msg.c_str());
-        cogs_web::wsBroadcast("error", msg.c_str());
+        cogs_web::wsBroadcast("__ERROR__", msg.c_str());
     }
 
     void logInfo(const std::string &msg)

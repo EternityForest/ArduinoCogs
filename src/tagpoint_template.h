@@ -1,8 +1,7 @@
 #pragma once
-#include <tr1/unordered_map>
 #include <string>
 #include <map>
-#include <list>
+#include <vector>
 
 #include <memory>
 #include <stdint.h>
@@ -15,12 +14,16 @@ extern "C"
 #include "tinyexpr/tinyexpr.h"
 }
 
-
 namespace cogs_tagpoints
 {
 
   template <typename T>
   class TagPointClaim;
+  
+  bool claimCmpGreater(const std::shared_ptr<TagPointClaim<T>> &a, const std::shared_ptr<TagPointClaim<T>> &b){
+    return a->priority < b->priority;
+  }
+
 
   /// A tag point is a container representing a subscribable value.
   /// They may be of any type, however int32 is the standard type
@@ -40,10 +43,10 @@ namespace cogs_tagpoints
     // Track all claims affecting the tag's value
     // we can only have one claim of each priority.
     // Unsigned long is so we can use more complex keys.
-    std::map<unsigned long, std::shared_ptr<TagPointClaim<T>>> claims;
+    std::vector<std::shared_ptr<TagPointClaim<T>>> claims;
 
     // These functions are called when value changes
-    std::list<void (*)(TagPoint<T> *)> subscribers;
+    std::vector<void (*)(TagPoint<T> *)> subscribers;
 
     /// Clean the list of claims.  Once something is marked finished, if it is
     /// Right above background, it's value is the new background and we delete it
@@ -53,13 +56,12 @@ namespace cogs_tagpoints
     TagPoint(std::string n, T val, int count = 1);
     ~TagPoint();
 
-
     // The last rendered first value, converted to a float.
     float floatFirstValueCache;
 
     /// Tag points can represent multiple values.  Normally a tag only has one value
     /// but some are arrays
-    int count = 1;
+    uint16_t count = 1;
 
     /// The scale is a multiplier used to convert floats to the actual tag value.
     int scale = 1;
@@ -70,25 +72,19 @@ namespace cogs_tagpoints
     /// The range of values.  Used for metadata only, for performance reasons
     /// We do not constrain automatically in most cases
     int max = INT32_MAX;
-    /// The range of values.  Used for metadata only, for performance reasons
-    /// We do not constrain automatically in most cases
-    int step = 1;
-
 
     /// The min value considered normal
-    int lo=INT32_MIN;
+    int lo = INT32_MIN;
 
     /// The max value considered normal. Used for web display.
-    int hi=INT32_MAX;
+    int hi = INT32_MAX;
 
     /// The unit of the tag. Used for display purposes mostly.
-    std::string unit;
-
-    std::string description;
-
+    std::shared_ptr<const std::string> unit = cogs::getSharedString("");
+    std::shared_ptr<const std::string> description = cogs::getSharedString("");
 
     /// Map of all tags of the given type
-    inline static std::map<std::string, std::shared_ptr<TagPoint>> all_tags;
+    inline static std::vector<std::shared_ptr<TagPoint>> all_tags;
 
     /// Lets the calling code add some arbitrary data
     void *extraData;
@@ -110,11 +106,13 @@ namespace cogs_tagpoints
     {
       bool is_new = !TagPoint<T>::all_tags.contains(name);
 
-      if(name.size() == 0){
+      if (name.size() == 0)
+      {
         throw std::runtime_error("name empty");
       }
 
-      if(count == 0){
+      if (count == 0)
+      {
         throw std::runtime_error("0-length tag not allowed");
       }
 
@@ -132,7 +130,14 @@ namespace cogs_tagpoints
 
     inline static bool exists(std::string name)
     {
-      return TagPoint<T>::all_tags.contains(name);
+      for (auto const &tag : TagPoint<T>::all_tags)
+      {
+        if (tag->name == name)
+        {
+          return true;
+        }
+        return false;
+      }
     }
     //! Unregister a tag. It should not be used after that.
     void unregister()
@@ -142,6 +147,18 @@ namespace cogs_tagpoints
 
     /// Recalculates value, applying all claim layers
     void rerender();
+
+    //! Set the description of the tag.
+    void setDescription(const std::string &desc)
+    {
+      description = cogs::getSharedString(desc);
+    }
+
+    //! Set the unit of the tag. Uses string interning for efficiency
+    void setUnit(const std::string &unit)
+    {
+      this->unit = cogs::getSharedString(unit);
+    }
 
     //! Create an override claim
 
@@ -168,6 +185,8 @@ namespace cogs_tagpoints
     void setValue(T val, int startIndex = 0, int count = 0);
 
     void addClaim(std::shared_ptr<TagPointClaim<T>> claim);
+
+    void silentResetValue();
   };
 
   template <typename T>
@@ -208,7 +227,7 @@ namespace cogs_tagpoints
     // We can delete these after we are done with them.
     int finished_count = 0;
 
-    for (const auto &[key, claim] : this->claims)
+    for (const auto &claim : this->claims)
     {
       if (!unfinished_passed)
       {
@@ -243,6 +262,7 @@ namespace cogs_tagpoints
     c->priority = layer;
 
     this->claims[layer] = p;
+    std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater);
 
     return p;
   }
@@ -278,7 +298,6 @@ namespace cogs_tagpoints
   template <typename T>
   void TagPoint<T>::setValue(T val, int startIndex, int count)
   {
-
     if (count == 0)
     {
       count = this->count;
@@ -299,10 +318,29 @@ namespace cogs_tagpoints
     this->rerender();
   };
 
+  /// Set all vals to 0 if there are no claims
+  /// Do not trigger subscribers
+  /// Call from within a "bang" type one shot handler
+  /// If you want to make it so setting it to 1 again triggers it again.
+  template <typename T>
+  void TagPoint<T>::silentResetValue()
+  {
+    for (int i = 0; i < this->count; i++)
+    {
+      this->background_value[i] = 0;
+
+      if (this->claims.size() > 0)
+      {
+        this->value[i] = 0;
+      }
+    }
+  }
+
   template <typename T>
   void TagPoint<T>::addClaim(std::shared_ptr<TagPointClaim<T>> claim)
   {
     this->claims[claim->priority] = claim;
+    std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater);
   };
 
   template <typename T>
@@ -316,8 +354,8 @@ namespace cogs_tagpoints
       if (memcmp(this->value, this->background_value, sizeof(T) * this->count) != 0)
       {
         memcpy(this->value, this->background_value, sizeof(T) * this->count); // flawfinder: ignore
-        
-        this->floatFirstValueCache = ((float)this->value[0])/this->scale;
+
+        this->floatFirstValueCache = ((float)this->value[0]) / this->scale;
 
         for (const auto subscriber : this->subscribers)
         {
@@ -339,7 +377,7 @@ namespace cogs_tagpoints
     // We can delete these after we are done with them.
     int finished_count = 0;
 
-    for (const auto &[key, claim] : this->claims)
+    for (const auto &claim : this->claims)
     {
       claim->applyLayer(this->value, this->count);
 
@@ -367,12 +405,12 @@ namespace cogs_tagpoints
     }
 
     // Push data to subscribers
-    for (auto func : this->subscribers)
+    for (auto const &func : this->subscribers)
     {
       func(this);
     }
 
-    this->floatFirstValueCache = ((float)this->value[0])/this->scale;
+    this->floatFirstValueCache = ((float)this->value[0]) / this->scale;
   };
 
   template class TagPoint<int32_t>;
@@ -431,5 +469,4 @@ namespace cogs_tagpoints
       }
     };
   };
-
 }
