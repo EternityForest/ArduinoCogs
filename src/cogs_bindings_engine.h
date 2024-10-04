@@ -23,7 +23,7 @@ extern "C"
 
 namespace cogs_rules
 {
-  typedef cogs_tagpoints::TagPoint<int32_t> IntTagPoint;
+  typedef cogs_tagpoints::TagPoint IntTagPoint;
 
   /// Constants available in the expressions
   extern std::map<std::string, float *> constants;
@@ -53,7 +53,7 @@ namespace cogs_rules
   /// This is special because it is the highest power of two fitting in an int16.
   const int32_t FXP_RES = 16384;
 
-  class IntFadeClaim : public cogs_tagpoints::TagPointClaim<int32_t>
+  class IntFadeClaim : public cogs_tagpoints::TagPointClaim
   {
   public:
     int32_t start;
