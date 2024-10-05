@@ -7,7 +7,7 @@
 #include "cogs_web.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
-#include "web/generated_data/nord_css_gz.h"
+#include "web/data/cogs_default_theme.h"
 
 using namespace cogs_web;
 
@@ -26,6 +26,8 @@ namespace cogs_web
 
     std::string localIp = "";
 
+     unsigned long lastGoodConnection = 0;
+
     void sendGzipFile(AsyncWebServerRequest *request,
                            const unsigned char *data,
                            unsigned int size,
@@ -41,7 +43,7 @@ namespace cogs_web
     }
 
     void setupDefaultWebTheme(){
-        cogs::setDefaultFile("/api/cogs.theme.css", std::string(reinterpret_cast<const char *>(nord_css_gz), sizeof(nord_css_gz)));
+        cogs::setDefaultFile("/config/theme.css", std::string(reinterpret_cast<const char *>(nord_theme), sizeof(nord_theme)));
     }
 
     void setupWebServer()
@@ -106,7 +108,16 @@ namespace cogs_web
         {
             if (WiFi.status() == WL_CONNECTED)
             {
-                return;
+                if(strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")){
+                    lastGoodConnection = millis();
+                }
+                if(millis() - lastGoodConnection > 20000){
+                    return;
+                }
+                else{
+                    // Connected but no IP for 20 seconds
+                    WiFi.disconnect();
+                }
             }
         }
 
@@ -196,6 +207,7 @@ namespace cogs_web
 
     void manageWifi()
     {
+        lastGoodConnection = millis();
         check_wifi();
         cogs::globalEventHandlers.push_back(&handleEvent);
         cogs::slowPollHandlers.push_back(&slowPoll);

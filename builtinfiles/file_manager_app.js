@@ -39,6 +39,7 @@ export class PageRoot extends LitElement {
             var x = await fetch('/api/cogs.listdir?dir=' + d);
             var y = await x.json();
             y.dirs = y.dirs || {}
+            y.files = y.files || {}
             y.path = dir;
             t.data = y;
         }
@@ -98,24 +99,24 @@ export class PageRoot extends LitElement {
         return html`
         <div>
         <h2>${this.data.path}</h2>
-        <p>Free flash: ${(this.data.freeflash/1048576).toPrecision(3)}MiB of ${(this.data.totalflash/1048576).toPrecision(3)}MiB</p>
-        <form method="POST" enctype="multipart/form-data" target="/api/cogs.upload">
+        <p>Free flash: ${(this.data.freeflash / 1048576).toPrecision(3)}MiB of ${(this.data.totalflash / 1048576).toPrecision(3)}MiB</p>
+        <form method="POST" enctype="multipart/form-data" action="/api/cogs.upload">
             <input type="file" name="file" id="file">
-            <input type="hidden" name="path" id="path" value="${this.data.path}">
+            <input type="hidden" name="path" id="path" value="${this.data.path}/">
             <input type="submit" value="Upload File">
         </form>
 
         <ul>
             ${Object.entries(this.data.dirs).map(([key, value]) => html`
             <li><a href="/default-template?load-module=/builtin/files_app.js&dir=${this.data.path}/${key}">${key}/</a>
-            <button onclick="handleDelete('${key}');">Delete</button>
+            <button @click=${this.handleDelete.bind(this, key)}>Delete</button>
             </li>
             `)}
 
             ${Object.entries(this.data.files).map(([key, value]) => html`
             <li><a href="/api/cogs.download/?file=${this.data.path}/${key}">${key}(${value})</a>
-            <button onclick="handleRenameRequest('${key}');">Rename</button>
-            <button onclick="handleDelete('${key}');">Delete</button>
+            <button @click=${this.handleRenameRequest.bind(this, key)}>Rename</button>
+            <button @click=${this.handleDelete.bind(this, key)}>Delete</button>
             </li>
             `)}
         </ul>

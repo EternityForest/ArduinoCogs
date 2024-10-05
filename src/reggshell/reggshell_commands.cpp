@@ -486,5 +486,5 @@ void Reggshell::addBuiltins()
     this->addSimpleCommand("ls", lsCommand, "ls <dir>Prints the contents of a directory");
     this->addSimpleCommand("help", helpCommand, "Prints this help");
     this->addSimpleCommand("status", statusCommand, "Prints status info");
-    this->addSimpleCommand("i2c-detect", scanCommand, "Scans for I2C devices");
+    this->addSimpleCommand("i2cdetect", scanCommand, "Scans for I2C devices");
 }

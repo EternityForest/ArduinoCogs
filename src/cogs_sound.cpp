@@ -1,17 +1,9 @@
 #include <LittleFS.h>
 #include "cogs_bindings_engine.h"
 #include "cogs_global_events.h"
+#include "cogs_sound.h"
 
 #include <string>
-#include "AudioGenerator.h"
-#include "AudioGeneratorMP3.h"
-
-#include "AudioOutputI2S.h"
-#include "AudioOutputMixer.h"
-#include "AudioOutputBuffer.h"
-#include "AudioFileSource.h"
-#include "AudioFileSourceLittleFS.h"
-#include "AudioFileSourceID3.h"
 
 namespace cogs_sound
 {
@@ -23,6 +15,7 @@ namespace cogs_sound
 
     static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::string &path)
     {
+        cogs::logInfo("sound file changed: " + path);
         if (evt != cogs::fileChangeEvent)
         {
             return;
@@ -46,14 +39,17 @@ namespace cogs_sound
 
                 std::string fn = f.path();
 
-                char *buf = reinterpret_cast<char *>(malloc(f.size() + 1));
+                cogs::logInfo("m");
+                char *buf = reinterpret_cast<char *>(malloc(fn.size() + 1));
+                cogs::logInfo("m2");
+
                 if (!buf)
                 {
                     throw std::runtime_error("malloc");
                 }
                 strcpy(buf, fn.c_str()); // flawfinder: ignore
 
-                std::string tn(f.name());
+                std::string tn = f.name();
 
                 if (path.starts_with("/sfx"))
                 {
@@ -64,8 +60,12 @@ namespace cogs_sound
                     tn = "music.files." + tn;
                 }
 
+                cogs::logInfo("m3");
+
                 soundFileMap[path] = cogs_rules::IntTagPoint::getTag(tn, 0, 1);
                 soundFileMap[path]->extraData = buf;
+
+                cogs::logInfo("m4");
 
                 if (path.starts_with("/music"))
                 {
@@ -75,12 +75,21 @@ namespace cogs_sound
                 {
                     soundFileMap[path]->subscribe(playSoundTag);
                 }
+
+                cogs::logInfo("m5");
             }
             else
             {
+                cogs::logInfo("m6");
                 if (soundFileMap.contains(path))
                 {
-                    free(soundFileMap[path]->extraData);
+                    cogs::logInfo("m7");
+                    if (soundFileMap[path]->extraData)
+                    {
+                        free(soundFileMap[path]->extraData);
+                        cogs::logInfo("m8");
+                        soundFileMap[path]->extraData = 0;
+                    }
                     soundFileMap[path]->unregister();
                     soundFileMap.erase(path);
                 }
@@ -560,8 +569,11 @@ namespace cogs_sound
 
     void audioThread(void *parameter)
     {
+        unsigned long frameStart;
         while (1)
         {
+            frameStart = micros();
+
             // Idle to reduce power
             if (!(music || music_old || fx))
             {
@@ -592,52 +604,97 @@ namespace cogs_sound
                 }
             }
             audioThreadIter++;
+            // Delays are not precise enough for any fancy duration logic here.
+            // We just keep slightly over 2 ticks of buffer.
+            vTaskDelay(2);
         }
     }
 
     void begin(AudioOutput *op)
     {
 
-        xTaskCreate(
-            audioThread, // Function name of the task
-            "audio",     // Name of the task (e.g. for debugging)
-            2048,        // Stack size (bytes)
-            NULL,        // Parameter to pass
-            10,          // Task priority
-            NULL         // Task handle
-        );
-
         output = op;
-        mixer = new AudioOutputMixer(64, op);
+
+        cogs::logInfo("sound init");
+        mixer = new AudioOutputMixer(128, op);
+        cogs::logInfo("mxr");
 
         cogs::registerFastPollHandler(audioMaintainer);
+        cogs::logInfo("p");
 
         cogs::ensureDirExists("/sfx");
         cogs::ensureDirExists("/music");
+        cogs::logInfo("dirs");
+
+        auto t = cogs_rules::IntTagPoint::getTag("music.volume", 1);
+        t->subscribe(&setMusicVolumeTag);
+
+        t = cogs_rules::IntTagPoint::getTag("sfx.volume", 1);
+        t->subscribe(&setSfxVolumeTag);
+
+        t = cogs_rules::IntTagPoint::getTag("music.fadein", 0);
+        t->subscribe(&setMusicFadeInTag);
+
+        t = cogs_rules::IntTagPoint::getTag("music.fadeout", 0);
+        t->subscribe(&setMusicFadeOutTag);
+
+        t = cogs_rules::IntTagPoint::getTag("sfx.fadein", 0);
+        t->subscribe(&setSfxFadeInTag);
+
+        t = cogs_rules::IntTagPoint::getTag("sfx.fadeout", 0);
+        t->subscribe(&setSfxFadeOutTag);
+
+        t = cogs_rules::IntTagPoint::getTag("music.loop", 0);
+        t->subscribe(&setMusicLoopTag);
+
+        t = cogs_rules::IntTagPoint::getTag("sfx.stop", 0);
+        t->subscribe(&stopSfxTag);
+
+        t = cogs_rules::IntTagPoint::getTag("music.stop", 0);
+        t->subscribe(&stopMusicTag);
+
 
         File dir = LittleFS.open("/sfx"); // flawfinder: ignore
         File f = dir.openNextFile();
         while (f)
         {
+
             if (!f.isDirectory())
             {
-                fileChangeHandler(cogs::fileChangeEvent, 0, f.name());
+                fileChangeHandler(cogs::fileChangeEvent, 0, f.path());
             }
             f = dir.openNextFile();
         }
+
+        cogs::logInfo("files");
 
         dir = LittleFS.open("/music"); // flawfinder: ignore
 
         f = dir.openNextFile();
         while (f)
         {
+            cogs::logInfo("hjkhj");
+
             if (!f.isDirectory())
             {
-                fileChangeHandler(cogs::fileChangeEvent, 0, f.name());
+                fileChangeHandler(cogs::fileChangeEvent, 0, f.path());
             }
             f = dir.openNextFile();
         }
+        cogs::logInfo("files2");
 
         cogs::globalEventHandlers.push_back(fileChangeHandler);
+
+
+        xTaskCreate(
+            audioThread, // Function name of the task
+            "audio",     // Name of the task (e.g. for debugging)
+            4096,        // Stack size (bytes)
+            NULL,        // Parameter to pass
+            10,          // Task priority
+            NULL         // Task handle
+        );
+
+        cogs::logInfo("done");
     }
 }

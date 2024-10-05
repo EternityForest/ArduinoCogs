@@ -680,6 +680,7 @@ static void statusCallback(reggshell::Reggshell *rs)
   rs->println("\nClockworks: ");
   for (auto const & cw : cogs_rules::Clockwork::allClockworks)
   {
+    rs->print("  ");
     rs->print(cw.first.c_str());
     rs->print(": ");
     if (cw.second->currentState == NULL)

@@ -40,16 +40,16 @@ namespace cogs
         return ret;
     }
 
-    SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
+    SemaphoreHandle_t mutex = xSemaphoreCreateRecursiveMutex();
 
     void lock(){
-        if(!xSemaphoreTake(mutex, pdMS_TO_TICKS(60000))){
+        if(!xSemaphoreTakeRecursive(mutex, pdMS_TO_TICKS(30000))){
             throw std::runtime_error("Timed out waiting for mutex");
         };
     }
 
     void unlock(){
-        xSemaphoreGive(mutex);
+        xSemaphoreGiveRecursive(mutex);
     }
     
     int bang(int v){

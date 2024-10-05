@@ -5,4 +5,3 @@
 #include "cogs_global_events.h"
 #include "editable_automation.h"
 #include "cogs_gpio_app.h"
-#include "cogs_sound.h"

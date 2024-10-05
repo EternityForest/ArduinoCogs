@@ -7,7 +7,6 @@
 AsyncWebSocket ws("/api/ws");
 static void pushTagPointValue(cogs_rules::IntTagPoint *tp);
 
-
 static void handleWsData(char *d)
 {
     JsonDocument doc;
@@ -23,7 +22,8 @@ static void handleWsData(char *d)
             {
                 auto t = cogs_rules::IntTagPoint::getTag(kv.key().c_str(), 0, 1);
                 t->setValue(v, 0, 1);
-                if(t->value[0] != v){
+                if (t->value[0] != v)
+                {
                     pushTagPointValue(t.get());
                 }
             }
@@ -111,7 +111,14 @@ static void onEvent(AsyncWebSocket *server,
             if (info->opcode == WS_TEXT)
             {
                 data[len] = 0;
-                handleWsData((char *)data);
+                try
+                {
+                    handleWsData((char *)data);
+                }
+                catch (std::exception &e)
+                {
+                    cogs::logError(e.what());
+                }
             }
         }
         else
@@ -134,7 +141,7 @@ void cogs_web::setupWebSocketServer()
     cogs_web::server.addHandler(&ws);
     cogs::slowPollHandlers.push_back(slowPoll);
 
-    for (auto const & tp : cogs_rules::IntTagPoint::all_tags)
+    for (auto const &tp : cogs_rules::IntTagPoint::all_tags)
     {
         if (tp->name[0] == '_')
         {

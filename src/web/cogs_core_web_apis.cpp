@@ -16,6 +16,7 @@
 
 using namespace cogs_web;
 
+static std::string uploadFileName = "";
 
 static void navbar_handler(AsyncWebServerRequest *request)
 {
@@ -95,6 +96,8 @@ static void listdir_handler(AsyncWebServerRequest *request)
 
     serializeJson(doc, resp, 4096);
     request->send(200, "application/json", resp);
+
+    cogs::unlock();
 }
 
 static void handleDownload(AsyncWebServerRequest *request)
@@ -108,44 +111,27 @@ static void handleDownload(AsyncWebServerRequest *request)
     }
 
     request->send(LittleFS, request->arg("file").c_str());
+
+    cogs::unlock();
 }
 
 static void handleUpload(AsyncWebServerRequest *request, String orig_filename, size_t index, uint8_t *data, size_t len, bool final)
 {
     cogs::lock();
-
-    std::string redirect = "/";
-    if (request->hasArg("redirect"))
-    {
-        redirect = request->arg("redirect").c_str();
-    }
-
-    std::string path;
-
-    if (request->hasArg("path"))
-    {
-        path = request->arg("path").c_str();
-
-        // Allow auto using the filename
-        if (request->arg("path").endsWith("/"))
-        {
-            path = path + orig_filename.c_str();
-        };
-    }
-    else
-    {
-        request->send(500, "text/plain", "nofnparam");
-    }
+    uploadFileName = orig_filename.c_str();
 
     if (!index)
     {
         // open the file on first call and store the file handle in the request object
-        request->_tempFile = LittleFS.open(path.c_str(), "w");
-    }
+        request->_tempFile = LittleFS.open("/upload_temp.bin", "w");
 
-    if (!request->_tempFile)
-    {
-        request->send(500, "text/plain", "cantopenfile");
+        if (!request->_tempFile)
+        {
+            cogs::logError("Can't open tempfile");
+            request->send(500, "text/plain", "cantopenfile");
+            cogs::unlock();
+            return;
+        }
     }
 
     if (len)
@@ -158,9 +144,6 @@ static void handleUpload(AsyncWebServerRequest *request, String orig_filename, s
     {
         // close the file handle as the upload is now done
         request->_tempFile.close();
-        cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, path);
-
-        request->redirect(redirect.c_str());
     }
 
     cogs::unlock();
@@ -194,6 +177,8 @@ static void handleSetFile(AsyncWebServerRequest *request)
     f.close();
     cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
     request->send(200);
+
+    cogs::unlock();
 }
 
 static void handleDeleteFile(AsyncWebServerRequest *request)
@@ -206,6 +191,17 @@ static void handleDeleteFile(AsyncWebServerRequest *request)
         return;
     }
 
+    std::string path = request->arg("file").c_str();
+    if (path.size() == 0)
+    {
+        request->send(500, "text/plain", "emptypath");
+        cogs::unlock();
+        return;
+    }
+    if (path.ends_with("/"))
+    {
+        path = path.substr(0, path.size() - 1);
+    }
     LittleFS.remove(request->arg("file").c_str());
     cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
     request->send(200);
@@ -236,7 +232,11 @@ static void handleRenameFile(AsyncWebServerRequest *request)
 
     LittleFS.rename(request->arg("file").c_str(), request->arg("newname").c_str());
     cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("file").c_str());
+    cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, request->arg("newname").c_str());
+
     request->send(200);
+
+    cogs::unlock();
 }
 
 static void handleGetTagInfo(AsyncWebServerRequest *request)
@@ -273,6 +273,8 @@ static void handleGetTagInfo(AsyncWebServerRequest *request)
     serializeJson(doc, buf, 256);
 
     request->send(200, "text/plain", buf);
+
+    cogs::unlock();
 }
 
 static void listTags(AsyncWebServerRequest *request)
@@ -292,6 +294,52 @@ static void listTags(AsyncWebServerRequest *request)
     cogs::unlock();
 }
 
+static void uploadFinal(AsyncWebServerRequest *request)
+{
+    cogs::lock();
+
+    std::string path;
+
+    if (request->hasArg("path"))
+    {
+        path = request->arg("path").c_str();
+        if (path.size() == 0)
+        {
+            path = "/";
+        }
+
+        // Allow auto using the filename
+        if (!path.ends_with("/"))
+        {
+            path = path + "/";
+        };
+
+        path = path + uploadFileName.c_str();
+
+        if (!LittleFS.rename("/upload_temp.bin", path.c_str()))
+        {
+            request->send(500, "text/plain", "renamefailed");
+            cogs::unlock();
+            return;
+        }
+        cogs::triggerGlobalEvent(cogs::fileChangeEvent, 0, path);
+    }
+    else
+    {
+        request->send(500, "text/plain", "nofnparam");
+        cogs::unlock();
+        return;
+    }
+
+    std::string redirect = request->url().c_str();
+    if (request->hasArg("redirect"))
+    {
+        redirect = request->arg("redirect").c_str();
+        request->redirect(redirect.c_str());
+    }
+
+    cogs::unlock();
+}
 namespace cogs_web
 {
 
@@ -303,8 +351,7 @@ namespace cogs_web
         server.on("/api/cogs.navbar", HTTP_GET, navbar_handler);
         server.on("/api/cogs.listdir", HTTP_GET, listdir_handler);
 
-        server.on("/api/cogs.upload", HTTP_POST, [](AsyncWebServerRequest *request)
-                  { request->send(200); }, handleUpload);
+        server.on("/api/cogs.upload", HTTP_POST, uploadFinal, handleUpload);
 
         server.on("/api/cogs.setfile", HTTP_POST, handleSetFile);
 

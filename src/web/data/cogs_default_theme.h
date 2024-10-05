@@ -1,3 +1,5 @@
+// Schema for the wifi settings
+static const char nord_theme[] = R"(
 /*
 Unlike most of Barrel.css, this is NOT public domain, as it uses the Nord color scheme:
 
@@ -81,3 +83,5 @@ SOFTWARE.
 
     }
 }
+)";
+
