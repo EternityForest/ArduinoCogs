@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <Arduino.h>
 #include "util/base64.h"
+#include <Wire.h>
 
 using namespace reggshell;
 
@@ -458,8 +459,24 @@ static void statusCommand(Reggshell *reggshell, const char *arg1, const char *ar
     reggshell->println("");
 }
 
+    static void scanCommand(reggshell::Reggshell * interpreter, const char * arg1, const char * arg2, const char * arg3)
+    {
+        interpreter->println("Scanning I2C");
+        for (int i = 0; i < 127; i++)
+        {
+            Wire.beginTransmission(i);
+            if (Wire.endTransmission() == 0)
+            {
+                interpreter->println(i);
+            }
+        }
+
+        interpreter->println("Done");
+    }
+
 void Reggshell::addBuiltins()
 {
+
     this->addCommand("cat *<< *\"---EOF---\" *> *(.*)", heredoc);
     this->addCommand("base64 --decode *<< *\"---EOF---\" *> *(.*)", heredoc_64);
 
@@ -469,4 +486,5 @@ void Reggshell::addBuiltins()
     this->addSimpleCommand("ls", lsCommand, "ls <dir>Prints the contents of a directory");
     this->addSimpleCommand("help", helpCommand, "Prints this help");
     this->addSimpleCommand("status", statusCommand, "Prints status info");
+    this->addSimpleCommand("i2c-detect", scanCommand, "Scans for I2C devices");
 }

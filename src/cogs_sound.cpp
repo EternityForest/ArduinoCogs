@@ -3,20 +3,27 @@
 #include "cogs_global_events.h"
 
 #include <string>
+#include "AudioGenerator.h"
+#include "AudioGeneratorMP3.h"
+
 #include "AudioOutputI2S.h"
 #include "AudioOutputMixer.h"
 #include "AudioOutputBuffer.h"
+#include "AudioFileSource.h"
+#include "AudioFileSourceLittleFS.h"
+#include "AudioFileSourceID3.h"
 
 namespace cogs_sound
 {
     std::map<std::string, std::shared_ptr<cogs_rules::IntTagPoint>> soundFileMap;
 
-    static void playMusicTag(cogs_rules::IntTagPoint *tp);
-    static void playSoundTag(cogs_rules::IntTagPoint *tp);
+    static void waitForAudioThread();
+    static void playSoundTag(cogs_rules::IntTagPoint *t);
+    static void playMusicTag(cogs_rules::IntTagPoint *t);
 
     static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::string &path)
     {
-        if (evt != cogs::GlobalEvent::FileChanged)
+        if (evt != cogs::fileChangeEvent)
         {
             return;
         }
@@ -85,7 +92,7 @@ namespace cogs_sound
     {
     public:
         std::string fn;
-        bool loop;
+        bool shouldLoop = false;
         float vol;
         float fade;
         unsigned long fadeStart;
@@ -99,15 +106,25 @@ namespace cogs_sound
 
         SoundPlayer(AudioOutputMixer *mixer, std::string fn, bool loop, float vol, float fade, float initialVol)
         {
-            this->loop = loop;
+            this->shouldLoop = loop;
             this->fade = fade;
             this->vol = vol;
             this->initialVol = initialVol;
-            this->stub = mixer->newInput();
-            this->src = new AudioFileSourceSPIFFS(fn.c_str());
+            this->stub = mixer->NewInput();
+            this->src = new AudioFileSourceLittleFS(fn.c_str());
             this->id3 = new AudioFileSourceID3(this->src);
             this->gen = new AudioGeneratorMP3();
             this->gen->begin(this->id3, this->stub);
+        }
+
+        inline void loop()
+        {
+            this->gen->loop();
+        }
+
+        inline bool isRunning()
+        {
+            return this->gen->isRunning();
         }
 
         void fadeOut(float fade)
@@ -137,13 +154,13 @@ namespace cogs_sound
                 {
                     float t = float(now - this->fadeStart) / float(this->fade);
                     float v = this->vol * t + this->initialVol * (1 - t);
-                    this->stub->setGain(v);
+                    this->stub->SetGain(v);
                 }
             }
             if (this->endTime)
             {
                 // rollover compare
-                if ((now->this->endTime) > 1000000000L)
+                if ((now - this->endTime) > 1000000000L)
                 {
                     this->stop();
                     return;
@@ -151,14 +168,11 @@ namespace cogs_sound
             }
         }
 
-        void loop()
+        void stop()
         {
-            if (this->gen->isRunning())
+            if (this->gen)
             {
-                if (!this->gen->loop())
-                {
-                    this->gen->stop();
-                }
+                this->gen->stop();
             }
         }
 
@@ -181,7 +195,9 @@ namespace cogs_sound
                 delete this->stub;
             }
         }
-    } AudioOutput *out;
+    };
+
+    AudioOutput *output;
     AudioOutputMixer *mixer;
     std::vector<AudioOutputMixerStub *> stubs;
 
@@ -226,6 +242,10 @@ namespace cogs_sound
             if (music)
             {
                 SoundPlayer *m = music;
+                m->fadeStart = millis();
+                m->initialVol = m->vol;
+                m->fade = fade;
+                m->vol = 0;
                 music = 0;
                 waitForAudioThread();
                 music_old = m;
@@ -241,6 +261,15 @@ namespace cogs_sound
                 m->gen->stop();
                 delete m;
             }
+        }
+
+        if (fade > 0.0)
+        {
+            music = new SoundPlayer(mixer, fn, loop, vol, fade, 0.0);
+        }
+        else
+        {
+            music = new SoundPlayer(mixer, fn, loop, vol, 0.0, vol);
         }
     }
 
@@ -264,7 +293,6 @@ namespace cogs_sound
         }
     }
 
-
     static void setMusicVolumeTag(cogs_rules::IntTagPoint *t)
     {
         int32_t vol = t->value[0];
@@ -277,7 +305,7 @@ namespace cogs_sound
             // Just let fade handle it
             if (m->fade == 0.0)
             {
-                m->stub->setGain(m->vol);
+                m->stub->SetGain(m->vol);
             }
         }
 
@@ -291,7 +319,7 @@ namespace cogs_sound
                 m2->vol = v;
                 if (m2->fade == 0.0)
                 {
-                    m2->stub->setGain(m2->vol);
+                    m2->stub->SetGain(m2->vol);
                 }
             }
         }
@@ -309,7 +337,7 @@ namespace cogs_sound
             // Just let fade handle it
             if (f->fade == 0.0)
             {
-                f->stub->setGain(f->vol);
+                f->stub->SetGain(f->vol);
             }
         }
     }
@@ -345,12 +373,41 @@ namespace cogs_sound
         SoundPlayer *m = music;
         if (m)
         {
-            m->loop = v;
+            m->shouldLoop = v;
         }
     }
 
+    void playSoundTag(cogs_rules::IntTagPoint *t)
+    {
 
-    void stopMusicTag(cogs_rules::IntTagPoint *t)
+        bool v = t->value[0] > 0;
+        if (!v)
+        {
+            return;
+        }
+        t->silentResetValue();
+
+        playFX(reinterpret_cast<const char *>(t->extraData),
+               fxVol,
+               fxFadeIn);
+    }
+
+    static void playMusicTag(cogs_rules::IntTagPoint *t)
+    {
+        bool v = t->value[0] > 0;
+        if (!v)
+        {
+            return;
+        }
+        t->silentResetValue();
+
+        playMusic(reinterpret_cast<const char *>(t->extraData),
+                  musicLoop,
+                  musicVol,
+                  musicFadeIn);
+    }
+
+    static void stopMusicTag(cogs_rules::IntTagPoint *t)
     {
         bool v = t->value[0] > 0;
         if (!v)
@@ -373,7 +430,7 @@ namespace cogs_sound
             {
                 music = 0;
                 waitForAudioThread();
-                m->gen->stop();
+                m->stop();
                 delete m;
             }
         }
@@ -401,15 +458,13 @@ namespace cogs_sound
             {
                 fx = 0;
                 waitForAudioThread();
-                f->gen->stop();
+                f->stop();
                 delete f;
             }
         }
     }
 
-    auto fs = new AudioFileSourceSPIFFS(fn.c_str());
-
-    void waitForAudioThread()
+    static void waitForAudioThread()
     {
         int c = audioThreadIter;
         int safety = 1000;
@@ -439,13 +494,15 @@ namespace cogs_sound
 
     // Handles fades and loops.
     // Need GIL
-    void audioMaintainer(void *parameter)
+    void audioMaintainer()
     {
         if (music)
         {
-            if (!music->isRunning())
+            if (!music->gen->isRunning())
             {
-                AudioGeneratorMP3 *m = music;
+                SoundPlayer *m = music;
+                bool l = music->shouldLoop;
+                std::string fn = m->fn;
                 music = 0;
                 // Make sure audio thread completed its loop
                 // and is done with the object
@@ -454,9 +511,9 @@ namespace cogs_sound
                 m->stop();
                 delete m;
 
-                if (loopMusic)
+                if (l)
                 {
-                    playMusic(lastMusic, true, finalMusicVolume, fadeLen);
+                    playMusic(fn, true, musicVol, musicFadeIn);
                 }
             }
             music->doFade();
@@ -466,7 +523,7 @@ namespace cogs_sound
         {
             if (!music_old->isRunning())
             {
-                AudioGeneratorMP3 *m = music_old;
+                SoundPlayer *m = music_old;
                 music_old = 0;
                 // Make sure audio thread completed its loop
                 // and is done with the object
@@ -485,7 +542,7 @@ namespace cogs_sound
         {
             if (!fx->isRunning())
             {
-                AudioGeneratorMP3 *m = fx;
+                SoundPlayer *m = fx;
                 fx = 0;
                 // Make sure audio thread completed its loop
                 // and is done with the object
@@ -508,11 +565,11 @@ namespace cogs_sound
             // Idle to reduce power
             if (!(music || music_old || fx))
             {
-                xTaskDelay(50 / portTICK_PERIOD_MS);
+                vTaskDelay(50 / portTICK_PERIOD_MS);
             }
             else
             {
-                for (var i = 0; i < 64; i++)
+                for (int i = 0; i < 64; i++)
                 {
                     SoundPlayer *m = 0;
                     m = music;
@@ -571,7 +628,7 @@ namespace cogs_sound
 
         dir = LittleFS.open("/music"); // flawfinder: ignore
 
-        File f = dir.openNextFile();
+        f = dir.openNextFile();
         while (f)
         {
             if (!f.isDirectory())

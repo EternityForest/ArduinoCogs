@@ -444,7 +444,7 @@ std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string 
 
 void State::removeBinding(std::shared_ptr<Binding> binding)
 {
-  this->bindings.remove(binding);
+  std::erase(this->bindings, binding);
 }
 
 void State::clearBindings()

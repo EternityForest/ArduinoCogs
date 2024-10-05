@@ -187,7 +187,7 @@ static void exprDatalist(AsyncWebServerRequest *request)
     for (auto const &tagPoint : cogs_rules::IntTagPoint::all_tags)
     {
         doc["datalist"][tagPoint->name] = std::string(tagPoint->unit->c_str()) +
-        " " + std::string(tagPoint->description->c_str())
+        " " + std::string(tagPoint->description->c_str());
     }
     for (auto const &f : cogs_rules::user_functions0)
     {

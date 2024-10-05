@@ -37,17 +37,7 @@ TagPoint::~TagPoint()
     }
 }
 
-static bool TagPoint::exists(const std::string &name)
-{
-    for (auto const &tag : TagPoint::all_tags)
-    {
-        if (tag->name == name)
-        {
-            return true;
-        }
-    }
-    return false;
-}
+
 
 //! Unregister a tag. It should not be used after that.
 void TagPoint::unregister()
@@ -261,7 +251,7 @@ void TagPoint::rerender()
     this->floatFirstValueCache = ((float)this->value[0]) / this->scale;
 };
 
-virtual void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, int count)
+void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, int count)
 {
     for (int i = 0; i < this->count; i++)
     {

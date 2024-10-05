@@ -29,7 +29,7 @@ namespace cogs
             }
         }
         if(stringPool.size() > 32){
-            stringPool.pop_front();
+            stringPool.erase(stringPool.begin());
         }
 
         std::shared_ptr<const std::string> ret = std::make_shared<const std::string>(str);

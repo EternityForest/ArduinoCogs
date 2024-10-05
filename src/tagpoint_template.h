@@ -132,7 +132,19 @@ namespace cogs_tagpoints
       throw std::runtime_error("??");
     }
 
-    static bool exists(const std::string &name);
+    //! Check if a tag exists
+    static bool exists(const std::string &name)
+    {
+        for (auto const &tag : TagPoint::all_tags)
+        {
+            if (tag->name == name)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     //! Unregister a tag. It should not be used after that.
     void unregister();

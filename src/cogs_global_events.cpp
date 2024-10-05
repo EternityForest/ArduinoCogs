@@ -9,17 +9,17 @@ namespace cogs
     unsigned long lastSlowPoll = 0;
     unsigned int slowPollIndex = 0;
 
-
     std::vector<void (*)()> fastPollHandlers;
     std::vector<void (*)()> slowPollHandlers;
 
-    std::vector<void (*)(cogs::GlobalEvent, int,const std::string &)> globalEventHandlers;
-
+    std::vector<void (*)(cogs::GlobalEvent, int, const std::string &)> globalEventHandlers;
 
     // Slow poll happens one at a time, and only one handler at a time,
     // so they don't all happen at once and make lag.
-    static void doSlowPoll(){
-        if(slowPollIndex >= slowPollHandlers.size()){
+    static void doSlowPoll()
+    {
+        if (slowPollIndex >= slowPollHandlers.size())
+        {
             return;
         }
 
@@ -27,35 +27,42 @@ namespace cogs
         slowPollHandlers[slowPollIndex % slowPollHandlers.size()]();
     }
 
-
-    void poll(){
-        for (auto const & e : fastPollHandlers){
+    void poll()
+    {
+        for (auto const &e : fastPollHandlers)
+        {
             e();
         }
 
-        if (millis() - lastSlowPoll > 1000){
+        if (millis() - lastSlowPoll > 1000)
+        {
             lastSlowPoll = millis();
             doSlowPoll();
-        } 
+        }
     }
     void triggerGlobalEvent(GlobalEvent event, int param1, const std::string &param2)
     {
-        for (auto const & e : globalEventHandlers)
+        for (auto const &e : globalEventHandlers)
         {
-            try{
-            e(event, param1, param2);
-            }catch(std::exception err){
+            try
+            {
+                e(event, param1, param2);
+            }
+            catch (std::exception err)
+            {
                 cogs::logError("Error in global event handler for " +
-                std::to_string(event) + ":\n" +
-                std::string(err.what()));
+                               std::to_string(event) + ":\n" +
+                               std::string(err.what()));
             }
         }
     }
 
     void registerFastPollHandler(void (*handler)())
     {
-        for(const auto i : fastPollHandlers){
-            if(i == handler){
+        for (const auto i : fastPollHandlers)
+        {
+            if (i == handler)
+            {
                 return;
             }
         }
@@ -63,18 +70,7 @@ namespace cogs
     }
     void unregisterFastPollHandler(void (*handler)())
     {
-        bool found = false;
-        for(const auto i :fastPollHandlers)
-        {
-            if(i == handler){
-                found = true;
-                break;
-            }
-        }
-        if(!found){
-            return;
-        }
-        fastPollHandlers.remove(handler);
+        std::erase(fastPollHandlers, handler);
     }
 
 }
