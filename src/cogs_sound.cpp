@@ -64,6 +64,7 @@ namespace cogs_sound
 
                 soundFileMap[path] = cogs_rules::IntTagPoint::getTag(tn, 0, 1);
                 soundFileMap[path]->extraData = buf;
+                soundFileMap[path]->setUnit("bang");
 
                 cogs::logInfo("m4");
 
@@ -646,12 +647,15 @@ namespace cogs_sound
 
         t = cogs_rules::IntTagPoint::getTag("music.loop", 0);
         t->subscribe(&setMusicLoopTag);
+        t->setUnit("bool");
 
         t = cogs_rules::IntTagPoint::getTag("sfx.stop", 0);
         t->subscribe(&stopSfxTag);
+        t->setUnit("bang");
 
         t = cogs_rules::IntTagPoint::getTag("music.stop", 0);
         t->subscribe(&stopMusicTag);
+        t->setUnit("bang");
 
 
         File dir = LittleFS.open("/sfx"); // flawfinder: ignore

@@ -404,3 +404,29 @@ Prints out a file as a here doc that you can use to transfer the file to another
 #### echo WORD
 
 Echo the argument.  Quoting isn't supported, args can't have spaces.
+
+
+## Audio
+
+Cogs includes MP3 support.  Once enabled in code, all files in /sfx
+or /music will create a tagpoint like `music.files.foo.mp3`.  The folder search is not recursive.
+
+Setting that tag point to something other than 1 will cause that sound to play.
+
+There are two playback channels, `music` and `sound`.  Music supports loop and crossfade, controllable through more tag points.
+
+```cpp
+#include "cogs_sound.h"
+
+void setupI2S() {
+  // This is an object from the ESP8266Audio library.
+  // The whole library is included and slightly modified.
+  auto out = new AudioOutputI2S();
+
+  // bclk, wclk, dout
+  out->SetPinout(45, 46, 42);
+  //out->SetMclk(false);
+
+  cogs_sound::begin(out);
+}
+```

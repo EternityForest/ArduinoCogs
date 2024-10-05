@@ -241,6 +241,7 @@ void TagPoint::rerender()
         this->claims.erase(this->claims.begin());
         finished_count--;
     }
+    this->floatFirstValueCache = ((float)this->value[0]) / this->scale;
 
     // Push data to subscribers
     for (auto const &func : this->subscribers)
@@ -248,7 +249,6 @@ void TagPoint::rerender()
         func(this);
     }
 
-    this->floatFirstValueCache = ((float)this->value[0]) / this->scale;
 };
 
 void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, int count)

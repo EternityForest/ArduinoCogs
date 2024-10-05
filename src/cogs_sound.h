@@ -1,15 +1,14 @@
 #pragma once
 
-//esp8266audio_vendored/
-#include "AudioOutput.h"
-#include "AudioGenerator.h"
-#include "AudioGeneratorMP3.h"
-#include "AudioOutputI2S.h"
-#include "AudioOutputMixer.h"
-#include "AudioOutputBuffer.h"
-#include "AudioFileSource.h"
-#include "AudioFileSourceLittleFS.h"
-#include "AudioFileSourceID3.h"
+#include "esp8266audio_vendored/AudioOutput.h"
+#include "esp8266audio_vendored/AudioGenerator.h"
+#include "esp8266audio_vendored/AudioGeneratorMP3.h"
+#include "esp8266audio_vendored/AudioOutputI2S.h"
+#include "esp8266audio_vendored/AudioOutputMixer.h"
+#include "esp8266audio_vendored/AudioOutputBuffer.h"
+#include "esp8266audio_vendored/AudioFileSource.h"
+#include "esp8266audio_vendored/AudioFileSourceLittleFS.h"
+#include "esp8266audio_vendored/AudioFileSourceID3.h"
 
 namespace cogs_sound{
     // Make it so user rules can play sounds
