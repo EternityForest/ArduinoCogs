@@ -15,7 +15,7 @@ namespace cogs_sound
 
     static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::string &path)
     {
-        cogs::logInfo("sound file changed: " + path);
+
         if (evt != cogs::fileChangeEvent)
         {
             return;
@@ -39,9 +39,7 @@ namespace cogs_sound
 
                 std::string fn = f.path();
 
-                cogs::logInfo("m");
                 char *buf = reinterpret_cast<char *>(malloc(fn.size() + 1));
-                cogs::logInfo("m2");
 
                 if (!buf)
                 {
@@ -60,13 +58,9 @@ namespace cogs_sound
                     tn = "music.files." + tn;
                 }
 
-                cogs::logInfo("m3");
-
                 soundFileMap[path] = cogs_rules::IntTagPoint::getTag(tn, 0, 1);
                 soundFileMap[path]->extraData = buf;
                 soundFileMap[path]->setUnit("bang");
-
-                cogs::logInfo("m4");
 
                 if (path.starts_with("/music"))
                 {
@@ -76,19 +70,17 @@ namespace cogs_sound
                 {
                     soundFileMap[path]->subscribe(playSoundTag);
                 }
-
-                cogs::logInfo("m5");
             }
             else
             {
-                cogs::logInfo("m6");
+
                 if (soundFileMap.contains(path))
                 {
-                    cogs::logInfo("m7");
+
                     if (soundFileMap[path]->extraData)
                     {
                         free(soundFileMap[path]->extraData);
-                        cogs::logInfo("m8");
+
                         soundFileMap[path]->extraData = 0;
                     }
                     soundFileMap[path]->unregister();
@@ -306,12 +298,12 @@ namespace cogs_sound
     static void setMusicVolumeTag(cogs_rules::IntTagPoint *t)
     {
         int32_t vol = t->value[0];
-        musicVol = vol / cogs_rules::FXP_RES;
+        musicVol = vol / float(cogs_rules::FXP_RES);
 
         SoundPlayer *m = music;
         if (m)
         {
-            m->vol = vol / cogs_rules::FXP_RES;
+            m->vol = vol / float(cogs_rules::FXP_RES);
             // Just let fade handle it
             if (m->fade == 0.0)
             {
@@ -322,7 +314,7 @@ namespace cogs_sound
         SoundPlayer *m2 = music_old;
         if (m2)
         {
-            float v = vol / cogs_rules::FXP_RES;
+            float v = vol / float(cogs_rules::FXP_RES);
             // I think this is probably about what a user would want?
             if (v < m2->vol)
             {
@@ -338,12 +330,12 @@ namespace cogs_sound
     static void setSfxVolumeTag(cogs_rules::IntTagPoint *t)
     {
         int32_t vol = t->value[0];
-        fxVol = vol / cogs_rules::FXP_RES;
+        fxVol = vol / float(cogs_rules::FXP_RES);
 
         SoundPlayer *f = fx;
         if (f)
         {
-            f->vol = vol / cogs_rules::FXP_RES;
+            f->vol = vol / float(cogs_rules::FXP_RES);
             // Just let fade handle it
             if (f->fade == 0.0)
             {
@@ -355,25 +347,25 @@ namespace cogs_sound
     static void setMusicFadeInTag(cogs_rules::IntTagPoint *t)
     {
         int32_t v = t->value[0];
-        musicFadeIn = v / cogs_rules::FXP_RES;
+        musicFadeIn = v / float(cogs_rules::FXP_RES);
     }
 
     static void setMusicFadeOutTag(cogs_rules::IntTagPoint *t)
     {
         int32_t v = t->value[0];
-        musicFadeOut = v / cogs_rules::FXP_RES;
+        musicFadeOut = v / float(cogs_rules::FXP_RES);
     }
 
     static void setSfxFadeInTag(cogs_rules::IntTagPoint *t)
     {
         int32_t v = t->value[0];
-        fxFadeIn = v / cogs_rules::FXP_RES;
+        fxFadeIn = v / float(cogs_rules::FXP_RES);
     }
 
     static void setSfxFadeOutTag(cogs_rules::IntTagPoint *t)
     {
         int32_t v = t->value[0];
-        fxFadeOut = v / cogs_rules::FXP_RES;
+        fxFadeOut = v / float(cogs_rules::FXP_RES);
     }
 
     static void setMusicLoopTag(cogs_rules::IntTagPoint *t)
@@ -616,33 +608,40 @@ namespace cogs_sound
 
         output = op;
 
-        cogs::logInfo("sound init");
         mixer = new AudioOutputMixer(128, op);
-        cogs::logInfo("mxr");
 
         cogs::registerFastPollHandler(audioMaintainer);
-        cogs::logInfo("p");
 
         cogs::ensureDirExists("/sfx");
         cogs::ensureDirExists("/music");
-        cogs::logInfo("dirs");
 
         auto t = cogs_rules::IntTagPoint::getTag("music.volume", 1);
+        t->scale = cogs_rules::FXP_RES;
+
         t->subscribe(&setMusicVolumeTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.volume", 1);
+        t->scale = cogs_rules::FXP_RES;
+
         t->subscribe(&setSfxVolumeTag);
 
         t = cogs_rules::IntTagPoint::getTag("music.fadein", 0);
+        t->scale = cogs_rules::FXP_RES;
         t->subscribe(&setMusicFadeInTag);
 
         t = cogs_rules::IntTagPoint::getTag("music.fadeout", 0);
+        t->scale = cogs_rules::FXP_RES;
+
         t->subscribe(&setMusicFadeOutTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.fadein", 0);
+        t->scale = cogs_rules::FXP_RES;
+
         t->subscribe(&setSfxFadeInTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.fadeout", 0);
+        t->scale = cogs_rules::FXP_RES;
+
         t->subscribe(&setSfxFadeOutTag);
 
         t = cogs_rules::IntTagPoint::getTag("music.loop", 0);
@@ -657,7 +656,6 @@ namespace cogs_sound
         t->subscribe(&stopMusicTag);
         t->setUnit("bang");
 
-
         File dir = LittleFS.open("/sfx"); // flawfinder: ignore
         File f = dir.openNextFile();
         while (f)
@@ -670,14 +668,11 @@ namespace cogs_sound
             f = dir.openNextFile();
         }
 
-        cogs::logInfo("files");
-
         dir = LittleFS.open("/music"); // flawfinder: ignore
 
         f = dir.openNextFile();
         while (f)
         {
-            cogs::logInfo("hjkhj");
 
             if (!f.isDirectory())
             {
@@ -685,10 +680,8 @@ namespace cogs_sound
             }
             f = dir.openNextFile();
         }
-        cogs::logInfo("files2");
 
         cogs::globalEventHandlers.push_back(fileChangeHandler);
-
 
         xTaskCreate(
             audioThread, // Function name of the task
@@ -698,7 +691,5 @@ namespace cogs_sound
             10,          // Task priority
             NULL         // Task handle
         );
-
-        cogs::logInfo("done");
     }
 }

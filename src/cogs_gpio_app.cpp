@@ -12,12 +12,19 @@ namespace cogs_gpio
     std::map<std::string, int> availableInputs;
     std::map<std::string, int> availableOutputs;
     std::map<int, bool (*)()> inputFunctions;
-    std::map<int, void (*)(bool)> outputFunctions;
+    std::map<int, void (*)(int)> outputFunctions;
 
     std::vector<CogsSimpleInput> simpleInputs;
+    std::vector<CogsSimpleOutput> simpleOutputs;
 
-    void declareInput(const std::string &name, int pin){
+    void declareInput(const std::string &name, int pin)
+    {
         availableInputs[name] = pin;
+    }
+
+    void declareOutput(const std::string &name, int pin)
+    {
+        availableOutputs[name] = pin;
     }
 
     /// This thread manages GPIO inputs
@@ -71,6 +78,7 @@ namespace cogs_gpio
     static void gpioFromFile()
     {
         simpleInputs.clear();
+        simpleOutputs.clear();
 
         // Load from file
         JsonDocument doc;
@@ -88,14 +96,23 @@ namespace cogs_gpio
         }
 
         JsonVariant inputs = doc["inputs"];
-        if (!inputs.is<JsonArray>())
+        if (inputs.is<JsonArray>())
         {
-            throw std::runtime_error("No inputs in gpio.json");
+
+            for (auto const &input : inputs.as<JsonArray>())
+            {
+                simpleInputs.emplace_back(input);
+            }
         }
 
-        for (auto const &input : inputs.as<JsonArray>())
+        JsonVariant outputs = doc["outputs"];
+        if (inputs.is<JsonArray>())
         {
-            simpleInputs.emplace_back(input);
+
+            for (auto const &output : outputs.as<JsonArray>())
+            {
+                simpleOutputs.emplace_back(output);
+            }
         }
     }
 
@@ -106,7 +123,14 @@ namespace cogs_gpio
         {
             if (data == "/config/gpio.json")
             {
-                gpioFromFile();
+                try
+                {
+                    gpioFromFile();
+                }
+                catch (const std::exception &e)
+                {
+                    cogs::logError(e.what());
+                }
             }
         }
     }
@@ -123,13 +147,91 @@ namespace cogs_gpio
         cogs_web::server.on("/gpio/input_pin_schema.json", HTTP_GET, availableInputsAPI);
         cogs_web::server.on("/gpio/output_pin_schema.json", HTTP_GET, availableOutputsAPI);
 
-        gpioFromFile();
+        try
+        {
+            gpioFromFile();
+        }
+        catch (const std::exception &e)
+        {
+            cogs::logError(e.what());
+        }
     }
 
+    void onSourceTagSet(cogs_rules::IntTagPoint *tag)
+    {
+        CogsSimpleOutput *o = reinterpret_cast<CogsSimpleOutput *>(tag->extraData);
+        if (o == nullptr)
+        {
+            return;
+        }
+
+        int v = tag->value[0];
+        if (v >= o->pwmSteps)
+        {
+            v = o->pwmSteps;
+        }
+
+        if (o->invert)
+        {
+            v = o->pwmSteps - v;
+        }
+
+        if (o->writeFunction)
+        {
+            o->writeFunction(tag->value[0]);
+        }
+        else
+        {
+            if (o->pwmSteps > 1)
+            {
+                analogWrite(o->pin, v);
+            }
+            else
+            {
+                digitalWrite(o->pin, v > 0 ? HIGH : LOW);
+            }
+        }
+    }
+
+    CogsSimpleOutput::CogsSimpleOutput(const JsonVariant &config)
+    {
+
+        if (!config.is<JsonObject>())
+        {
+            throw std::runtime_error("Invalid config");
+        }
+        std::string pinName = config["pin"].as<std::string>();
+        int pin = availableOutputs[pinName];
+        cogs::logInfo("Using output " + pinName + " at " + std::to_string(pin));
+
+        if (outputFunctions.contains(pin))
+        {
+            this->writeFunction = outputFunctions[pin];
+        }
+        else
+        {
+            pinMode(pin, OUTPUT);
+        }
+
+        std::string st = config["source"].as<std::string>();
+
+        this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0);
+        this->sourceTag->extraData = this;
+        this->sourceTag->subscribe(&onSourceTagSet);
+    }
+
+    CogsSimpleOutput::~CogsSimpleOutput()
+    {
+        if (this->sourceTag)
+        {
+            this->sourceTag->unsubscribe(&onSourceTagSet);
+        }
+    }
     CogsSimpleInput::CogsSimpleInput(const JsonVariant &config)
     {
 
-        if(!config.is<JsonObject>()){
+        if (!config.is<JsonObject>())
+        {
             throw std::runtime_error("Invalid config");
         }
 
@@ -147,6 +249,9 @@ namespace cogs_gpio
         }
 
         int pin = availableInputs[pinName];
+
+        cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
+
         if (inputFunctions.contains(pin))
         {
             this->readFunction = inputFunctions[pin];
@@ -167,6 +272,7 @@ namespace cogs_gpio
         }
 
         this->pin = pin;
+
         int interuptNumber = -1;
         if (pin < 1024)
         {
@@ -182,9 +288,27 @@ namespace cogs_gpio
             this->activeHigh = config["activeHigh"].as<bool>();
         }
 
+        this->setupTargetsFromJson(config);
+    }
+
+    void CogsSimpleInput::setupTargetsFromJson(const JsonVariant &config)
+    {
         if (config.containsKey("activeTarget"))
         {
-            this->activeTarget = cogs_rules::IntTagPoint::getTag(config["activeHigh"].as<std::string>(), 0, 1);
+            std::string st = config["activeTarget"].as<std::string>();
+            if (st.size() > 0)
+            {
+                this->activeTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
+            }
+        }
+
+        if (config.containsKey("inactiveTarget"))
+        {
+            std::string st = config["inactiveTarget"].as<std::string>();
+            if (st.size() > 0)
+            {
+                this->inactiveTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
+            }
         }
     }
 
@@ -212,6 +336,12 @@ namespace cogs_gpio
         {
             val = this->readFunction();
         }
+
+        this->onNewRawDigitalValue(val);
+    }
+
+    void CogsSimpleInput::onNewRawDigitalValue(bool val)
+    {
         if (val != this->lastInputLevel)
         {
             if (this->activeTarget)

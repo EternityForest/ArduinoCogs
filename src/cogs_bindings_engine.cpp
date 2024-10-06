@@ -174,7 +174,8 @@ static float doFlicker(float idx)
     flicker_flames_lp[index] = flicker_flames_lp[index] / 8;
   }
 
-  return flicker_flames[index];
+  // Todo maybe we should do float math the whole time
+  return (float)flicker_flames_lp[index]/FXP_RES;
 }
 
 namespace cogs_rules
@@ -566,6 +567,7 @@ std::shared_ptr<State> Clockwork::getState(std::string name)
   // This is the tag point which will be set to 1 if we're in this state
   // We can't be in it yet since we just created it
   auto tag = IntTagPoint::getTag(this->name + ".states." + name, 0);
+  tag->setUnit("bool");
 
   tag->subscribe(&onStateTagSet);
 
