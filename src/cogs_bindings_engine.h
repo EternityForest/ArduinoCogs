@@ -76,6 +76,9 @@ namespace cogs_rules
     std::shared_ptr<IntTagPoint> target;
     std::string target_name;
 
+    // In claim mode we use a claim rather than directly setting the value
+    std::shared_ptr<cogs_tagpoints::TagPointClaim> claim = nullptr;
+
     /// Don't run till unfrozen
     bool frozen = false;
   public:
@@ -84,6 +87,8 @@ namespace cogs_rules
     // Of the tag point's data to affect.
     unsigned int multiStart =0;
     unsigned int multiCount =1;
+
+    float fadeInTime = 0.0;
 
 
     /// If True, act once when entering a state, even if no changes
@@ -107,8 +112,13 @@ namespace cogs_rules
     //! If the value changes, notify target
     void eval();
 
-    //! Reset the change detection.
-    void reset();
+    //! Reset the change detection and set up when the binding becomes active
+    void enter();
+
+    //! Call when the binding becomes inactive
+    void exit();
+
+
 
     ~Binding();
   };
@@ -137,8 +147,10 @@ namespace cogs_rules
     //! Reviewuate all bindings in this state.
     void eval();
 
-    //! Reset the change detection of all bindings.
-    void reset();
+    //! Called when the state is exited or the binding otherwise becomes inactive
+    void exit();
+
+    void enter();
 
     //! Don't create bindings yourself, use this
     std::shared_ptr<cogs_rules::Binding> addBinding(std::string target_name, std::string input);

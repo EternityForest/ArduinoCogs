@@ -28,10 +28,21 @@ export class PageRoot extends LitElement {
 
         var t = this;
 
+        async function getMoreData(tn){
+            var x = await fetch('/api/cogs.tag?tag='+tn);
+            var y = await x.json();
+            t.data.tags[tn] = y;
+            t.requestUpdate();
+
+        }
         async function getData() {
 
             var x = await fetch('/api/cogs.tags');
             var y = await x.json();
+            for(var i in y.tags){
+                y.tags[i] = {};
+                getMoreData(i);
+            }
             t.data = y;
         }
         getData();

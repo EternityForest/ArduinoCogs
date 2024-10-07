@@ -30,10 +30,7 @@ namespace cogs_tagpoints
   class TagPoint
   {
   private:
-    // This is the current "base" value before applying any claims.
-    // It may be overridden or filtered by a claim.  Once a claim is "finished",
-    // Meaning it's effect is no longer changing, the output of that layer will be written to
-    TAG_DATA_TYPE *background_value;
+
 
     // Track all claims affecting the tag's value
     // we can only have one claim of each priority.
@@ -43,23 +40,43 @@ namespace cogs_tagpoints
     // These functions are called when value changes
     std::vector<void (*)(TagPoint *)> subscribers;
 
-    /// Clean the list of claims.  Once something is marked finished, if it is
-    /// Right above background, it's value is the new background and we delete it
-    void clean_finished();
 
   public:
     TagPoint(const std::string &n, TAG_DATA_TYPE val, int count = 1);
     ~TagPoint();
 
-    // The last rendered first value, converted to a float.
+    /// This is the current "base" value before applying any claims.
+    /// It may be overridden or filtered by a claim.  Once a claim is "finished",
+    /// Meaning it's effect is no longer changing, the output of that layer will be written to
+    TAG_DATA_TYPE *background_value;
+
+    /// The last rendered first value, converted to a float.
     float floatFirstValueCache;
 
     /// Tag points can represent multiple values.  Normally a tag only has one value
     /// but some are arrays
     uint16_t count = 1;
 
+    /// Set fixed point resolution, 1 in float user expressions
+    /// is this many when converted to int.
+    void setScale(int s)
+    {
+      this->scale = s;
+      this->scale_inverse = 1.0f / scale;
+    }
+
+
+
     /// The scale is a multiplier used to convert floats to the actual tag value.
+    /// Do not set directly.  Use setScale
     int scale = 1;
+
+    /// Used to convert tag values to floats
+    /// Do not set directly.  Use setScale
+    float scale_inverse = 1;
+
+
+
 
     /// The range of values.  Used for metadata only, for performance reasons
     /// We do not constrain automatically in most cases
@@ -191,6 +208,10 @@ namespace cogs_tagpoints
     void addClaim(std::shared_ptr<TagPointClaim> claim);
 
     void silentResetValue();
+
+    /// Clean the list of claims.  Once something is marked finished, if it is
+    /// Right above background, it's value is the new background and we delete it
+    void clean_finished();
   };
 
   /// A tag point claim is an an object that sets the value of a tag.

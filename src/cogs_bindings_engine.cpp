@@ -18,7 +18,7 @@ static std::vector<Binding> bindings;
 static int global_vars_count = 0;
 static te_variable global_vars[256];
 
-te_expr * cogs_rules::compileExpression(const std::string &input)
+te_expr *cogs_rules::compileExpression(const std::string &input)
 {
   int err = 0;
   auto x = te_compile(input.c_str(), global_vars, global_vars_count, &err);
@@ -175,7 +175,7 @@ static float doFlicker(float idx)
   }
 
   // Todo maybe we should do float math the whole time
-  return (float)flicker_flames_lp[index]/FXP_RES;
+  return (float)flicker_flames_lp[index] / FXP_RES;
 }
 
 namespace cogs_rules
@@ -188,18 +188,20 @@ namespace cogs_rules
 
 // Used when you want to make something change.
 // Always returns positive int different from input.
-float fbang(float x){
+float fbang(float x)
+{
   int v = x;
-  v+=1;
-  if(v>1048576){
+  v += 1;
+  if (v > 1048576)
+  {
     return 1;
   }
-  if(v<1){
+  if (v < 1)
+  {
     return 1;
   }
   return v;
 }
-
 
 void setupBuiltins()
 {
@@ -335,7 +337,7 @@ Binding::Binding(const std::string &target_name, const std::string &input)
   {
     if (IntTagPoint::exists(this->target_name))
     {
-      this->target = IntTagPoint::getTag(this->target_name,0,1);
+      this->target = IntTagPoint::getTag(this->target_name, 0, 1);
     }
   }
 
@@ -344,65 +346,95 @@ Binding::Binding(const std::string &target_name, const std::string &input)
 
 void Binding::eval()
 {
-  if (this->input_expression)
+  if (!this->input_expression)
   {
-    // If it's a multi binding, evaluate each part
-    for (int i = 0; i < this->multiCount; i++)
+    return;
+  }
+
+  // We may be setting multiple values, we want to only do one rerender pass
+  // for performance reasons.
+
+  // Maybe the tag was made after the binding.
+  if (!this->target)
+  {
+    if (IntTagPoint::exists(this->target_name))
     {
+      this->target = IntTagPoint::getTag(this->target_name, 0, 1);
+    }
+    else
+    {
+      return;
+    }
+  }
 
-      if (this->multiCount > 1)
+  if (this->frozen)
+  {
+    return;
+  }
+
+  bool shouldRerender = false;
+  dollar_sign_i = this->multiStart;
+
+  // If it's a multi binding, evaluate each part
+  for (int i = 0; i < this->multiCount; i++)
+  {
+
+    float x = te_eval(this->input_expression);
+
+    if (this->onchange)
+    {
+      if (x != this->lastState[i])
       {
-        // User code will likely want to access the iterator $i
-        dollar_sign_i = this->multiStart + i;
-      }
 
-      float x = te_eval(this->input_expression);
+        /// nan is the special flag meaning we are in an unknown state
+        /// And thus cannot do change detection yet, so we don't
+        /// Act until it changes again.
 
-      // Maybe the tag was made after the binding.
-      if (!this->target)
-      {
-        if (IntTagPoint::exists(this->target_name))
+        // If onenter is true, we act on enter no matter what
+        if ((this->lastState[i] != NAN) || this->onenter)
         {
-          this->target = IntTagPoint::getTag(this->target_name,0,1);
-        }
-      }
-
-      if (this->target)
-      {
-        if (this->frozen)
-        {
-        }
-        else if (this->onchange)
-        {
-          if (x != this->lastState[i])
+          if (this->claim)
           {
-
-            /// nan is the special flag meaning we are in an unknown state
-            /// And thus cannot do change detection yet, so we don't
-            /// Act until it changes again.
-
-            // If onenter is true, we act on enter no matter what
-            if ((this->lastState[i] != NAN) || this->onenter)
-            {
-              this->target->setValue(x * this->target->scale, this->multiStart + i, 1);
-            }
-            this->lastState[i] = x;
+            this->claim->value[this->multiStart + i] = x * this->target->scale;
           }
+          else
+          {
+            this->target->background_value[this->multiStart + i] = x * this->target->scale;
+          }
+          shouldRerender = true;
         }
-        else
-        {
-          this->target->setValue(x * this->target->scale, this->multiStart + i, 1);
-        }
-
-        if (this->freeze)
-        {
-          this->frozen = true;
-        }
+        this->lastState[i] = x;
       }
     }
-    // Set it back to 0
-    dollar_sign_i = 0;
+    else
+    {
+      if (this->claim)
+      {
+        this->claim->value[this->multiStart + i] = x * this->target->scale;
+      }
+      else
+      {
+        this->target->background_value[this->multiStart + i] = x * this->target->scale;
+      }
+      shouldRerender = true;
+    }
+
+    dollar_sign_i++;
   }
+
+  // Set it back to 0
+  dollar_sign_i = 0;
+
+  if (this->freeze)
+  {
+    this->frozen = true;
+  }
+
+  if (shouldRerender)
+  {
+    this->target->rerender();
+  }
+
 };
 
 Binding::~Binding()
@@ -410,7 +442,7 @@ Binding::~Binding()
   te_free(this->input_expression);
 };
 
-void Binding::reset()
+void Binding::enter()
 {
   this->frozen = false;
   for (int i = 0; i < this->multiCount; i++)
@@ -427,12 +459,14 @@ void State::eval()
   }
 }
 
-void State::reset()
-{
-  for (const auto &binding : this->bindings)
-  {
-    binding->reset();
+void State::enter(){
+  for(const auto &binding : this->bindings){
+    binding->enter();
   }
+}
+
+void State::exit(){
+
 }
 
 std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string input)
@@ -496,6 +530,7 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
     std::string stateName = this->currentState->name;
     auto tag = IntTagPoint::getTag(this->name + ".states." + stateName, 0);
     tag->setValue(0);
+    this->currentState->exit();
   }
 
   if (!this->states.contains(name))
@@ -522,7 +557,7 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
   // Reset change detection state
   if (this->currentState)
   {
-    this->currentState->reset();
+    this->currentState->enter();
   }
 }
 
@@ -680,7 +715,7 @@ static void reggshellWriteTagPoint(reggshell::Reggshell *rs, const char *arg1, c
 static void statusCallback(reggshell::Reggshell *rs)
 {
   rs->println("\nClockworks: ");
-  for (auto const & cw : cogs_rules::Clockwork::allClockworks)
+  for (auto const &cw : cogs_rules::Clockwork::allClockworks)
   {
     rs->print("  ");
     rs->print(cw.first.c_str());
@@ -699,7 +734,7 @@ static void statusCallback(reggshell::Reggshell *rs)
 
 static void listTagsCommand(reggshell::Reggshell *rs, const char *arg1, const char *arg2, const char *arg3)
 {
-  for (auto  const & tag : cogs_rules::IntTagPoint::all_tags)
+  for (auto const &tag : cogs_rules::IntTagPoint::all_tags)
   {
     rs->print(tag->name.c_str());
     rs->print("[");
@@ -734,11 +769,11 @@ void cogs_rules::setupRulesEngine()
 {
   setupBuiltins();
   auto t = cogs_rules::IntTagPoint::getTag("temp1", 0);
-  t->scale = 16384;
+  t->setScale(16384);
   t = cogs_rules::IntTagPoint::getTag("temp2", 0);
-  t->scale = 16384;
+  t->setScale(16384);
   t = cogs_rules::IntTagPoint::getTag("temp3", 0);
-  t->scale = 16384;
+  t->setScale(16384);
 
   cogs_reggshell::interpreter->addCommand("eval (.*)", evalExpressionCommand, "eval <expr> Evaluates any expression. All tag points available as vars");
   cogs_reggshell::interpreter->addSimpleCommand("tags", listTagsCommand, "list all tags and their first vals");

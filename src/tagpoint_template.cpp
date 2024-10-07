@@ -193,7 +193,7 @@ void TagPoint::rerender()
         {
             memcpy(this->value, this->background_value, sizeof(TAG_DATA_TYPE) * this->count); // flawfinder: ignore
 
-            this->floatFirstValueCache = ((float)this->value[0]) / this->scale;
+            this->floatFirstValueCache = ((float)this->value[0]) * this->scale_inverse;
 
             for (const auto subscriber : this->subscribers)
             {
@@ -241,7 +241,7 @@ void TagPoint::rerender()
         this->claims.erase(this->claims.begin());
         finished_count--;
     }
-    this->floatFirstValueCache = ((float)this->value[0]) / this->scale;
+    this->floatFirstValueCache = ((float)this->value[0]) * this->scale_inverse;
 
     // Push data to subscribers
     for (auto const &func : this->subscribers)

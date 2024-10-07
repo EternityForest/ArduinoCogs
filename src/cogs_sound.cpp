@@ -95,6 +95,9 @@ namespace cogs_sound
     public:
         std::string fn;
         bool shouldLoop = false;
+
+        bool shouldDelete = false;
+
         float vol;
         float fade;
         unsigned long fadeStart;
@@ -117,16 +120,23 @@ namespace cogs_sound
             this->id3 = new AudioFileSourceID3(this->src);
             this->gen = new AudioGeneratorMP3();
             this->gen->begin(this->id3, this->stub);
+            this->stub->SetGain(vol);
+            this->fadeStart = millis();
         }
 
-        inline void loop()
-        {
-            this->gen->loop();
-        }
-
-        inline bool isRunning()
-        {
+        bool isRunning(){
+            if(this->shouldDelete){
+                return false;
+            }
+            if(!this->gen){
+                return false;
+            }
             return this->gen->isRunning();
+        }
+
+        inline bool loop()
+        {
+            return this->gen->loop();
         }
 
         void fadeOut(float fade)
@@ -148,7 +158,7 @@ namespace cogs_sound
             unsigned long now = millis();
             if (this->fade > 0)
             {
-                if (now > this->fadeStart + this->fade)
+                if (now > this->fadeStart +((unsigned long)this->fade * 1000))
                 {
                     this->fade = 0;
                 }
@@ -427,6 +437,7 @@ namespace cogs_sound
                 m->fade = musicFadeOut;
                 m->vol = 0.0;
                 m->fadeStart = millis();
+                m->endTime = millis() + int(musicFadeOut * 1000);
             }
             else
             {
@@ -455,6 +466,7 @@ namespace cogs_sound
                 f->fade = fxFadeOut;
                 f->vol = 0.0;
                 f->fadeStart = millis();
+                f->endTime = millis() + int(musicFadeOut * 1000);
             }
             else
             {
@@ -500,7 +512,7 @@ namespace cogs_sound
     {
         if (music)
         {
-            if (!music->gen->isRunning())
+            if (!music->isRunning())
             {
                 SoundPlayer *m = music;
                 bool l = music->shouldLoop;
@@ -574,25 +586,51 @@ namespace cogs_sound
             }
             else
             {
+                SoundPlayer *m = music;
+                SoundPlayer *m2 = music_old;
+                SoundPlayer *m3 = fx;
+                if(m){
+                    if(!m->isRunning()){
+                        m = 0;
+                    }
+                }
+
+                if(m2){
+                    if(!m2->isRunning()){
+                        m2 = 0;
+                    }
+                }
+
+                if(m3){
+                    if(!m3->isRunning()){
+                        m3 = 0;
+                    }
+                }
+
                 for (int i = 0; i < 64; i++)
                 {
-                    SoundPlayer *m = 0;
-                    m = music;
                     if (m)
                     {
-                        m->loop();
+                        if(!m->loop()){
+                            m->shouldDelete = true;
+                            m = 0;
+                        }
                     }
 
-                    m = music_old;
-                    if (m)
+                    if (m2)
                     {
-                        m->loop();
+                        if(!m2->loop()){
+                            m2->shouldDelete = true;
+                            m2 = 0;
+                        }
                     }
 
-                    m = fx;
-                    if (m)
+                    if (m3)
                     {
-                        m->loop();
+                        if(!m3->loop()){
+                            m3->shouldDelete = true;
+                            m3 = 0;
+                        }
                     }
                 }
             }
@@ -615,32 +653,32 @@ namespace cogs_sound
         cogs::ensureDirExists("/sfx");
         cogs::ensureDirExists("/music");
 
-        auto t = cogs_rules::IntTagPoint::getTag("music.volume", 1);
-        t->scale = cogs_rules::FXP_RES;
+        auto t = cogs_rules::IntTagPoint::getTag("music.volume", cogs_rules::FXP_RES);
+        t->setScale(cogs_rules::FXP_RES);
 
         t->subscribe(&setMusicVolumeTag);
 
-        t = cogs_rules::IntTagPoint::getTag("sfx.volume", 1);
-        t->scale = cogs_rules::FXP_RES;
+        t = cogs_rules::IntTagPoint::getTag("sfx.volume", cogs_rules::FXP_RES);
+        t->setScale(cogs_rules::FXP_RES);
 
         t->subscribe(&setSfxVolumeTag);
 
         t = cogs_rules::IntTagPoint::getTag("music.fadein", 0);
-        t->scale = cogs_rules::FXP_RES;
+        t->setScale(cogs_rules::FXP_RES);
         t->subscribe(&setMusicFadeInTag);
 
         t = cogs_rules::IntTagPoint::getTag("music.fadeout", 0);
-        t->scale = cogs_rules::FXP_RES;
+        t->setScale(cogs_rules::FXP_RES);
 
         t->subscribe(&setMusicFadeOutTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.fadein", 0);
-        t->scale = cogs_rules::FXP_RES;
+        t->setScale(cogs_rules::FXP_RES);
 
         t->subscribe(&setSfxFadeInTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.fadeout", 0);
-        t->scale = cogs_rules::FXP_RES;
+        t->setScale(cogs_rules::FXP_RES);
 
         t->subscribe(&setSfxFadeOutTag);
 
