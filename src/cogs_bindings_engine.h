@@ -181,7 +181,13 @@ namespace cogs_rules
     static std::shared_ptr<Clockwork> getClockwork(std::string);
 
     static inline bool exists(const std::string &name){
-      return allClockworks.contains(name);
+      if (allClockworks.find(name) == allClockworks.end())
+      {
+        return false;
+      }
+      else{
+        return true;
+      }
     }
 
     //! Unregister this clockwork from the global list.

@@ -20,7 +20,7 @@ namespace cogs_sound
         {
             return;
         }
-        if (path.starts_with("/sfx") || path.starts_with("/music"))
+        if ((path.rfind("/sfx",0)==0) || (path.rfind("/music",0)==0))
         {
             if (!path.ends_with(".mp3"))
             {
@@ -49,7 +49,7 @@ namespace cogs_sound
 
                 std::string tn = f.name();
 
-                if (path.starts_with("/sfx"))
+                if (path.rfind("/sfx",0)==0)
                 {
                     tn = "sfx.files." + tn;
                 }
@@ -62,7 +62,7 @@ namespace cogs_sound
                 soundFileMap[path]->extraData = buf;
                 soundFileMap[path]->setUnit("bang");
 
-                if (path.starts_with("/music"))
+                if (path.rfind("/music",0)==0) )
                 {
                     soundFileMap[path]->subscribe(playMusicTag);
                 }
