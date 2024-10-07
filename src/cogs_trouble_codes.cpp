@@ -20,7 +20,7 @@ void cogs::addTroubleCode(const std::string& code,bool persist)
 
 void cogs::inactivateTroubleCode(const std::string& code)
 {
-    if(troubleCodeStatus.contains(code))
+    if(troubleCodeStatus.count(code)==1)
     {
         troubleCodeStatus[code] = false;
     }
@@ -28,7 +28,7 @@ void cogs::inactivateTroubleCode(const std::string& code)
 
 void cogs::clearTroubleCode(const std::string& code)
 {
-    if(troubleCodeStatus.contains(code))
+    if(troubleCodeStatus.count(code)==1)
     {
         if(troubleCodeStatus[code]==false)
         {

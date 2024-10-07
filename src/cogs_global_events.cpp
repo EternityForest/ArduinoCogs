@@ -70,7 +70,9 @@ namespace cogs
     }
     void unregisterFastPollHandler(void (*handler)())
     {
-        std::erase(fastPollHandlers, handler);
+
+        //std erase doesn't work yet on platformio for some reason
+        fastPollHandlers.erase(std::remove(fastPollHandlers.begin(), fastPollHandlers.end(), handler), fastPollHandlers.end());
     }
 
 }

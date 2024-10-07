@@ -204,7 +204,7 @@ namespace cogs_gpio
         int pin = availableOutputs[pinName];
         cogs::logInfo("Using output " + pinName + " at " + std::to_string(pin));
 
-        if (outputFunctions.contains(pin))
+        if (outputFunctions.count(pin)==1)
         {
             this->writeFunction = outputFunctions[pin];
         }
@@ -243,7 +243,7 @@ namespace cogs_gpio
             pullup = config["pullup"].as<bool>();
         }
 
-        if (!availableInputs.contains(pinName))
+        if (!availableInputs.count(pinName)==1)
         {
             throw std::runtime_error("Pin " + pinName + " not found");
         }
@@ -252,7 +252,7 @@ namespace cogs_gpio
 
         cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
 
-        if (inputFunctions.contains(pin))
+        if (inputFunctions.count(pin)==1)
         {
             this->readFunction = inputFunctions[pin];
             this->lastInputLevel = this->readFunction();

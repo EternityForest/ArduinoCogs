@@ -35,7 +35,7 @@ namespace reggshell
         reggshell->print(">>> ");
         reggshell->println(rawline);
 
-        if (reggshell->commands_map.contains(name))
+        if (reggshell->commands_map.count(name)==1)
         {
             reggshell->commands_map[name]->callback(reggshell, arg1, arg2, arg3);
         }

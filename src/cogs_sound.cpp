@@ -4,6 +4,11 @@
 #include "cogs_sound.h"
 
 #include <string>
+static inline bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
 
 namespace cogs_sound
 {
@@ -22,7 +27,7 @@ namespace cogs_sound
         }
         if ((path.rfind("/sfx",0)==0) || (path.rfind("/music",0)==0))
         {
-            if (!path.ends_with(".mp3"))
+            if (!ends_with(path, ".mp3"))
             {
                 return;
             }
@@ -32,7 +37,7 @@ namespace cogs_sound
             // If the file exists, add it to the map
             if (f)
             {
-                if (soundFileMap.contains(path))
+                if (soundFileMap.count(path)==1)
                 {
                     return;
                 }
@@ -62,7 +67,7 @@ namespace cogs_sound
                 soundFileMap[path]->extraData = buf;
                 soundFileMap[path]->setUnit("bang");
 
-                if (path.rfind("/music",0)==0) )
+                if (path.rfind("/music", 0)==0)
                 {
                     soundFileMap[path]->subscribe(playMusicTag);
                 }
@@ -74,7 +79,7 @@ namespace cogs_sound
             else
             {
 
-                if (soundFileMap.contains(path))
+                if (soundFileMap.count(path)==1)
                 {
 
                     if (soundFileMap[path]->extraData)

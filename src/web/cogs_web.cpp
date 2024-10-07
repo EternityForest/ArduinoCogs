@@ -13,6 +13,12 @@ using namespace cogs_web;
 
 AsyncWebServer cogs_web::server(80);
 
+static inline bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 namespace cogs_web
 {
 
@@ -33,7 +39,7 @@ namespace cogs_web
                            unsigned int size,
                            const char *mime)
     {
-        AsyncWebServerResponse *response = request->beginResponse(200,
+        AsyncWebServerResponse *response = request->beginResponse_P(200,
                                                                   mime,
                                                                   data,
                                                                   size);
@@ -193,7 +199,7 @@ namespace cogs_web
     {
         if (event == cogs::fileChangeEvent)
         {
-            if (path.ends_with("config/network.json"))
+            if (ends_with(path, "config/network.json"))
             {
                 cogs_web::check_wifi(true);
             }

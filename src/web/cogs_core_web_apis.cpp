@@ -17,6 +17,12 @@
 using namespace cogs_web;
 
 static std::string uploadFileName = "";
+static inline bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 
 static void navbar_handler(AsyncWebServerRequest *request)
 {
@@ -198,7 +204,7 @@ static void handleDeleteFile(AsyncWebServerRequest *request)
         cogs::unlock();
         return;
     }
-    if (path.ends_with("/"))
+    if (ends_with(path, "/"))
     {
         path = path.substr(0, path.size() - 1);
     }
@@ -309,7 +315,7 @@ static void uploadFinal(AsyncWebServerRequest *request)
         }
 
         // Allow auto using the filename
-        if (!path.ends_with("/"))
+        if (!ends_with(path, "/"))
         {
             path = path + "/";
         };

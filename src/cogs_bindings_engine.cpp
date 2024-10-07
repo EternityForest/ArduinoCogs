@@ -479,7 +479,9 @@ std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string 
 
 void State::removeBinding(std::shared_ptr<Binding> binding)
 {
-  std::erase(this->bindings, binding);
+  /// remove all elements in this->bindings which are equal to binding
+  this->bindings.erase(std::remove(this->bindings.begin(), 
+  this->bindings.end(), binding), this->bindings.end());
 }
 
 void State::clearBindings()
@@ -489,7 +491,7 @@ void State::clearBindings()
 
 std::shared_ptr<Clockwork> Clockwork::getClockwork(std::string name)
 {
-  if (Clockwork::allClockworks.contains(name))
+  if (Clockwork::allClockworks.count(name)==1)
   {
     return Clockwork::allClockworks[name];
   }
@@ -533,7 +535,7 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
     this->currentState->exit();
   }
 
-  if (!this->states.contains(name))
+  if (!this->states.count(name)==1)
   {
     cogs::logError("Clockwork " + this->name + " doesn't have state " + name);
     return;
@@ -590,7 +592,7 @@ std::shared_ptr<State> Clockwork::getState(std::string name)
     throw std::runtime_error("name empty");
   }
 
-  if (this->states.contains(name))
+  if (this->states.count(name)==1)
   {
     return this->states[name];
   }
