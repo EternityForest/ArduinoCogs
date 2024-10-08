@@ -66,9 +66,13 @@ void cogs_web::exposeTagPoint(std::shared_ptr<cogs_rules::IntTagPoint> tp)
     tp->subscribe(pushTagPointValue);
 }
 
-static void tagCreatedHandler(cogs::GlobalEvent, int dummy, const std::string &name)
+static void tagCreatedHandler(cogs::GlobalEvent evt, int dummy, const std::string &name)
 {
-    auto t = cogs_rules::IntTagPoint::getTag("test", 0, 1);
+    if(evt != cogs::tagCreatedEvent){
+        return;
+    }
+    
+    auto t = cogs_rules::IntTagPoint::getTag(name, 0, 1);
     if (name[0] == '_')
     {
         return;
@@ -78,6 +82,8 @@ static void tagCreatedHandler(cogs::GlobalEvent, int dummy, const std::string &n
         cogs_web::exposeTagPoint(t);
     }
 }
+
+
 static void onEvent(AsyncWebSocket *server,
                     AsyncWebSocketClient *client,
                     AwsEventType type,
@@ -140,6 +146,8 @@ void cogs_web::setupWebSocketServer()
     ws.onEvent(onEvent);
     cogs_web::server.addHandler(&ws);
     cogs::slowPollHandlers.push_back(slowPoll);
+
+    cogs::globalEventHandlers.push_back(tagCreatedHandler);
 
     for (auto const &tp : cogs_rules::IntTagPoint::all_tags)
     {

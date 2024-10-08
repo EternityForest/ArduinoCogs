@@ -489,6 +489,13 @@ void State::clearBindings()
   this->bindings.clear();
 }
 
+State::~State(){
+  if(this->tag){ 
+    this->tag->unsubscribe(&onStateTagSet);
+    this->tag->unregister();
+    this->tag = nullptr;
+  }
+}
 std::shared_ptr<Clockwork> Clockwork::getClockwork(std::string name)
 {
   if (Clockwork::allClockworks.count(name)==1)
@@ -535,7 +542,7 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
     this->currentState->exit();
   }
 
-  if (!this->states.count(name)==1)
+  if (!(this->states.count(name)==1))
   {
     cogs::logError("Clockwork " + this->name + " doesn't have state " + name);
     return;
@@ -609,6 +616,8 @@ std::shared_ptr<State> Clockwork::getState(std::string name)
   tag->subscribe(&onStateTagSet);
 
   tag->extraData = state.get();
+
+  this->tag = tag;
 
   this->states[name] = state;
 

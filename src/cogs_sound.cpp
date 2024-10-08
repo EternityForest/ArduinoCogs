@@ -1,12 +1,13 @@
-#include <LittleFS.h>
+#include "littlefs_compat.h"
 #include "cogs_bindings_engine.h"
 #include "cogs_global_events.h"
 #include "cogs_sound.h"
 
 #include <string>
-static inline bool ends_with(std::string const & value, std::string const & ending)
+static inline bool ends_with(std::string const &value, std::string const &ending)
 {
-    if (ending.size() > value.size()) return false;
+    if (ending.size() > value.size())
+        return false;
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
@@ -25,7 +26,7 @@ namespace cogs_sound
         {
             return;
         }
-        if ((path.rfind("/sfx",0)==0) || (path.rfind("/music",0)==0))
+        if ((path.rfind("/sfx", 0) == 0) || (path.rfind("/music", 0) == 0))
         {
             if (!ends_with(path, ".mp3"))
             {
@@ -37,7 +38,7 @@ namespace cogs_sound
             // If the file exists, add it to the map
             if (f)
             {
-                if (soundFileMap.count(path)==1)
+                if (soundFileMap.count(path) == 1)
                 {
                     return;
                 }
@@ -54,7 +55,7 @@ namespace cogs_sound
 
                 std::string tn = f.name();
 
-                if (path.rfind("/sfx",0)==0)
+                if (path.rfind("/sfx", 0) == 0)
                 {
                     tn = "sfx.files." + tn;
                 }
@@ -67,7 +68,7 @@ namespace cogs_sound
                 soundFileMap[path]->extraData = buf;
                 soundFileMap[path]->setUnit("bang");
 
-                if (path.rfind("/music", 0)==0)
+                if (path.rfind("/music", 0) == 0)
                 {
                     soundFileMap[path]->subscribe(playMusicTag);
                 }
@@ -79,7 +80,7 @@ namespace cogs_sound
             else
             {
 
-                if (soundFileMap.count(path)==1)
+                if (soundFileMap.count(path) == 1)
                 {
 
                     if (soundFileMap[path]->extraData)
@@ -109,13 +110,14 @@ namespace cogs_sound
         float initialVol;
         AudioFileSource *src = 0;
         AudioGenerator *gen = 0;
-        AudioFileSourceID3 *id3;
+        AudioFileSourceID3 *id3 = 0;
         AudioOutputMixerStub *stub = 0;
 
         unsigned long endTime = 0;
 
         SoundPlayer(AudioOutputMixer *mixer, std::string fn, bool loop, float vol, float fade, float initialVol)
         {
+            cogs::logInfo("SoundPlayer: " + fn);
             this->shouldLoop = loop;
             this->fade = fade;
             this->vol = vol;
@@ -129,11 +131,14 @@ namespace cogs_sound
             this->fadeStart = millis();
         }
 
-        bool isRunning(){
-            if(this->shouldDelete){
+        bool isRunning()
+        {
+            if (this->shouldDelete)
+            {
                 return false;
             }
-            if(!this->gen){
+            if (!this->gen)
+            {
                 return false;
             }
             return this->gen->isRunning();
@@ -163,7 +168,7 @@ namespace cogs_sound
             unsigned long now = millis();
             if (this->fade > 0)
             {
-                if (now > this->fadeStart +((unsigned long)this->fade * 1000))
+                if (now > this->fadeStart + ((unsigned long)this->fade * 1000))
                 {
                     this->fade = 0;
                 }
@@ -594,20 +599,26 @@ namespace cogs_sound
                 SoundPlayer *m = music;
                 SoundPlayer *m2 = music_old;
                 SoundPlayer *m3 = fx;
-                if(m){
-                    if(!m->isRunning()){
+                if (m)
+                {
+                    if (!m->isRunning())
+                    {
                         m = 0;
                     }
                 }
 
-                if(m2){
-                    if(!m2->isRunning()){
+                if (m2)
+                {
+                    if (!m2->isRunning())
+                    {
                         m2 = 0;
                     }
                 }
 
-                if(m3){
-                    if(!m3->isRunning()){
+                if (m3)
+                {
+                    if (!m3->isRunning())
+                    {
                         m3 = 0;
                     }
                 }
@@ -616,7 +627,8 @@ namespace cogs_sound
                 {
                     if (m)
                     {
-                        if(!m->loop()){
+                        if (!m->loop())
+                        {
                             m->shouldDelete = true;
                             m = 0;
                         }
@@ -624,7 +636,8 @@ namespace cogs_sound
 
                     if (m2)
                     {
-                        if(!m2->loop()){
+                        if (!m2->loop())
+                        {
                             m2->shouldDelete = true;
                             m2 = 0;
                         }
@@ -632,7 +645,8 @@ namespace cogs_sound
 
                     if (m3)
                     {
-                        if(!m3->loop()){
+                        if (!m3->loop())
+                        {
                             m3->shouldDelete = true;
                             m3 = 0;
                         }
@@ -648,6 +662,10 @@ namespace cogs_sound
 
     void begin(AudioOutput *op)
     {
+        if (!op)
+        {
+            cogs::logError("Null pointer");
+        }
 
         output = op;
 
@@ -700,28 +718,40 @@ namespace cogs_sound
         t->setUnit("bang");
 
         File dir = LittleFS.open("/sfx"); // flawfinder: ignore
-        File f = dir.openNextFile();
-        while (f)
+        if (dir)
         {
-
-            if (!f.isDirectory())
+            if (dir.isDirectory())
             {
-                fileChangeHandler(cogs::fileChangeEvent, 0, f.path());
+
+                File f = dir.openNextFile();
+                while (f)
+                {
+
+                    if (!f.isDirectory())
+                    {
+                        fileChangeHandler(cogs::fileChangeEvent, 0, f.path());
+                    }
+                    f = dir.openNextFile();
+                }
             }
-            f = dir.openNextFile();
         }
-
         dir = LittleFS.open("/music"); // flawfinder: ignore
-
-        f = dir.openNextFile();
-        while (f)
+        if (dir)
         {
-
-            if (!f.isDirectory())
+            if (dir.isDirectory())
             {
-                fileChangeHandler(cogs::fileChangeEvent, 0, f.path());
+
+                File f = dir.openNextFile();
+                while (f)
+                {
+
+                    if (!f.isDirectory())
+                    {
+                        fileChangeHandler(cogs::fileChangeEvent, 0, f.path());
+                    }
+                    f = dir.openNextFile();
+                }
             }
-            f = dir.openNextFile();
         }
 
         cogs::globalEventHandlers.push_back(fileChangeHandler);

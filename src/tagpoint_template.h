@@ -147,6 +147,7 @@ namespace cogs_tagpoints
       }
 
       throw std::runtime_error("??");
+      return nullptr;
     }
 
     //! Check if a tag exists

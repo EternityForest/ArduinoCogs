@@ -129,6 +129,8 @@ namespace cogs_rules
   {
   private:
     friend class Clockwork;
+    // The tag that tells us if we're in this state
+    std::shared_ptr<cogs_tagpoints::IntTagPoint> tag = nullptr;
 
   public:
     /// Duration in milliseconds. If set,
@@ -157,6 +159,8 @@ namespace cogs_rules
 
     void clearBindings();
     void removeBinding(std::shared_ptr<cogs_rules::Binding> binding);
+
+    ~State();
   };
 
   //! A clockwork is a state machine with extra features.

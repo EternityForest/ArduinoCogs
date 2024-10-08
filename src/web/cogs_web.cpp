@@ -1,4 +1,4 @@
-#include <LittleFS.h>
+#include "littlefs_compat.h"
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
@@ -159,17 +159,17 @@ namespace cogs_web
         std::string default_pass;
         std::string default_host;
 
-        if (doc.containsKey("ssid"))
+        if (doc["ssid"].is<const char *>())
         {
             default_ssid = doc["ssid"].as<const char *>();
         }
 
-        if (doc.containsKey("password"))
+        if (doc["password"].is<const char *>())
         {
             default_pass = doc["password"].as<const char *>();
         }
 
-        if (doc.containsKey("hostname"))
+        if (doc["hostname"].is<const char *>())
         {
             default_host = doc["hostname"].as<const char *>();
         }

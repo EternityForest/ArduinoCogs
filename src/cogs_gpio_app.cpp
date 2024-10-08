@@ -4,7 +4,7 @@
 #include "web/cogs_web.h"
 #include "web/generated_data/gpio_schema_json_gz.h"
 
-#include <LittleFS.h>
+#include "littlefs_compat.h"
 #include <Arduino.h>
 
 namespace cogs_gpio
@@ -86,6 +86,7 @@ namespace cogs_gpio
         File file = LittleFS.open("/config/gpio.json", "r"); // flawfinder: ignore
         if (!file)
         {
+            cogs::logInfo("No gpio.json found");
             return;
         }
 
@@ -200,6 +201,7 @@ namespace cogs_gpio
         {
             throw std::runtime_error("Invalid config");
         }
+
         std::string pinName = config["pin"].as<std::string>();
         int pin = availableOutputs[pinName];
         cogs::logInfo("Using output " + pinName + " at " + std::to_string(pin));
@@ -238,12 +240,12 @@ namespace cogs_gpio
         std::string pinName = config["pin"].as<std::string>();
 
         bool pullup = false;
-        if (config.containsKey("pullup"))
+        if (config["pullup"].is<bool>())
         {
             pullup = config["pullup"].as<bool>();
         }
 
-        if (!availableInputs.count(pinName)==1)
+        if (!(availableInputs.count(pinName)==1))
         {
             throw std::runtime_error("Pin " + pinName + " not found");
         }
@@ -283,7 +285,7 @@ namespace cogs_gpio
             attachInterrupt(interuptNumber, wakeISR, CHANGE);
         }
 
-        if (config.containsKey("activeHigh"))
+        if (config["activeHigh"].is<bool>())
         {
             this->activeHigh = config["activeHigh"].as<bool>();
         }

@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <LittleFS.h>
+#include "littlefs_compat.h"
 #include <ArduinoJson.h>
 #include "cogs_util.h"
 #include "cogs_global_events.h"
