@@ -367,14 +367,14 @@ class TagDataSource extends picodash.DataSource {
                     }
                 }
 
-                
+
 
                 this_.scale = myArr.scale
                 this_.config.readonly = false
 
                 var x = myArr.firstValue/myArr.scale
                 x = Math.round(x/myArr.step)*myArr.step
-    
+
 
                 this_.data = x
                 this_.ready()

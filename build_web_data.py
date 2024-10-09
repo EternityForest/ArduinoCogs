@@ -4,7 +4,7 @@ import gzip
 def file_to_c_array(filename: str) -> str:
     with open(filename, "rb") as f:
         data = f.read()
-    data = gzip.compress(data)
+    data = gzip.compress(data, mtime=os.path.getmtime(filename))
 
     vn = os.path.basename(filename).replace('.', '_')+"_gz"
     br = '{'
