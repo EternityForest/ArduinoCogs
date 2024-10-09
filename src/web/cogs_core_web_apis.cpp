@@ -342,6 +342,9 @@ static void uploadFinal(AsyncWebServerRequest *request)
     {
         redirect = request->arg("redirect").c_str();
         request->redirect(redirect.c_str());
+    }   
+    else{
+        request->send(200, "text/plain", "ok")
     }
 
     cogs::unlock();

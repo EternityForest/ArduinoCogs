@@ -254,11 +254,11 @@ var CogsApi = function () {
 
             this.connection.handleIncoming = function (r) {
 
-                var resp = r['var']
+                var resp = r['vars']
                 //Iterate messages
                 for (var n in resp) {
-                    for (j in apiobj.serverMsgCallbacks[i[0]]) {
-                        apiobj.serverMsgCallbacks[n][j](resp[n][1]);
+                    for (var j in apiobj.serverMsgCallbacks[n]) {
+                        apiobj.serverMsgCallbacks[n][j](resp[n]);
                     }
                 }
             }
@@ -348,10 +348,10 @@ class TagDataSource extends picodash.DataSource {
                 return
             }
             this.data = data/this.scale
-            this.pushData(data)
+            this.pushData(this.data)
         }
         this.sub = upd.bind(this)
-        cogsapi.subscribe(this.name, this.sub)
+        cogsapi.subscribe(this.name.split(":")[1], this.sub)
 
         var xmlhttp = new XMLHttpRequest();
         var url = "/api/cogs.tag?tag=" + this.name.split(":")[1];
@@ -390,7 +390,7 @@ class TagDataSource extends picodash.DataSource {
         }
         if (d != this.data) {
             this.data = d
-            cogsapi.sendValue(this.name.split(":")[1], d*this.scale)
+            cogsapi.sendValue(this.name.split(":")[1], parseInt(d*this.scale))
         }
         super.pushData(d)
     }

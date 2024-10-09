@@ -17,7 +17,7 @@ static std::vector<Binding> bindings;
 /// Be requested until they actually are.
 static int global_vars_count = 0;
 static te_variable global_vars[256];
-
+static void onStateTagSet(IntTagPoint *tag);
 te_expr *cogs_rules::compileExpression(const std::string &input)
 {
   int err = 0;
@@ -617,7 +617,7 @@ std::shared_ptr<State> Clockwork::getState(std::string name)
 
   tag->extraData = state.get();
 
-  this->tag = tag;
+  state->tag = tag;
 
   this->states[name] = state;
 

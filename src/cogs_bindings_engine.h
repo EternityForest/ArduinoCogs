@@ -130,7 +130,7 @@ namespace cogs_rules
   private:
     friend class Clockwork;
     // The tag that tells us if we're in this state
-    std::shared_ptr<cogs_tagpoints::IntTagPoint> tag = nullptr;
+    std::shared_ptr<cogs_rules::IntTagPoint> tag = nullptr;
 
   public:
     /// Duration in milliseconds. If set,

@@ -100,9 +100,10 @@ export class PageRoot extends LitElement {
         <div>
         <h2>${this.data.path}</h2>
         <p>Free flash: ${(this.data.freeflash / 1048576).toPrecision(3)}MiB of ${(this.data.totalflash / 1048576).toPrecision(3)}MiB</p>
-        <form method="POST" enctype="multipart/form-data" action="/api/cogs.upload">
+        <form method="POST" enctype="multipart/form-data" action="/api/cogs.upload?path=${this.data.path}">
             <input type="file" name="file" id="file">
             <input type="hidden" name="path" id="path" value="${this.data.path}/">
+            <input type="hidden" name="redirect"  value="${window.location.href}"/>
             <input type="submit" value="Upload File">
         </form>
 

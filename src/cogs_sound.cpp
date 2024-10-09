@@ -127,7 +127,7 @@ namespace cogs_sound
             this->id3 = new AudioFileSourceID3(this->src);
             this->gen = new AudioGeneratorMP3();
             this->gen->begin(this->id3, this->stub);
-            this->stub->SetGain(vol);
+            this->stub->SetGain(initialVol);
             this->fadeStart = millis();
         }
 
@@ -165,22 +165,33 @@ namespace cogs_sound
 
         void doFade()
         {
-            unsigned long now = millis();
-            if (this->fade > 0)
+            if (this->fade > 0.0)
             {
-                if (now > this->fadeStart + ((unsigned long)this->fade * 1000))
+                unsigned long now = millis();
+                unsigned long p = now - this->fadeStart;
+                float position = float(p) / float(this->fade * 1000);
+                if (position >= 1.0)
                 {
                     this->fade = 0;
                 }
-                else
+
+                if (position < 0.0)
                 {
-                    float t = float(now - this->fadeStart) / float(this->fade);
-                    float v = this->vol * t + this->initialVol * (1 - t);
-                    this->stub->SetGain(v);
+                    position = 0.0;
                 }
+                if (position > 1.0)
+                {
+                    position = 1.0;
+                }
+
+                float v = this->vol * position + this->initialVol * (1 - position);
+                this->stub->SetGain(v);
             }
+
             if (this->endTime)
             {
+                unsigned long now = millis();
+
                 // rollover compare
                 if ((now - this->endTime) > 1000000000L)
                 {
@@ -195,6 +206,7 @@ namespace cogs_sound
             if (this->gen)
             {
                 this->gen->stop();
+                this->gen = 0;
             }
         }
 
@@ -258,16 +270,17 @@ namespace cogs_sound
             delete m2;
         }
 
-        if (fade > 0.0)
+        if (musicFadeOut > 0.0)
         {
             // Move it to the background slot
             if (music)
             {
                 SoundPlayer *m = music;
                 m->fadeStart = millis();
+                m->endTime = millis() + int(musicFadeOut * 1000);
                 m->initialVol = m->vol;
-                m->fade = fade;
-                m->vol = 0;
+                m->fade = musicFadeOut;
+                m->vol = 0.0;
                 music = 0;
                 waitForAudioThread();
                 music_old = m;
@@ -311,7 +324,7 @@ namespace cogs_sound
         }
         else
         {
-            fx = new SoundPlayer(mixer, fn, false, vol, 0, 0);
+            fx = new SoundPlayer(mixer, fn, false, vol, 0, vol);
         }
     }
 
@@ -397,6 +410,7 @@ namespace cogs_sound
         {
             m->shouldLoop = v;
         }
+        musicLoop = v;
     }
 
     void playSoundTag(cogs_rules::IntTagPoint *t)
@@ -451,6 +465,7 @@ namespace cogs_sound
             }
             else
             {
+                m->shouldLoop = false;
                 music = 0;
                 waitForAudioThread();
                 m->stop();
@@ -537,10 +552,13 @@ namespace cogs_sound
 
                 if (l)
                 {
-                    playMusic(fn, true, musicVol, musicFadeIn);
+                    playMusic(fn, true, musicVol, 0);
                 }
             }
-            music->doFade();
+            else
+            {
+                music->doFade();
+            }
         }
 
         if (music_old)
@@ -592,7 +610,7 @@ namespace cogs_sound
             // Idle to reduce power
             if (!(music || music_old || fx))
             {
-                vTaskDelay(50 / portTICK_PERIOD_MS);
+                vTaskDelay(50);
             }
             else
             {
@@ -678,30 +696,44 @@ namespace cogs_sound
 
         auto t = cogs_rules::IntTagPoint::getTag("music.volume", cogs_rules::FXP_RES);
         t->setScale(cogs_rules::FXP_RES);
-
+        t->min = 0;
+        t->max = 3;
         t->subscribe(&setMusicVolumeTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.volume", cogs_rules::FXP_RES);
         t->setScale(cogs_rules::FXP_RES);
+        t->min = 0;
+        t->max = 3;
 
         t->subscribe(&setSfxVolumeTag);
 
         t = cogs_rules::IntTagPoint::getTag("music.fadein", 0);
         t->setScale(cogs_rules::FXP_RES);
         t->subscribe(&setMusicFadeInTag);
+        t->min = 0;
+        t->max = 60;
+        t->setUnit("s");
 
         t = cogs_rules::IntTagPoint::getTag("music.fadeout", 0);
         t->setScale(cogs_rules::FXP_RES);
+        t->min = 0;
+        t->max = 60;
+        t->setUnit("s");
 
         t->subscribe(&setMusicFadeOutTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.fadein", 0);
         t->setScale(cogs_rules::FXP_RES);
-
+        t->min = 0;
+        t->max = 60;
         t->subscribe(&setSfxFadeInTag);
+        t->setUnit("s");
 
         t = cogs_rules::IntTagPoint::getTag("sfx.fadeout", 0);
         t->setScale(cogs_rules::FXP_RES);
+        t->min = 0;
+        t->max = 60;
+        t->setUnit("s");
 
         t->subscribe(&setSfxFadeOutTag);
 

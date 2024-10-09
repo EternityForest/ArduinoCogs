@@ -206,7 +206,7 @@ namespace cogs_gpio
         int pin = availableOutputs[pinName];
         cogs::logInfo("Using output " + pinName + " at " + std::to_string(pin));
 
-        if (outputFunctions.count(pin)==1)
+        if (outputFunctions.count(pin) == 1)
         {
             this->writeFunction = outputFunctions[pin];
         }
@@ -245,7 +245,7 @@ namespace cogs_gpio
             pullup = config["pullup"].as<bool>();
         }
 
-        if (!(availableInputs.count(pinName)==1))
+        if (!(availableInputs.count(pinName) == 1))
         {
             throw std::runtime_error("Pin " + pinName + " not found");
         }
@@ -254,7 +254,7 @@ namespace cogs_gpio
 
         cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
 
-        if (inputFunctions.count(pin)==1)
+        if (inputFunctions.count(pin) == 1)
         {
             this->readFunction = inputFunctions[pin];
             this->lastInputLevel = this->readFunction();
@@ -346,15 +346,21 @@ namespace cogs_gpio
     {
         if (val != this->lastInputLevel)
         {
-            if (this->activeTarget)
+            if (val == this->activeHigh)
             {
-                int v = cogs::bang(this->activeTarget->value[0]);
-                this->activeTarget->setValue(v, 0, 1);
+                if (this->activeTarget)
+                {
+                    int v = cogs::bang(this->activeTarget->value[0]);
+                    this->activeTarget->setValue(v, 0, 1);
+                }
             }
-            if (this->inactiveTarget)
+            else
             {
-                int v = cogs::bang(this->inactiveTarget->value[0]);
-                this->inactiveTarget->setValue(v, 0, 1);
+                if (this->inactiveTarget)
+                {
+                    int v = cogs::bang(this->inactiveTarget->value[0]);
+                    this->inactiveTarget->setValue(v, 0, 1);
+                }
             }
             this->lastInputLevel = val;
         }

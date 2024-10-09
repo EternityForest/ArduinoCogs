@@ -80,7 +80,9 @@ namespace cogs_web
         {
             if (WiFi.status() == WL_CONNECTED)
             {
+                cogs::logInfo("MDNS started");
                 MDNS.begin(cogs::getHostname().c_str());
+                MDNS.addService("http", "tcp", 80);
                 mdns_started = true;
             }
         }

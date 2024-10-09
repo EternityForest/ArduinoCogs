@@ -99,7 +99,7 @@ namespace cogs_tagpoints
     inline static std::vector<std::shared_ptr<TagPoint>> all_tags;
 
     /// Lets the calling code add some arbitrary data
-    void *extraData;
+    void *extraData = nullptr;
 
     std::string name;
 

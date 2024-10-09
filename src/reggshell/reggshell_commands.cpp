@@ -457,6 +457,15 @@ static void statusCommand(Reggshell *reggshell, const char *arg1, const char *ar
     }
 
     reggshell->println("");
+
+    #if defined(ESP32)
+
+
+    // Get cpu frequency
+    reggshell->print("CPU Frequency: ");
+    reggshell->print(ESP.getCpuFreqMHz());
+    reggshell->println(" MHz");
+    #endif
 }
 
     static void scanCommand(reggshell::Reggshell * interpreter, const char * arg1, const char * arg2, const char * arg3)
