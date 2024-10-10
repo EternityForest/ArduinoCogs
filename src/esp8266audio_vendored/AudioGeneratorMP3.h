@@ -63,9 +63,9 @@ class AudioGeneratorMP3 : public AudioGenerator
     
     // Decoding bits
     bool madInitted;
-    struct mad_stream *stream;
-    struct mad_frame *frame;
-    struct mad_synth *synth;
+    struct mad_stream *stream = nullptr;
+    struct mad_frame *frame = nullptr;
+    struct mad_synth *synth = nullptr;
     int samplePtr;
     int nsCount;
     int nsCountMax;

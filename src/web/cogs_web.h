@@ -49,6 +49,9 @@ namespace cogs_web
 
     //! If /api/cogs.theme.css does not exist, set it to a basic Nord colors theme
     void setupDefaultWebTheme();
+    //! Add a unique cache id to the url derived from the build time.
+    std::string addCacheIDToURL(const std::string &);
+
 
     //! Represents one entry in the nav bar.  On creation, it is automatically active.
     //! Used by plugins.  Created with cogs_web::NavBarEntry::create(title, url)
@@ -59,8 +62,8 @@ namespace cogs_web
         NavBarEntry(std::string title, std::string url)
         {
             this->title = title;
-            this->url = url;
-        };
+            this->url = cogs_web::addCacheIDToURL(url);
+        }
 
     public:
         // Title may be changed after instantiation

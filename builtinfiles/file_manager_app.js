@@ -108,13 +108,13 @@ export class PageRoot extends LitElement {
         </form>
 
         <ul>
-            ${Object.entries(this.data.dirs).map(([key, value]) => html`
+            ${Object.entries(this.data.dirs).sort().map(([key, value]) => html`
             <li><a href="/default-template?load-module=/builtin/files_app.js&dir=${this.data.path}/${key}">${key}/</a>
             <button @click=${this.handleDelete.bind(this, key)}>Delete</button>
             </li>
             `)}
 
-            ${Object.entries(this.data.files).map(([key, value]) => html`
+            ${Object.entries(this.data.files).sort().map(([key, value]) => html`
             <li><a href="/api/cogs.download/?file=${this.data.path}/${key}">${key}(${value})</a>
             <button @click=${this.handleRenameRequest.bind(this, key)}>Rename</button>
             <button @click=${this.handleDelete.bind(this, key)}>Delete</button>

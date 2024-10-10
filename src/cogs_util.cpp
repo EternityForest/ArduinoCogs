@@ -3,38 +3,72 @@
 #include <ArduinoJson.h>
 #include "cogs_util.h"
 #include "cogs_global_events.h"
+#include "cogs_power_management.h"
 #include "web/cogs_web.h"
-
 
 static uint32_t randomState = 1;
 
 static unsigned long errorHorizon = 0;
 static int errorCount = 0;
 
+static uint64_t uptimeAccumulator = 0;
+static unsigned long lastUptime = millis();
+
 namespace cogs
 {
+    extern TaskHandle_t mainThreadHandle = 0;
 
     const std::string emptyString = "";
     const std::shared_ptr<const std::string> emptySharedString = std::shared_ptr<const std::string>(&emptyString);
 
     std::vector<std::shared_ptr<const std::string>> stringPool;
 
-    std::shared_ptr<const std::string> getSharedString(const std::string &str){
-        if(str.size() == 0){
+    void wakeMainThread(){
+        TaskHandle_t handle = mainThreadHandle;
+        if (handle != 0){
+            xTaskNotifyGive(mainThreadHandle);
+        }
+    }
+
+    void wakeMainThreadISR(){
+        TaskHandle_t handle = mainThreadHandle;
+        if (handle != 0){
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xTaskNotifyFromISR(mainThreadHandle, 0, eNoAction, &xHigherPriorityTaskWoken);
+        }
+    }
+
+    uint64_t uptime()
+    {
+        unsigned long now = millis();
+        unsigned long delta = now - lastUptime;
+        uptimeAccumulator += delta;
+        lastUptime = now;
+        return uptimeAccumulator;
+    }
+
+    std::shared_ptr<const std::string> getSharedString(const std::string &str)
+    {
+        if (str.size() == 0)
+        {
             return emptySharedString;
         }
-        
-        for(auto const &e : stringPool){
-            if(e->compare(str) == 0){
+
+        for (auto const &e : stringPool)
+        {
+            if (e->compare(str) == 0)
+            {
                 return e;
             }
         }
-        if(stringPool.size() > 32){
+        if (stringPool.size() > 32)
+        {
             stringPool.erase(stringPool.begin());
         }
 
         std::shared_ptr<const std::string> ret = std::make_shared<const std::string>(str);
-        if(str.size()<16){
+        if (str.size() < 16)
+        {
             stringPool.push_back(ret);
         }
 
@@ -43,19 +77,24 @@ namespace cogs
 
     SemaphoreHandle_t mutex = xSemaphoreCreateRecursiveMutex();
 
-    void lock(){
-        if(!xSemaphoreTakeRecursive(mutex, pdMS_TO_TICKS(30000))){
+    void lock()
+    {
+        if (!xSemaphoreTakeRecursive(mutex, pdMS_TO_TICKS(30000)))
+        {
             throw std::runtime_error("Timed out waiting for mutex");
         };
     }
 
-    void unlock(){
+    void unlock()
+    {
         xSemaphoreGiveRecursive(mutex);
     }
-    
-    int bang(int v){
+
+    int bang(int v)
+    {
         v++;
-        if(v < 1){
+        if (v < 1)
+        {
             v = 1;
         }
         return v;
@@ -79,7 +118,7 @@ namespace cogs
 
     void waitFrame()
     {
-        delay(20);
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS((1000/cogs_pm::fps)));
     }
 
     void ensureDirExists(const std::string &dir)
@@ -87,7 +126,8 @@ namespace cogs
         int safety = 24;
         std::string dirname = dir;
 
-        while(dirname.size() > 1){
+        while (dirname.size() > 1)
+        {
             safety--;
             if (safety < 0)
             {
@@ -137,7 +177,8 @@ namespace cogs
         {
             errorCount = 0;
         }
-        if(errorCount > 10){
+        if (errorCount > 10)
+        {
             return;
         }
 
@@ -146,7 +187,7 @@ namespace cogs
     }
 
     void logInfo(const std::string &msg)
-    {        
+    {
         cogs_web::wsBroadcast("info", msg.c_str());
         Serial.println(msg.c_str());
     }
@@ -166,9 +207,12 @@ namespace cogs
             return "cogs";
         }
 
-        if (doc.containsKey("hostname")){
+        if (doc["name"].is<const char *>())
+        {
             return doc["name"].as<std::string>();
-        } else {
+        }
+        else
+        {
             return "cogs";
         }
     }

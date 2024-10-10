@@ -10,7 +10,7 @@ static void fastPoll(){
     }
 }
 
-void cogs_reggshell::setupReggshell()
+void cogs_reggshell::begin()
 {
     if(cogs_reggshell::interpreter){
         return;

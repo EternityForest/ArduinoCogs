@@ -32,8 +32,8 @@ export class PageRoot extends LitElement {
             var x = await fetch('/api/cogs.tag?tag='+tn);
             var y = await x.json();
             t.data.tags[tn] = y;
-            t.requestUpdate();
-
+            t.requestUpdate()
+            
         }
         async function getData() {
 

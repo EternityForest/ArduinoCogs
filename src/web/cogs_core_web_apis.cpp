@@ -264,6 +264,13 @@ static void handleGetTagInfo(AsyncWebServerRequest *request)
     }
     auto tag = cogs_rules::IntTagPoint::getTag(tagname, 0, 1);
 
+    if (!tag)
+    {
+        request->send(500, "text/plain", "tagnotfound");
+        cogs::unlock();
+        return;
+    }
+
     JsonDocument doc;
     doc["max"] = tag->max;
     doc["min"] = tag->min;
@@ -344,7 +351,7 @@ static void uploadFinal(AsyncWebServerRequest *request)
         request->redirect(redirect.c_str());
     }   
     else{
-        request->send(200, "text/plain", "ok")
+        request->send(200, "text/plain", "ok");
     }
 
     cogs::unlock();

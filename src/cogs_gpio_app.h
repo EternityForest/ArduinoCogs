@@ -47,7 +47,7 @@ namespace cogs_gpio{
     class CogsSimpleOutput
     {
     public:
-        int pin;
+        unsigned int pin;
         int pwmSteps = 1;
         void (*writeFunction)(int) = nullptr;
         bool invert = false;

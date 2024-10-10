@@ -117,6 +117,7 @@ namespace cogs_sound
 
         SoundPlayer(AudioOutputMixer *mixer, std::string fn, bool loop, float vol, float fade, float initialVol)
         {
+            this->fn = fn;
             cogs::logInfo("SoundPlayer: " + fn);
             this->shouldLoop = loop;
             this->fade = fade;
@@ -126,7 +127,9 @@ namespace cogs_sound
             this->src = new AudioFileSourceLittleFS(fn.c_str());
             this->id3 = new AudioFileSourceID3(this->src);
             this->gen = new AudioGeneratorMP3();
-            this->gen->begin(this->id3, this->stub);
+            if(!this->gen->begin(this->id3, this->stub)){
+                throw std::runtime_error("err initializing mp3 source");
+            }
             this->stub->SetGain(initialVol);
             this->fadeStart = millis();
         }
@@ -235,6 +238,8 @@ namespace cogs_sound
     AudioOutputMixer *mixer;
     std::vector<AudioOutputMixerStub *> stubs;
 
+    TaskHandle_t audioThreadHandle = 0;
+
     SoundPlayer *music = 0;
     SoundPlayer *music_old = 0;
     SoundPlayer *fx = 0;
@@ -266,7 +271,7 @@ namespace cogs_sound
             // Make sure audio thread completed its loop
             // and is done with the object
             waitForAudioThread();
-            m2->gen->stop();
+            m2->stop();
             delete m2;
         }
 
@@ -293,7 +298,7 @@ namespace cogs_sound
                 SoundPlayer *m = music;
                 music = 0;
                 waitForAudioThread();
-                m->gen->stop();
+                m->stop();
                 delete m;
             }
         }
@@ -306,6 +311,8 @@ namespace cogs_sound
         {
             music = new SoundPlayer(mixer, fn, loop, vol, 0.0, vol);
         }
+
+        xTaskNotifyGive(audioThreadHandle);
     }
 
     void playFX(const std::string &fn, float vol, float fadein = 0.0)
@@ -315,7 +322,7 @@ namespace cogs_sound
             SoundPlayer *f = fx;
             fx = 0;
             waitForAudioThread();
-            f->gen->stop();
+            f->stop();
             delete f;
         }
         if (fadein > 0.0)
@@ -326,6 +333,7 @@ namespace cogs_sound
         {
             fx = new SoundPlayer(mixer, fn, false, vol, 0, vol);
         }
+        xTaskNotifyGive(audioThreadHandle);
     }
 
     static void setMusicVolumeTag(cogs_rules::IntTagPoint *t)
@@ -610,7 +618,7 @@ namespace cogs_sound
             // Idle to reduce power
             if (!(music || music_old || fx))
             {
-                vTaskDelay(50);
+                ulTaskNotifyTake(pdTRUE, 1000);
             }
             else
             {
@@ -789,12 +797,12 @@ namespace cogs_sound
         cogs::globalEventHandlers.push_back(fileChangeHandler);
 
         xTaskCreate(
-            audioThread, // Function name of the task
-            "audio",     // Name of the task (e.g. for debugging)
-            4096,        // Stack size (bytes)
-            NULL,        // Parameter to pass
-            10,          // Task priority
-            NULL         // Task handle
+            audioThread,      // Function name of the task
+            "audio",          // Name of the task (e.g. for debugging)
+            4096,             // Stack size (bytes)
+            NULL,             // Parameter to pass
+            10,               // Task priority
+            &audioThreadHandle // Task handle
         );
     }
 }

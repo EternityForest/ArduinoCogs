@@ -7,5 +7,5 @@ namespace cogs_reggshell
 
     //!  Enable the serial terminal shell on
     //!  the serial port.
-    void setupReggshell();
+    void begin();
 }

@@ -13,7 +13,7 @@ static void handleWsData(char *d)
     deserializeJson(doc, d);
 
     // Vars is going to be a dict of things to set the values of
-    if (doc.containsKey("vars"))
+    if (doc["vars"].is<JsonObject>())
     {
         for (auto kv : doc["vars"].as<JsonObject>())
         {

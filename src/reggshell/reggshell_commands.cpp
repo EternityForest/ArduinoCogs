@@ -5,6 +5,8 @@
 #include "util/base64.h"
 #include <Wire.h>
 
+#include "cogs_bindings_engine.h"
+
 using namespace reggshell;
 
 static void addLeadingSlashIfMissing(char *s)
@@ -31,12 +33,13 @@ static void addLeadingSlashIfMissing(char *s)
 
 static bool isPrintableAscii(char c)
 {
-    if(c =='\n')
+    if (c == '\n')
     {
         return true;
     }
 
-    if(c == '\t'){
+    if (c == '\t')
+    {
         return true;
     }
 
@@ -52,7 +55,7 @@ static File heredocfile;
 static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
 {
     if (strlen(raw) > 127) // flawfinder: ignore
-    { // flawfinder: ignore
+    {                      // flawfinder: ignore
         rs->println("Line too long");
         return;
     }
@@ -103,7 +106,7 @@ static void heredoc(Reggshell *rs, MatchState *ms, const char *raw)
 static void heredoc_64(Reggshell *rs, MatchState *ms, const char *raw)
 {
     if (strlen(raw) > 127) // flawfinder: ignore
-    { // flawfinder: ignore
+    {                      // flawfinder: ignore
         rs->println("Line too long");
         return;
     }
@@ -158,7 +161,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
     // Filename is already sanity checked, unsafe string functions are fine
 
     if (strlen(fn) > 64) // flawfinder: ignore
-    { // flawfinder: ignore
+    {                    // flawfinder: ignore
         rs->println("Line too long");
         return;
     }
@@ -372,7 +375,7 @@ static void lsCommand(Reggshell *reggshell, const char *arg1, const char *arg2, 
     while (i)
     {
         reggshell->print("  -");
-        if(i.isDirectory())
+        if (i.isDirectory())
         {
             reggshell->print("📂");
         }
@@ -392,7 +395,7 @@ void Reggshell::help()
 {
     this->println("");
     this->println("Commands:");
-    for (auto const & cmd : this->commands_map)
+    for (auto const &cmd : this->commands_map)
     {
         bool needMargin = strchr(cmd.second->help, '\n');
 
@@ -449,39 +452,58 @@ static void statusCommand(Reggshell *reggshell, const char *arg1, const char *ar
     reggshell->print(temperatureRead());
     reggshell->println(" C");
 
+    #if defined(ESP32) || defined(ESP8266)
+    reggshell->print("  Wake Reason: ");
+      esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+      switch(wakeup_reason) {
+        case ESP_SLEEP_WAKEUP_EXT0 : reggshell->println("RTC_IO"); break;
+        case ESP_SLEEP_WAKEUP_EXT1 : reggshell->println("RTC_CNTL"); break;
+        case ESP_SLEEP_WAKEUP_TIMER : reggshell->println("Timer"); break;
+        case ESP_SLEEP_WAKEUP_TOUCHPAD : reggshell->println("Touchpad"); break;
+        case ESP_SLEEP_WAKEUP_ULP : reggshell->println("ULP program"); break;
+        default : reggshell->println("Not deep sleep"); break;
+      }
+    #endif
+
     reggshell->println("");
 
-    for (auto const & cmd : reggshell->statusCallbacks)
+    for (auto const &cmd : reggshell->statusCallbacks)
     {
         cmd(reggshell);
     }
 
     reggshell->println("");
 
-    #if defined(ESP32)
-
+#if defined(ESP32)
 
     // Get cpu frequency
     reggshell->print("CPU Frequency: ");
     reggshell->print(ESP.getCpuFreqMHz());
     reggshell->println(" MHz");
-    #endif
+#endif
 }
 
-    static void scanCommand(reggshell::Reggshell * interpreter, const char * arg1, const char * arg2, const char * arg3)
+static void scanCommand(reggshell::Reggshell *interpreter, const char *arg1, const char *arg2, const char *arg3)
+{
+    interpreter->println("Scanning I2C");
+    for (int i = 0; i < 127; i++)
     {
-        interpreter->println("Scanning I2C");
-        for (int i = 0; i < 127; i++)
+        Wire.beginTransmission(i);
+        if (Wire.endTransmission() == 0)
         {
-            Wire.beginTransmission(i);
-            if (Wire.endTransmission() == 0)
-            {
-                interpreter->println(i);
-            }
+            interpreter->println(i);
         }
-
-        interpreter->println("Done");
     }
+
+    interpreter->println("Done");
+}
+static void deepSleepCommand(reggshell::Reggshell *interpreter, const char *arg1, const char *arg2, const char *arg3)
+{
+    interpreter->println("Going to deep sleep");
+    auto t = cogs_rules::IntTagPoint::getTag("$deepsleep.time", 3600);
+    esp_sleep_enable_timer_wakeup(t->value[0] * 1000000);
+    esp_deep_sleep_start();
+}
 
 void Reggshell::addBuiltins()
 {
@@ -496,4 +518,5 @@ void Reggshell::addBuiltins()
     this->addSimpleCommand("help", helpCommand, "Prints this help");
     this->addSimpleCommand("status", statusCommand, "Prints status info");
     this->addSimpleCommand("i2cdetect", scanCommand, "Scans for I2C devices");
+    this->addSimpleCommand("deepsleep", deepSleepCommand, "Go to deep sleep for $deepsleep.time seconds");
 }

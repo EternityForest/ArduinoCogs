@@ -7,9 +7,9 @@
 > Tillinghast had been watching me, and noted my puzzled expression.
 > - H.P. Lovecraft
 
-Arduino library for creating rules at runtime, and much more.
+Arduino library for adding web configurability and more to any sketch.
 
-Altogether, it is somewhat like an OS or framework, but made of modular pieces that can be used independently.
+Altogether, it is somewhat like an OS or framework.
 
 Features:
 
@@ -340,7 +340,17 @@ when passing to or from expressions in the web based editor.
 This is the special value of 16384.
 
 
+## Builtin Tag Points
 
+### $deepsleep.go
+When set to nonzero, immediately go to deep sleep. Locked out for 5 minutes after resetting,
+to prevent you from getting into a state you can't modify via the web.
+
+### $wifi.on
+When set to zero, disables wifi.  Locked out similarly to deep sleep.
+
+### $fps
+Minimum poll rate in fps.  Some events can trigger polling immediately regardless of this setting.
 
 ## Utility Functions
 
@@ -430,3 +440,22 @@ void setupI2S() {
   cogs_sound::begin(out);
 }
 ```
+
+
+## GPIO
+
+The cogs_gpio namespace lets you set up GPIO to be accessed in user config.
+
+```cpp
+cogs_gpio::declareInput("name", pinNumber)
+```
+
+Regardless of the frame rate, changes on digital GPIO should wake the main thread and cause an immediate polling cycle.
+so you can turn it down to save power.
+
+In user config, you can also set up a pin to wake from deep sleep.
+
+The way user config works is you can set an active target and an inactive target, and choose if the pin is active high or low.
+
+When the pin becomes active or inactive, the values in those targets get incremented.  Map them to a state's tag to make a clockwork
+change state!

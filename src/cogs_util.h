@@ -13,13 +13,27 @@
 
 namespace cogs
 {
+
+    //! The GIL
     extern SemaphoreHandle_t mutex;
 
-    // Get the GIL
+    //! The main thread. May need to set manually if not just using the default arduino
+    //! thread.
+    extern TaskHandle_t mainThreadHandle;
+
+
+    //! Get the GIL
     void lock();
 
-    // Release the GIL
+    //! Release the GIL
     void unlock();
+
+    // Wake the main thread, if it exists and is sleeping with waitFrame()
+    //! Do not use in ISR
+    void wakeMainThread();
+
+    //! Wake main thread from ISR
+    void wakeMainThreadISR();
 
     //! Get the hostname of the device, from /config/device.json
     std::string getHostname();
@@ -29,7 +43,7 @@ namespace cogs
     void logError(const std::string &msg);
     void logInfo(const std::string &msg);
 
-    // Delay till next frame
+    //! Delay till next frame
     void waitFrame();
 
     /// Random 32 bit int.  Randomness is NOT cryptographically secure.
@@ -40,6 +54,8 @@ namespace cogs
     /// random(0, 2) -> 0 or 1
     uint32_t random(uint32_t min, uint32_t max);  //flawfinder: ignore
 
+    /// Like millis() but 64 bits
+    uint64_t uptime();
 
     // Print unit testing for the code itself. Used for dev only.
     void runUnitTests();

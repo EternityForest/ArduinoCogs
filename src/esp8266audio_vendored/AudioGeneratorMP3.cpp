@@ -88,8 +88,12 @@ bool AudioGeneratorMP3::stop()
   stream = NULL;
 
   running = false;
-  output->stop();
-  return file->close();
+  if(output){
+    output->stop();
+  }
+  if(file){
+    return file->close();
+  }
 }
 
 bool AudioGeneratorMP3::isRunning()

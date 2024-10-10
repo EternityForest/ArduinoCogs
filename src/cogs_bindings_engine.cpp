@@ -108,6 +108,10 @@ static float adcUserFunction(float x)
   return analogRead(x) / (4095 / 3.3);
 }
 
+
+static float uptimeFunction(){
+  return ((float)cogs::uptime()) / 1000.0f;
+}
 static float randomUserFunction()
 {
   uint16_t r = cogs::random(); // flawfinder: ignore
@@ -212,6 +216,7 @@ void setupBuiltins()
   cogs_rules::user_functions0["millis"] = &timeUserFunction;
   cogs_rules::user_functions1["flicker"] = &doFlicker;
   cogs_rules::user_functions1["bang"] = &fbang;
+  cogs_rules::user_functions0["uptime"] = &uptimeFunction;
 }
 
 void cogs_rules::refreshBindingsEngine()
@@ -776,8 +781,11 @@ static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, cons
     rs->println(e.what());
   }
 }
-void cogs_rules::setupRulesEngine()
+
+void cogs_rules::begin()
 {
+  cogs::mainThreadHandle = xTaskGetCurrentTaskHandle();
+  
   setupBuiltins();
   auto t = cogs_rules::IntTagPoint::getTag("temp1", 0);
   t->setScale(16384);
@@ -785,6 +793,8 @@ void cogs_rules::setupRulesEngine()
   t->setScale(16384);
   t = cogs_rules::IntTagPoint::getTag("temp3", 0);
   t->setScale(16384);
+
+
 
   cogs_reggshell::interpreter->addCommand("eval (.*)", evalExpressionCommand, "eval <expr> Evaluates any expression. All tag points available as vars");
   cogs_reggshell::interpreter->addSimpleCommand("tags", listTagsCommand, "list all tags and their first vals");

@@ -42,6 +42,11 @@
                 }
             }
           },
+          "deepSleepWake": {
+            "title": "Deep Sleep Wake",
+            "type": "boolean",
+            "description": "If set, pin will wake the device from deep sleep if it becomes active. Some pins may not support this, some chips may only allow one wake pin."
+          },
           "pin": {
             "$ref": "/gpio/input_pin_schema.json"
           }

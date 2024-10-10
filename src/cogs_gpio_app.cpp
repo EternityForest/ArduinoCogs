@@ -3,7 +3,10 @@
 #include "cogs_bindings_engine.h"
 #include "web/cogs_web.h"
 #include "web/generated_data/gpio_schema_json_gz.h"
-
+#if defined(ESP32) || defined(ESP8266)
+#include "driver/rtc_io.h"
+#include "esp_sleep.h"
+#endif
 #include "littlefs_compat.h"
 #include <Arduino.h>
 
@@ -38,9 +41,9 @@ namespace cogs_gpio
         }
     }
 
-    static void wakeISR()
+    static void ARDUINO_ISR_ATTR wakeISR()
     {
-        // just used to wake up.
+        cogs::wakeMainThreadISR();
     }
 
     static void availableInputsAPI(AsyncWebServerRequest *request)
@@ -250,7 +253,7 @@ namespace cogs_gpio
             throw std::runtime_error("Pin " + pinName + " not found");
         }
 
-        int pin = availableInputs[pinName];
+        unsigned int pin = availableInputs[pinName];
 
         cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
 
@@ -290,12 +293,28 @@ namespace cogs_gpio
             this->activeHigh = config["activeHigh"].as<bool>();
         }
 
+#if defined(ESP32) || defined(ESP8266)
+        if (config["deepSleepWake"].is<bool>())
+        {
+            if (config["deepSleepWake"].as<bool>())
+            {
+                esp_sleep_enable_ext0_wakeup((gpio_num_t)pin, this->activeHigh);
+
+                if (pullup)
+                {
+                    rtc_gpio_pullup_en((gpio_num_t)pin);
+                    rtc_gpio_pulldown_dis((gpio_num_t)pin);
+                }
+            }
+        }
+#endif
+
         this->setupTargetsFromJson(config);
     }
 
     void CogsSimpleInput::setupTargetsFromJson(const JsonVariant &config)
     {
-        if (config.containsKey("activeTarget"))
+        if (config["activeTarget"].is<const char *>())
         {
             std::string st = config["activeTarget"].as<std::string>();
             if (st.size() > 0)
@@ -304,7 +323,7 @@ namespace cogs_gpio
             }
         }
 
-        if (config.containsKey("inactiveTarget"))
+        if (config["inactiveTarget"].is<const char *>())
         {
             std::string st = config["inactiveTarget"].as<std::string>();
             if (st.size() > 0)

@@ -102,7 +102,7 @@ static void _loadFromFile()
                 cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
                 auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
 
-                if (bindingData.containsKey("mode"))
+                if (bindingData["mode"].is<const char * >())
                 {
                     std::string mode = bindingData["mode"].as<std::string>();
                     if (mode == "onchange")
@@ -215,7 +215,7 @@ static void exprDatalist(AsyncWebServerRequest *request)
     request->send(200, "application/json", buf);
     free(buf);
 }
-void cogs_editable_automation::setupEditableAutomation()
+void cogs_editable_automation::begin()
 {
     loadFromFile();
 

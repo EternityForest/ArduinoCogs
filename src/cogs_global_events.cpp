@@ -18,11 +18,6 @@ namespace cogs
     // so they don't all happen at once and make lag.
     static void doSlowPoll()
     {
-        if (slowPollIndex >= slowPollHandlers.size())
-        {
-            return;
-        }
-
         slowPollIndex++;
         slowPollHandlers[slowPollIndex % slowPollHandlers.size()]();
     }
