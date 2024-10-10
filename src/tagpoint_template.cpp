@@ -2,12 +2,32 @@
 /// This file defines generic tag points, but note that almost all features use numeric fixed point tags.
 using namespace cogs_tagpoints;
 
-
 static bool claimCmpGreater(const std::shared_ptr<TagPointClaim> a, const std::shared_ptr<TagPointClaim> b)
-  {
+{
     return a->priority < b->priority;
-  }
+}
 
+TagPointClaim::TagPointClaim(int startIndex, int count)
+{
+
+    this->finished = false;
+    this->startIndex = startIndex;
+    this->value = (TAG_DATA_TYPE *)malloc(sizeof(TAG_DATA_TYPE) * count);
+    if (this->value == nullptr)
+    {
+        throw std::runtime_error("malloc failed");
+    }
+    this->count = count;
+};
+
+TagPointClaim::~TagPointClaim()
+{
+
+    if (this->value != nullptr)
+    {
+        free(this->value);
+    }
+};
 
 TagPoint::TagPoint(const std::string &n, TAG_DATA_TYPE val, int count)
 {
@@ -37,8 +57,6 @@ TagPoint::~TagPoint()
     }
 }
 
-
-
 //! Unregister a tag. It should not be used after that.
 void TagPoint::unregister()
 {
@@ -52,7 +70,7 @@ void TagPoint::unregister()
     }
 }
 
-void TagPoint::clean_finished()
+void TagPoint::cleanFinished()
 {
     bool unfinished_passed = false;
 
@@ -83,7 +101,7 @@ void TagPoint::clean_finished()
 
 std::shared_ptr<TagPointClaim> TagPoint::overrideClaim(int layer, TAG_DATA_TYPE value, int startIndex, int count)
 {
-    TagPointClaim *c = new TagPointClaim(count);
+    TagPointClaim *c = new TagPointClaim(startIndex, count);
     c->startIndex = startIndex;
     std::shared_ptr<TagPointClaim> p(c);
 
@@ -144,7 +162,7 @@ void TagPoint::setValue(TAG_DATA_TYPE val, int startIndex, int count)
     }
     // Clean finished items.
     // Otherwise we will be overwritten by something that shouldn't even be there.
-    this->clean_finished();
+    this->cleanFinished();
 
     int upTo = startIndex + count;
 
@@ -178,7 +196,7 @@ void TagPoint::silentResetValue()
 
 void TagPoint::addClaim(std::shared_ptr<TagPointClaim> claim)
 {
-    this->claims[claim->priority] = claim;
+    this->claims.push_back(claim);
     std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater);
 };
 
@@ -248,7 +266,6 @@ void TagPoint::rerender()
     {
         func(this);
     }
-
 };
 
 void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, int count)

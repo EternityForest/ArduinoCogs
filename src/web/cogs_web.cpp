@@ -29,6 +29,8 @@ namespace cogs_web
 #include "web/generated_data/page_template_html_gz.h"
 #include "web/data/cogs_welcome_page.h"
 
+    WiFiUDP udp;
+    MDNS mdns(udp);
     bool error_once = false;
 
     bool mdns_started = false;
@@ -70,7 +72,7 @@ namespace cogs_web
                       unsigned int size,
                       const char *mime)
     {
-        AsyncWebServerResponse *response = request->beginResponse_P(200,
+        AsyncWebServerResponse *response = request->beginResponse(200,
                                                                     mime,
                                                                     data,
                                                                     size);
@@ -131,7 +133,7 @@ namespace cogs_web
             {
                 cogs::logInfo("MDNS started");
                 mdns.begin(WiFi.localIP(), cogs::getHostname().c_str());
-                mdns.addServiceRecord("cogs._http", "tcp", 80);
+                //mdns.addServiceRecord("cogs._http", 80, MDNSServiceTCP);
                 mdns_started = true;
             }
         }
@@ -213,7 +215,8 @@ namespace cogs_web
         lastGoodConnection = millis();
     }
 
-    static void doMDNS(){
+    static void doMDNS()
+    {
         mdns.run();
     }
 

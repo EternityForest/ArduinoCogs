@@ -65,6 +65,15 @@
                                                     "onframe"
                                                 ],
                                                 "title": "Mode"
+                                            },
+                                            "fadeInTime": {
+                                                "title": "Fade In Time(s)",
+                                                "type": "string",
+                                                "options": {
+                                                    "inputAttributes": {
+                                                        "list": "expr_completions"
+                                                    }
+                                                }
                                             }
                                         },
                                         "title": "Binding",

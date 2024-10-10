@@ -23,6 +23,8 @@ extern "C"
 #include "tinyexpr/tinyexpr.h"
 }
 
+#define CLAIM_PRIORITY_FADE 2
+
 namespace cogs_rules
 {
   typedef cogs_tagpoints::TagPoint IntTagPoint;
@@ -32,21 +34,24 @@ namespace cogs_rules
 
   /// 0 argument functions to make available to users
   extern std::map<std::string, float (*)()> user_functions0;
-  
+
   /// 1 argument functions to make available to users
   extern std::map<std::string, float (*)(float)> user_functions1;
-  
+
   /// 2 argument functions to make available to users
   extern std::map<std::string, float (*)(float)> user_functions2;
 
   /// compile an expression, that will have access to cogs vars.
-  te_expr * compileExpression(const std::string &input);
+  te_expr *compileExpression(const std::string &input);
+
+  /// evaluate an expression and return the result
+  float evalExpression(const std::string &input);
 
   class Binding;
   class Clockwork;
 
   //! Must be called after any changes to IntTagPoints, constants, or user functions
-  //! Before anything is eval'ed
+  //! Before anything is eval'ed, and before you unlock and leave the context.
   //! Will not alter state of any variables that already exist.
   void refreshBindingsEngine();
 
@@ -61,14 +66,10 @@ namespace cogs_rules
     int32_t start;
     int32_t duration;
     int32_t alpha;
-    IntFadeClaim(unsigned long start, 
-    unsigned long duration, 
-    int32_t * values,
-    int offset = 0,
-    int count = 1,
-    uint16_t alpha = 16384);
+    bool fadeDone=false;
+    virtual void applyLayer(int32_t *vals, int count) override;
 
-    virtual void applyLayer(int32_t * vals, int count) override;
+    IntFadeClaim(int startIndex, int count);
   };
 
   class Binding
@@ -79,19 +80,21 @@ namespace cogs_rules
     std::string target_name;
 
     // In claim mode we use a claim rather than directly setting the value
-    std::shared_ptr<cogs_tagpoints::TagPointClaim> claim = nullptr;
+    std::shared_ptr<cogs_rules::IntFadeClaim> claim = nullptr;
 
     /// Don't run till unfrozen
     bool frozen = false;
-  public:
 
+  public:
     // A binding can be for an array. This is an index and count for what part
     // Of the tag point's data to affect.
-    unsigned int multiStart =0;
-    unsigned int multiCount =1;
+    unsigned int multiStart = 0;
+    unsigned int multiCount = 1;
 
     float fadeInTime = 0.0;
 
+    /// If you change fadeInTime, set up the target again
+    bool trySetupTarget();
 
     /// If True, act once when entering a state, even if no changes
     bool onenter = false;
@@ -100,15 +103,14 @@ namespace cogs_rules
     /// onenter is set.
     bool onchange = false;
 
-
     /// Only act once on enter no matter what.
     bool freeze = false;
 
     /// Array tracking the last value of the binding.
     /// Used for change detection.
-    int * lastState = nullptr;
+    int *lastState = nullptr;
 
-    Binding(const std::string &target_name, const std::string & input);
+    Binding(const std::string &target_name, const std::string &input);
 
     //! Eval the expression, do change detection.
     //! If the value changes, notify target
@@ -119,8 +121,6 @@ namespace cogs_rules
 
     //! Call when the binding becomes inactive
     void exit();
-
-
 
     ~Binding();
   };
@@ -174,7 +174,7 @@ namespace cogs_rules
     explicit Clockwork(const std::string &name);
 
     std::string name;
-    State * currentState = nullptr;
+    State *currentState = nullptr;
     unsigned long enteredAt;
 
     //! Eval all clockworks
@@ -186,12 +186,14 @@ namespace cogs_rules
     /// This is the only way to get a clockwork.
     static std::shared_ptr<Clockwork> getClockwork(std::string);
 
-    static inline bool exists(const std::string &name){
+    static inline bool exists(const std::string &name)
+    {
       if (allClockworks.find(name) == allClockworks.end())
       {
         return false;
       }
-      else{
+      else
+      {
         return true;
       }
     }
@@ -224,5 +226,5 @@ namespace cogs_rules
   std::shared_ptr<cogs_rules::Binding> makeBinding(std::string target_name, std::string input);
   std::shared_ptr<cogs_rules::Clockwork> makeClockwork(std::string name);
 
-  void  begin();
+  void begin();
 }

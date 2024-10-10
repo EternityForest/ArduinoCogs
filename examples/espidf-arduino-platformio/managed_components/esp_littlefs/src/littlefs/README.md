@@ -221,12 +221,12 @@ License Identifiers that are here available: http://spdx.org/licenses/
 - [littlefs-js] - A javascript wrapper for littlefs. I'm not sure why you would
   want this, but it is handy for demos.  You can see it in action
   [here][littlefs-js-demo].
-  
+
 - [littlefs-python] - A Python wrapper for littlefs. The project allows you
   to create images of the filesystem on your PC. Check if littlefs will fit
   your needs, create images for a later download to the target memory or
   inspect the content of a binary image of the target memory.
-  
+
 - [littlefs2-rust] - A Rust wrapper for littlefs. This project allows you
   to use littlefs in a Rust-friendly API, reaping the benefits of Rust's memory
   safety and other guarantees.

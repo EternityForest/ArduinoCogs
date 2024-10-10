@@ -16,7 +16,7 @@ static unsigned long lastUptime = millis();
 
 namespace cogs
 {
-    extern TaskHandle_t mainThreadHandle = 0;
+    TaskHandle_t mainThreadHandle = 0;
 
     const std::string emptyString = "";
     const std::shared_ptr<const std::string> emptySharedString = std::shared_ptr<const std::string>(&emptyString);

@@ -1236,7 +1236,7 @@ perfectly, but it is distributed among the free blocks and greatly extends the
 life of a device.
 
 On top of this, littlefs uses a statistical wear leveling algorithm. What this
-means is that we don’t actively track wear, instead we rely on a uniform
+means is that we don't actively track wear, instead we rely on a uniform
 distribution of wear across storage to approximate a dynamic wear leveling
 algorithm. Despite the long name, this is actually a simplification of dynamic
 wear leveling.

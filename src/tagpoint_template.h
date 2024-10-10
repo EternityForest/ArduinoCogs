@@ -212,7 +212,7 @@ namespace cogs_tagpoints
 
     /// Clean the list of claims.  Once something is marked finished, if it is
     /// Right above background, it's value is the new background and we delete it
-    void clean_finished();
+    void cleanFinished();
   };
 
   /// A tag point claim is an an object that sets the value of a tag.
@@ -243,20 +243,9 @@ namespace cogs_tagpoints
 
     /// Count must be specified up front, everything else can be done later
     /// Because it's mostly type specific
-    explicit TagPointClaim(int count)
-    {
-      this->finished = false;
-      this->value = (TAG_DATA_TYPE *)malloc(sizeof(TAG_DATA_TYPE) * count);
-      this->count = count;
-    };
+    TagPointClaim(int startIndex, int count);
 
-    ~TagPointClaim()
-    {
-      if (this->value != nullptr)
-      {
-        free(this->value);
-      }
-    };
+    ~TagPointClaim();
   };
 
 

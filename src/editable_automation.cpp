@@ -120,6 +120,11 @@ static void _loadFromFile()
                         b->freeze = false;
                     }
                 }
+
+                if (bindingData["fadeInTime"].is<const char *>()){
+                    b->fadeInTime = cogs_rules::evalExpression(bindingData["fadeInTime"].as<std::string>());
+                    b->trySetupTarget();
+                }
             }
         }
         // State doesn't exist, use default

@@ -610,11 +610,8 @@ namespace cogs_sound
 
     void audioThread(void *parameter)
     {
-        unsigned long frameStart;
         while (1)
         {
-            frameStart = micros();
-
             // Idle to reduce power
             if (!(music || music_old || fx))
             {

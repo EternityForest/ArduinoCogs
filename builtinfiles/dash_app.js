@@ -33,7 +33,7 @@ export class PageRoot extends LitElement {
             var y = await x.json();
             t.data.tags[tn] = y;
             t.requestUpdate()
-            
+
         }
         async function getData() {
 

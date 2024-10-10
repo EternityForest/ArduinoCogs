@@ -2,8 +2,8 @@ LittleFS for ESP-IDF.
 
 # What is LittleFS?
 
-[LittleFS](https://github.com/ARMmbed/littlefs) is a small fail-safe filesystem 
-for microcontrollers. We ported LittleFS to esp-idf (specifically, the ESP32) 
+[LittleFS](https://github.com/ARMmbed/littlefs) is a small fail-safe filesystem
+for microcontrollers. We ported LittleFS to esp-idf (specifically, the ESP32)
 because SPIFFS was too slow, and FAT was too fragile.
 
 # How to Use
@@ -95,7 +95,7 @@ An entry `Component config->LittleFS` should be available for configuration. If 
 
 # Documentation
 
-See the official [ESP-IDF SPIFFS documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/spiffs.html), basically all the functionality is the 
+See the official [ESP-IDF SPIFFS documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/spiffs.html), basically all the functionality is the
 same; just replace `spiffs` with `littlefs` in all function calls.
 
 Also see the comments in `include/esp_littlefs.h`
@@ -123,7 +123,7 @@ For example, if your partition table looks like:
 nvs,      data, nvs,      0x9000,  0x6000,
 phy_init, data, phy,      0xf000,  0x1000,
 factory,  app,  factory,  0x10000, 1M,
-graphics,  data, spiffs,         ,  0xF0000, 
+graphics,  data, spiffs,         ,  0xF0000,
 ```
 
 and your project has a folder called `device_graphics`, your call should be:
@@ -167,7 +167,7 @@ LittleFS (cache=4096):          6,026,592 us
 ```
 
 In the above test, SPIFFS drastically slows down as the filesystem fills up. Below
-is the specific breakdown of file write times for SPIFFS. Not sure what happens 
+is the specific breakdown of file write times for SPIFFS. Not sure what happens
 on the last file write.
 
 

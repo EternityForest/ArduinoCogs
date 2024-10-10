@@ -26,7 +26,19 @@ te_expr *cogs_rules::compileExpression(const std::string &input)
   {
     throw std::runtime_error("Failed to compile binding" + input + " error:" + std::to_string(err));
   }
+  if (!x)
+  {
+    throw std::runtime_error("Failed to compile binding" + input);
+  }
   return x;
+}
+
+float cogs_rules::evalExpression(const std::string &input)
+{
+  auto x = compileExpression(input);
+  float f = te_eval(x);
+  te_free(x);
+  return f;
 }
 
 static void clear_globals()
@@ -108,8 +120,8 @@ static float adcUserFunction(float x)
   return analogRead(x) / (4095 / 3.3);
 }
 
-
-static float uptimeFunction(){
+static float uptimeFunction()
+{
   return ((float)cogs::uptime()) / 1000.0f;
 }
 static float randomUserFunction()
@@ -260,6 +272,10 @@ void cogs_rules::refreshBindingsEngine()
   global_vars_count = p;
 };
 
+IntFadeClaim::IntFadeClaim(int startIndex, int count): cogs_tagpoints::TagPointClaim(startIndex, count) {
+
+};
+
 void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
 {
 
@@ -267,8 +283,8 @@ void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
   int32_t blend_fader = millis() - this->start;
   if (blend_fader >= this->duration)
   {
+    this->fadeDone = true;
     blend_fader = FXP_RES;
-    this->finished = true;
   }
   else
   {
@@ -334,21 +350,41 @@ Binding::Binding(const std::string &target_name, const std::string &input)
 
   this->input_expression = compileExpression(input);
 
-  if (this->target_name.size() && this->target_name[0] == '$')
+  if (!this->target_name.size())
   {
     this->target = NULL;
   }
   else
   {
-    if (IntTagPoint::exists(this->target_name))
-    {
-      this->target = IntTagPoint::getTag(this->target_name, 0, 1);
-    }
+    this->trySetupTarget();
   }
 
   this->lastState = reinterpret_cast<int *>(malloc(sizeof(int) * this->multiCount));
 };
 
+bool Binding::trySetupTarget()
+{
+  if (IntTagPoint::exists(this->target_name))
+  {
+    this->target = IntTagPoint::getTag(this->target_name, 0, 1);
+
+    if (this->fadeInTime > 0.0)
+    {
+      this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
+          this->multiStart,
+          this->multiCount);
+      this->claim->alpha = cogs_rules::FXP_RES;
+      this->claim->duration = this->fadeInTime;
+      this->claim->start = millis();
+      this->claim->priority = CLAIM_PRIORITY_FADE;
+
+      this->target->addClaim(this->claim);
+    }
+    return true;
+  }
+
+  return false;
+}
 void Binding::eval()
 {
   if (!this->input_expression)
@@ -362,11 +398,7 @@ void Binding::eval()
   // Maybe the tag was made after the binding.
   if (!this->target)
   {
-    if (IntTagPoint::exists(this->target_name))
-    {
-      this->target = IntTagPoint::getTag(this->target_name, 0, 1);
-    }
-    else
+    if (!this->trySetupTarget())
     {
       return;
     }
@@ -385,6 +417,19 @@ void Binding::eval()
   {
 
     float x = te_eval(this->input_expression);
+
+    if (this->claim)
+    {
+      if (!this->claim->fadeDone)
+      {
+        shouldRerender = true;
+      }
+
+      if (this->claim->finished)
+      {
+        this->claim = nullptr;
+      }
+    }
 
     if (this->onchange)
     {
@@ -439,7 +484,6 @@ void Binding::eval()
   {
     this->target->rerender();
   }
-
 };
 
 Binding::~Binding()
@@ -456,6 +500,20 @@ void Binding::enter()
   }
 }
 
+void Binding::exit()
+{
+  // We don't need that claim anymore, merge it back into the background state if possible.
+  if (this->claim)
+  {
+    this->claim->finished = true;
+    if (this->target)
+    {
+      // Needed to properly clean the finished claims.
+      this->target->rerender();
+    }
+  }
+}
+
 void State::eval()
 {
   for (const auto &binding : this->bindings)
@@ -464,14 +522,20 @@ void State::eval()
   }
 }
 
-void State::enter(){
-  for(const auto &binding : this->bindings){
+void State::enter()
+{
+  for (const auto &binding : this->bindings)
+  {
     binding->enter();
   }
 }
 
-void State::exit(){
-
+void State::exit()
+{
+  for (const auto &binding : this->bindings)
+  {
+    binding->exit();
+  }
 }
 
 std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string input)
@@ -485,8 +549,9 @@ std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string 
 void State::removeBinding(std::shared_ptr<Binding> binding)
 {
   /// remove all elements in this->bindings which are equal to binding
-  this->bindings.erase(std::remove(this->bindings.begin(), 
-  this->bindings.end(), binding), this->bindings.end());
+  this->bindings.erase(std::remove(this->bindings.begin(),
+                                   this->bindings.end(), binding),
+                       this->bindings.end());
 }
 
 void State::clearBindings()
@@ -494,8 +559,10 @@ void State::clearBindings()
   this->bindings.clear();
 }
 
-State::~State(){
-  if(this->tag){ 
+State::~State()
+{
+  if (this->tag)
+  {
     this->tag->unsubscribe(&onStateTagSet);
     this->tag->unregister();
     this->tag = nullptr;
@@ -503,7 +570,7 @@ State::~State(){
 }
 std::shared_ptr<Clockwork> Clockwork::getClockwork(std::string name)
 {
-  if (Clockwork::allClockworks.count(name)==1)
+  if (Clockwork::allClockworks.count(name) == 1)
   {
     return Clockwork::allClockworks[name];
   }
@@ -547,7 +614,7 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
     this->currentState->exit();
   }
 
-  if (!(this->states.count(name)==1))
+  if (!(this->states.count(name) == 1))
   {
     cogs::logError("Clockwork " + this->name + " doesn't have state " + name);
     return;
@@ -604,7 +671,7 @@ std::shared_ptr<State> Clockwork::getState(std::string name)
     throw std::runtime_error("name empty");
   }
 
-  if (this->states.count(name)==1)
+  if (this->states.count(name) == 1)
   {
     return this->states[name];
   }
@@ -768,13 +835,7 @@ static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, cons
   ms->GetCapture(buf, 0);
   try
   {
-    te_expr *expr = compileExpression(buf);
-
-    if (expr)
-    {
-      rs->println(te_eval(expr));
-      te_free(expr);
-    }
+    rs->println(cogs_rules::evalExpression(std::string(buf)));
   }
   catch (std::exception &e)
   {
@@ -785,7 +846,7 @@ static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, cons
 void cogs_rules::begin()
 {
   cogs::mainThreadHandle = xTaskGetCurrentTaskHandle();
-  
+
   setupBuiltins();
   auto t = cogs_rules::IntTagPoint::getTag("temp1", 0);
   t->setScale(16384);
@@ -793,8 +854,6 @@ void cogs_rules::begin()
   t->setScale(16384);
   t = cogs_rules::IntTagPoint::getTag("temp3", 0);
   t->setScale(16384);
-
-
 
   cogs_reggshell::interpreter->addCommand("eval (.*)", evalExpressionCommand, "eval <expr> Evaluates any expression. All tag points available as vars");
   cogs_reggshell::interpreter->addSimpleCommand("tags", listTagsCommand, "list all tags and their first vals");
