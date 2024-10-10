@@ -1,7 +1,7 @@
 #include "littlefs_compat.h"
 #include <WiFi.h>
 #include <ArduinoJson.h>
-#include <ArduinoMDNS.h>
+#include <ESPmDNS.h>
 #include <string.h>
 
 #include "cogs_web.h"
@@ -29,8 +29,6 @@ namespace cogs_web
 #include "web/generated_data/page_template_html_gz.h"
 #include "web/data/cogs_welcome_page.h"
 
-    WiFiUDP udp;
-    MDNS mdns(udp);
     bool error_once = false;
 
     bool mdns_started = false;
@@ -131,9 +129,11 @@ namespace cogs_web
         {
             if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
             {
-                cogs::logInfo("MDNS started");
-                mdns.begin(WiFi.localIP(), cogs::getHostname().c_str());
-                //mdns.addServiceRecord("cogs._http", 80, MDNSServiceTCP);
+                cogs::logInfo("MDNS started: "+ cogs::getHostname());
+                if(!MDNS.begin(cogs::getHostname().c_str())){
+                    cogs::logError("Error setting up MDNS responder!");
+                }
+                MDNS.addService("http", "tcp", 80);
                 mdns_started = true;
             }
         }
@@ -217,7 +217,7 @@ namespace cogs_web
 
     static void doMDNS()
     {
-        mdns.run();
+        
     }
 
     std::string addCacheIDToURL(const std::string &u)
@@ -279,6 +279,6 @@ namespace cogs_web
         check_wifi();
         cogs::globalEventHandlers.push_back(&handleEvent);
         cogs::slowPollHandlers.push_back(&slowPoll);
-        cogs::registerFastPollHandler(&doMDNS);
+        //cogs::registerFastPollHandler(&doMDNS);
     }
 }
