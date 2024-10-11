@@ -308,6 +308,7 @@ void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
 
   blend_fader = blend_fader / FXP_RES;
 
+  cogs::logInfo("blend_fader: " + std::to_string(blend_fader));
   for (int i = 0; i < this->count; i++)
   {
     int mapped_idx = (this->startIndex + i);
@@ -522,7 +523,6 @@ void Binding::enter()
     this->claim->start = millis();
     this->claim->fadeDone = false;
     this->claim->finished = false;
-    this->claim->priority = CLAIM_PRIORITY_FADE;
 
 
     if (this->target)

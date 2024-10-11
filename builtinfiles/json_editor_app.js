@@ -1,10 +1,13 @@
 const urlParams = new URLSearchParams(window.location.search);
 
-const schema_url = urlParams.get('schema');
+var schema_url = urlParams.get('schema');
+schema_url = new URL(schema_url, window.location.origin);
 var filename = urlParams.get('filename');
-
+const cacheid = urlParams.get('cacheid') || "";
 var fileurl = new URL('/api/cogs.download', window.location.origin);
 fileurl.searchParams.append('file', filename);
+fileurl.searchParams.append('cacheid', Date.now())
+schema_url.searchParams.append('cacheid', Date.now())
 
 var fileuploadurl = new URL('/api/cogs.upload', window.location.origin);
 fileuploadurl.searchParams.append('file', filename);
@@ -25,7 +28,7 @@ var lastSavedVersion = null;
 
 window.addEventListener("beforeunload", function (e) {
 
-    if (JSON.stringify(editor.getValue()) == JSON.stringify(lastSavedVersion)) {
+    if (JSON.stringify(editor.getValue(), null, 2) == lastSavedVersion) {
         return;
     }
     var confirmationMessage = 'If you leave before saving, your changes will be lost.';
@@ -157,6 +160,7 @@ export class PageRoot extends LitElement {
         </datalist>
             <div id="editor_holder"></div>
             <button @click=${this.handleSubmit}>Submit</button>
+            <div class="margin"></div>
         </div>
         `;
     }
