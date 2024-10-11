@@ -74,10 +74,22 @@
                                                         "list": "expr_completions"
                                                     }
                                                 }
+                                            },
+                                            "alpha": {
+                                                "title": "Alpha Blend(0-1)",
+                                                "type": "string",
+                                                "options": {
+                                                    "inputAttributes": {
+                                                        "list": "expr_completions"
+                                                    }
+                                                }
                                             }
                                         },
                                         "title": "Binding",
-                                        "type": "object"
+                                        "type": "object",
+                                        "options": {
+                                            "disable_properties": false
+                                        }
                                     },
                                     "title": "Bindings",
                                     "type": "array"

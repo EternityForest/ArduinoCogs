@@ -17,6 +17,18 @@ static std::vector<Binding> bindings;
 /// Be requested until they actually are.
 static int global_vars_count = 0;
 static te_variable global_vars[256];
+
+static Clockwork *ctx_cw = nullptr;
+
+static float getStateAge()
+{
+  if (ctx_cw)
+  {
+    return (millis() - ctx_cw->enteredAt) / 1000.0;
+  }
+  return 0.0;
+}
+
 static void onStateTagSet(IntTagPoint *tag);
 te_expr *cogs_rules::compileExpression(const std::string &input)
 {
@@ -272,9 +284,9 @@ void cogs_rules::refreshBindingsEngine()
   global_vars_count = p;
 };
 
-IntFadeClaim::IntFadeClaim(int startIndex, int count): cogs_tagpoints::TagPointClaim(startIndex, count) {
+IntFadeClaim::IntFadeClaim(int startIndex, int count) : cogs_tagpoints::TagPointClaim(startIndex, count) {
 
-};
+                                                        };
 
 void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
 {
@@ -309,7 +321,7 @@ void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
     blend_bg *= (FXP_RES - blend_fader);
 
     int64_t blend_fg = this->value[i];
-    blend_fg *= (FXP_RES - blend_fader);
+    blend_fg *= (blend_fader);
 
     int64_t res = blend_bg + blend_fg;
 
@@ -368,17 +380,12 @@ bool Binding::trySetupTarget()
   {
     this->target = IntTagPoint::getTag(this->target_name, 0, 1);
 
-    if (this->fadeInTime > 0.0)
+    if (this->fadeInTime)
     {
       this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
           this->multiStart,
           this->multiCount);
-      this->claim->alpha = cogs_rules::FXP_RES;
-      this->claim->duration = this->fadeInTime;
-      this->claim->start = millis();
       this->claim->priority = CLAIM_PRIORITY_FADE;
-
-      this->target->addClaim(this->claim);
     }
     return true;
   }
@@ -404,80 +411,74 @@ void Binding::eval()
     }
   }
 
-  if (this->frozen)
+  bool shouldRerender = false;
+
+  if (this->claim)
   {
-    return;
+    if (!this->claim->fadeDone)
+    {
+      shouldRerender = true;
+    }
   }
 
-  bool shouldRerender = false;
-  dollar_sign_i = this->multiStart;
-
-  // If it's a multi binding, evaluate each part
-  for (int i = 0; i < this->multiCount; i++)
+  if (!this->frozen)
   {
+    dollar_sign_i = this->multiStart;
 
-    float x = te_eval(this->input_expression);
-
-    if (this->claim)
+    // If it's a multi binding, evaluate each part
+    for (int i = 0; i < this->multiCount; i++)
     {
-      if (!this->claim->fadeDone)
+
+      float x = te_eval(this->input_expression);
+
+      if (this->onchange)
       {
-        shouldRerender = true;
-      }
-
-      if (this->claim->finished)
-      {
-        this->claim = nullptr;
-      }
-    }
-
-    if (this->onchange)
-    {
-      if (x != this->lastState[i])
-      {
-
-        /// nan is the special flag meaning we are in an unknown state
-        /// And thus cannot do change detection yet, so we don't
-        /// Act until it changes again.
-
-        // If onenter is true, we act on enter no matter what
-        if ((this->lastState[i] != NAN) || this->onenter)
+        if (x != this->lastState[i])
         {
-          if (this->claim)
+
+          /// nan is the special flag meaning we are in an unknown state
+          /// And thus cannot do change detection yet, so we don't
+          /// Act until it changes again.
+
+          // If onenter is true, we act on enter no matter what
+          if ((this->lastState[i] != NAN) || this->onenter)
           {
-            this->claim->value[this->multiStart + i] = x * this->target->scale;
+            if (this->claim)
+            {
+              this->claim->value[this->multiStart + i] = x * this->target->scale;
+            }
+            else
+            {
+              this->target->background_value[this->multiStart + i] = x * this->target->scale;
+            }
+            shouldRerender = true;
           }
-          else
-          {
-            this->target->background_value[this->multiStart + i] = x * this->target->scale;
-          }
-          shouldRerender = true;
+          this->lastState[i] = x;
         }
-        this->lastState[i] = x;
-      }
-    }
-    else
-    {
-      if (this->claim)
-      {
-        this->claim->value[this->multiStart + i] = x * this->target->scale;
       }
       else
       {
-        this->target->background_value[this->multiStart + i] = x * this->target->scale;
+        if (this->claim)
+        {
+          this->claim->value[this->multiStart + i] = x * this->target->scale;
+        }
+        else
+        {
+          this->target->background_value[this->multiStart + i] = x * this->target->scale;
+        }
+        shouldRerender = true;
       }
-      shouldRerender = true;
+
+      dollar_sign_i++;
     }
 
-    dollar_sign_i++;
-  }
+    // Set it back to 0
+    dollar_sign_i = 0;
 
-  // Set it back to 0
-  dollar_sign_i = 0;
-
-  if (this->freeze)
-  {
-    this->frozen = true;
+    if (this->freeze)
+    {
+      this->frozen = true;
+    }
   }
 
   if (shouldRerender)
@@ -489,6 +490,10 @@ void Binding::eval()
 Binding::~Binding()
 {
   te_free(this->input_expression);
+  if (this->fadeInTime)
+  {
+    te_free(this->fadeInTime);
+  }
 };
 
 void Binding::enter()
@@ -497,6 +502,33 @@ void Binding::enter()
   for (int i = 0; i < this->multiCount; i++)
   {
     this->lastState[i] = 0;
+  }
+
+  // Almost all the actual claim config happens here, we just reuse stuff.
+  if (this->claim)
+  {
+    this->claim->alpha = cogs_rules::FXP_RES;
+
+    // Be, defensive, B-E defensive!
+    if (this->fadeInTime)
+    {
+      this->claim->duration = te_eval(this->fadeInTime) * 1000;
+    }
+    else
+    {
+      this->claim->duration = 0;
+    }
+
+    this->claim->start = millis();
+    this->claim->fadeDone = false;
+    this->claim->finished = false;
+    this->claim->priority = CLAIM_PRIORITY_FADE;
+
+
+    if (this->target)
+    {
+      this->target->addClaim(this->claim);
+    }
   }
 }
 
@@ -706,6 +738,7 @@ void Clockwork::removeState(std::string name)
 
 void Clockwork::eval()
 {
+  ctx_cw = this;
   if (this->currentState)
   {
 
@@ -854,6 +887,8 @@ void cogs_rules::begin()
   t->setScale(16384);
   t = cogs_rules::IntTagPoint::getTag("temp3", 0);
   t->setScale(16384);
+
+  cogs_rules::user_functions0["age"] = &getStateAge;
 
   cogs_reggshell::interpreter->addCommand("eval (.*)", evalExpressionCommand, "eval <expr> Evaluates any expression. All tag points available as vars");
   cogs_reggshell::interpreter->addSimpleCommand("tags", listTagsCommand, "list all tags and their first vals");

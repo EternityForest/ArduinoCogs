@@ -2,56 +2,109 @@
 
 ![AI Generated image of a clockmaker's workshop in a graveyard](img/logo.avif)
 
+![GPLv3](badges/gpl-v3.png)
+![Arduino](badges/arduino.png)
+
 > Meanwhile the luminosity increased, waned again, then assumed a pale,
 > outré colour or blend of colours which I could neither place nor describe.
 > Tillinghast had been watching me, and noted my puzzled expression.
-> - H.P. Lovecraft
 
 Arduino library for adding web configurability and more to any sketch.
 
-Altogether, it is somewhat like an OS or framework.
+![Dashboard Page](img/dashboard_vars.avif)
 
-Features:
+With cogs, you can define variables(Called "Tag Points") in your code, then monitor and edit those values life via the web.
 
-* Global event handlers, slow and fast poll functions
-* Serial console that supports here docs for easy inital setup
-* Web UI with GUI editors(Powered by JSON schema)
-* Rules engine parses expressions at runtime
-* State machines you can configure at runtime
-* Everything is extensible and plugin based, easy to add new apps to a sketch.
+![Dashboard Page](img/automation.avif)
+
+Users can set up "Clockworks" with automation rules without being able to program.  Automation rules bind a target variable to an expression, while a certain clockwork is in a specific state.  Bindings may set the target when the expression changes, every frame,
+or when entering a state.
+
+Bindings can also fade in over time when the clockwork enters a state.  To change the state of a clockwork, just set the corresponding "clockworkname.states.statename" variable!
+
+GPIO works in a similar manner, you have targets that get set when the pin is active or inactive.
+
+If you compile on PlatformIO(Highly recommended) low power mode is supported out of the box.  Power consumption while connected to Wifi is
+1-15mAish.  Deep sleep is also supported.
+
+
+There is also a very basic serial command shell on the default UART, which lets you get and set variables, see status info, and most importantly, set files with Linux-style "here docs".  This means you can configure wifi just by connecting with any serial monitor,
+then copy+pasting a command!
+
+Everything is done with JSON files, and editing UIs are generated from schemas.
 
 ## Simple Code Example
+> Forty, left five minus over crest opens over 40, tightens four plus, into triple caution right four over big jump off camber
 
 This is all you need to get started!
 
 ```cpp
 #include "cogs.h"
-#include "LittleFS.h"
+#include "cogs_sound.h"
+
+using namespace cogs_rules;
 
 void setup() {
+  Serial.begin(115200);
+  Serial.println("Start");
 
   WiFi.mode(WIFI_STA);
+  WiFi.persistent(false);
+  WiFi.setSleep(true);
+
+  // Use power management to save battery
+  cogs_pm::begin();
 
   if (!LittleFS.begin(true)) {
     Serial.println("LittleFS Mount Failed");
   }
 
-  Serial.begin(115200);
-  Serial.println("Start");
 
-  // Attaches a serial terminal command shell interpreter
-  cogs_reggshell::setupReggshell();
+  // Interaction outside of callbacks should use the GIL.
+  // Everything should happen under this lock.
+  cogs::lock();
 
-  cogs_rules::setupRulesEngine();
+  cogs_reggshell::begin();
+
+  cogs_rules::begin();
+
+
 
   // This can be overridden via config file later
-  cogs_web::setDefaultWifi("SSID", "PASSWORD", "nanoplc");
+  cogs_web::setDefaultWifi("MySSID", "MyPassword", "the-hostname");
+
+  // Create /config/theme.css which is a standard barrel theme.
+  // Not needed, but nice to give user a starting point for theming.
+  cogs_web::setupDefaultWebTheme();
+
+  // Enable auto-reconnecting
+  cogs_web::manageWifi();
+
+  // Enable the web features
   cogs_web::setupWebServer();
-  cogs_editable_automation::setupEditableAutomation();
+
+  // Let users add rules via the web.
+  cogs_editable_automation::begin();
+
+
+  cogs_gpio::begin();
+
+
+  auto out = new AudioOutputI2S();
+  // bclk, lrclk, dout pins for an i2s DAX
+  out->SetPinout(45, 46, 42);
+  //out->SetMclk(false);
+  cogs_sound::begin(out);
+
+  // Don't forget to unlock when ur done!
+  cogs::unlock();
 }
 
 void loop() {
+  cogs::lock();
   cogs::poll();
+  cogs::waitFrame();
+  cogs::unlock();
 }
 
 ```
@@ -60,12 +113,17 @@ void loop() {
 
 > Hey! It's dangerous for a little kid like you to come out here.
 > You might fall down!
-> - Goron, Ocarina of Time
 
 It provides a low-code programming model where you can connect
 "Tag Points" together in a way that will be familiar to anyone used to Excel.
 
 ### Clockworks
+
+>They'd cut me out for baking bread\
+>But I had other dreams instead\
+>This baker's boy from the West Country\
+>Would join the Royal Society
+
 
 A clockwork is like a state machine.  At any point it can be in one of it's
 states, and each state may have ay number of bindings attached.
@@ -85,34 +143,11 @@ These are just lists of numbers. Most of the time, they only contain one number.
 Internally, they are stored as integers. However they are converted using
 the tag's scale factor to floating point for evaluating expressions.
 
-There are three temp variables, temp1, temp2, and temp3, all of which have scale factor 16384. They can store up to the value 262721 in floating point,
-with about 0.000061 resolution.
-
-## Config files
-
-### /config/device.json
-
-This contains config that is purely for one specific physical device, to keep it separate
-from things you might want to reuse.
-
-```json
-{"hostname": "DeviceNameHere"}
-```
-
-### /config/automation.json
-
-Contains all the clockworks and bindings
-
-### /config/network.json
-
-The WiFi connection info.
-
-
+There are three temp variables, temp1, temp2, and temp3, all of which have scale factor 16384. They can store up to the value 262721 in floating point, with about 0.000061 resolution.
 
 ## Web features
 
-> twenty-one degrees and thirteen minutes-northeast and by north - main branch seventh limb east side \
-> - Poe
+> twenty-one degrees and thirteen minutes-northeast and by north - main branch seventh limb east side
 
 
 Cogs includes an optional web server, powered by ESPAsyncwebserver, making it easy to extend with your own pages.
@@ -173,164 +208,6 @@ Notably, it provides a JSON editor that takes a filename on the LittleFS, and a
 schema URL, with requests like `http://192.168.1.15/default-template?load-module=/builtin/jsoneditor.js&schema=/builtin/schemas/object.json&filename=/test.json`
 
 Note that this works by going to the default template, which then loads the json editor app.
-
-
-
-
-## Code Example
-> Forty, left five minus over crest opens over 40, tightens four plus, into triple caution right four over big jump off camber
-
-
-```cpp
-#include "cogs.h"
-#include "LittleFS.h"
-using namespace cogs_rules;
-
-void setup() {
-
-  WiFi.mode(WIFI_STA);
-
-  if (!LittleFS.begin(true)) {
-    Serial.println("LittleFS Mount Failed");
-  }
-
-  Serial.begin(115200);
-  Serial.println("Start");
-
-  // Attaches a serial terminal command shell interpreter
-  cogs_reggshell::setupReggshell();
-
-  cogs_rules::setupRulesEngine();
-
-
-
-  // This can be overridden via config file later
-  cogs_web::setDefaultWifi("SSID", "PASSWORD", "nanoplc");
-
-
-  cogs::setDefaultFile("/test.json", "{}");
-
-
-  // Create a tag point
-  auto t = cogs_rules::IntTagPoint::getTag("foo", 80);
-
-  // Set it's background value and read it
-  t->setValue(90);
-
-  t->rerender();
-
-  // Values are actually an array, it just so happens that the default length is 1.
-  // It just makes the code much simpler.
-  Serial.println(t->value[0]);
-
-  // Override it with Priority 50. Whatever the background value is doesn't matter until we
-  // Remove this claim.
-
-  // Note that this is a shared pointer, you don't have to manually clean it up.
-  auto claim = t->overrideClaim(50, 100);
-
-  t->rerender();
-  Serial.println(t->value[0]);
-
-
-  // Val goes back to 90
-  t->removeClaim(claim);
-
-
-
-  // Create a Clockwork, which is like a state machine
-  std::shared_ptr<Clockwork> cw = Clockwork::getClockwork("test_machine");
-
-  //Get the default state
-  std::shared_ptr<State> defaultstate = cw->getState("default");
-
-  std::shared_ptr<State> state2 = cw->getState("state2");
-
-  // As long as that default state is active, we bind the value of foo
-  defaultstate->addBinding("foo", "100 + 50");
-
-
-  // We have to cal this before evaluating eny bindings if we
-  // change the binding map
-  cogs_rules::refreshBindingsEngine();
-
-  // Eval all clockworks
-  Clockwork::evalAll();
-
-  // Value should be 150
-  t->rerender();
-  Serial.println(t->value[0]);
-
-  cw->gotoState("state2");
-
-  // When we set the val it will not automatically be set back because we are
-  // no longer in the state that has the binding
-
-  t->setValue(5);
-
-  // Eval all clockworks
-  Clockwork::evalAll();
-
-  t->rerender();
-  Serial.println(t->value[0]);
-
-
-  // The end user settable automation rules are defined here in this file
-
-  cogs::setDefaultFile("/config/automation.json",
-R"(
-{
-    "clockworks" : [
-      {
-        "name": "test_cw",
-        "states": [
-          {
-            "name": "default",
-            "bindings": [{
-              "source": "110 + 1",
-              "target": "foo"
-            }]
-          }
-        ]
-      }
-    ]
-}
-)");
-
-  cogs_web::setupWebServer();
-
-  cogs_editable_automation::setupEditableAutomation();
-}
-
-void loop() {
-  cogs::poll();
-}
-
-```
-
-
-
-## Tags
-
-A Tag Point is a 32 bit integer that can be used to represent any kind of value,
-such as an input or an output.
-
-## Bindings
-
-A binding is a rule that sets its value to an expression, which may use other tags.
-These expressions are compiled from strings, so they may be loaded dynamically.
-
-They use floating point arithmetic, but the actual variables are fixed.
-
-## Fixed Point Math
-
-To represent fractional values within the tag, we standardize on the special value of 16384 to be our resolution.  If you are storing, say, degrees celcius, you would likely want to store it as 16384ths of a degree.
-
-This value is available as $res in expressions.
-
-Every tag point has a "scale" property.  If it is set, values will be scaled
-when passing to or from expressions in the web based editor.
-
 
 
 ## Special Values in expressions

@@ -44,7 +44,7 @@ static void _loadFromFile()
         throw std::runtime_error("No clockworks in automation.json");
     }
 
-    for (auto const & clockworkData : clockworks.as<JsonArray>())
+    for (auto const &clockworkData : clockworks.as<JsonArray>())
     {
 
         std::string state = "default";
@@ -55,7 +55,7 @@ static void _loadFromFile()
         // This clockwork exists but is defined in code, do not overwrite it.
         if (Clockwork::exists(clockworkData["name"].as<std::string>()))
         {
-            if (!(webClockworks.count(clockworkData["name"].as<std::string>()) ==1))
+            if (!(webClockworks.count(clockworkData["name"].as<std::string>()) == 1))
             {
                 cogs::logError("Clockwork " + clockworkData["name"].as<std::string>() + " is hardcoded.");
                 continue;
@@ -86,7 +86,7 @@ static void _loadFromFile()
             throw std::runtime_error(clockworkData["name"].as<std::string>() + " has no states.");
         }
 
-        for (auto const & stateData : states.as<JsonArray>())
+        for (auto const &stateData : states.as<JsonArray>())
         {
             auto s = new_clockwork->getState(stateData["name"].as<std::string>());
 
@@ -97,12 +97,12 @@ static void _loadFromFile()
             }
 
             // Now add the bindings
-            for (auto const & bindingData : bindings.as<JsonArray>())
+            for (auto const &bindingData : bindings.as<JsonArray>())
             {
                 cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
                 auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
 
-                if (bindingData["mode"].is<const char * >())
+                if (bindingData["mode"].is<const char *>())
                 {
                     std::string mode = bindingData["mode"].as<std::string>();
                     if (mode == "onchange")
@@ -121,14 +121,29 @@ static void _loadFromFile()
                     }
                 }
 
-                if (bindingData["fadeInTime"].is<const char *>()){
-                    b->fadeInTime = cogs_rules::evalExpression(bindingData["fadeInTime"].as<std::string>());
-                    b->trySetupTarget();
+                if (bindingData["fadeInTime"].is<const char *>())
+                {
+                    std::string fadeInTime = bindingData["fadeInTime"].as<std::string>();
+                    if (!(fadeInTime == "0" || fadeInTime == "0.0" || fadeInTime == ""))
+                    {
+                        b->fadeInTime = cogs_rules::compileExpression(fadeInTime);
+                        b->trySetupTarget();
+                    }
+                }
+
+                if (bindingData["alpha"].is<const char *>())
+                {
+                    std::string alpha = bindingData["alpha"].as<std::string>();
+                    if (!(alpha == "1" || alpha == "1.0" || alpha == ""))
+                    {
+                        b->alpha = cogs_rules::compileExpression(alpha);
+                        b->trySetupTarget();
+                    }
                 }
             }
         }
         // State doesn't exist, use default
-        if (!(new_clockwork->states.count(state)==1))
+        if (!(new_clockwork->states.count(state) == 1))
         {
             state = "default";
             entered = 1;
@@ -192,7 +207,7 @@ static void exprDatalist(AsyncWebServerRequest *request)
     for (auto const &tagPoint : cogs_rules::IntTagPoint::all_tags)
     {
         doc["datalist"][tagPoint->name] = std::string(tagPoint->unit->c_str()) +
-        " " + std::string(tagPoint->description->c_str());
+                                          " " + std::string(tagPoint->description->c_str());
     }
     for (auto const &f : cogs_rules::user_functions0)
     {

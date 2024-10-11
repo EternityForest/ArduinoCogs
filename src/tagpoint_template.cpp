@@ -196,6 +196,12 @@ void TagPoint::silentResetValue()
 
 void TagPoint::addClaim(std::shared_ptr<TagPointClaim> claim)
 {
+    // This check should usually be fast since it's rare to have more than a few claims
+    for(auto it = this->claims.begin(); it != this->claims.end(); it++){
+        if (claim.get() == it->get()){
+            return;
+        }
+    }
     this->claims.push_back(claim);
     std::sort(this->claims.begin(), this->claims.end(), claimCmpGreater);
 };

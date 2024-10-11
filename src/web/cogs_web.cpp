@@ -215,11 +215,6 @@ namespace cogs_web
         lastGoodConnection = millis();
     }
 
-    static void doMDNS()
-    {
-        
-    }
-
     std::string addCacheIDToURL(const std::string &u)
     {
         std::string url = u;

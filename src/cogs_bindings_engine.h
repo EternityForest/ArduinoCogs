@@ -91,7 +91,12 @@ namespace cogs_rules
     unsigned int multiStart = 0;
     unsigned int multiCount = 1;
 
-    float fadeInTime = 0.0;
+    // Eval'ed when the binding enters
+    te_expr * fadeInTime = nullptr;
+
+    // Eval'ed every frame
+    te_expr * alpha = nullptr;
+
 
     /// If you change fadeInTime, set up the target again
     bool trySetupTarget();
