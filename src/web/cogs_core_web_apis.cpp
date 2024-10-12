@@ -363,6 +363,7 @@ namespace cogs_web
     {
         setup_builtin_static();
         setupWebSocketServer();
+        _troubleCodeSetup();
 
         server.on("/api/cogs.navbar", HTTP_GET, navbar_handler);
         server.on("/api/cogs.listdir", HTTP_GET, listdir_handler);

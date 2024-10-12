@@ -78,7 +78,7 @@ var CogsWidgetApiSnackbar = function (m, d) {
         animation: "fadein 0.5s, fadeout 0.5s 2.5s",
 
     }
-    for (i in sb) {
+    for (var i in sb) {
         newDiv.style[i] = sb[i]
     }
     document.body.appendChild(newDiv);
@@ -94,13 +94,22 @@ var CogsApi = function () {
         toSend: {},
         enableWidgetGoneAlert: true,
         lastDidSnackbarError: 0,
+
         first_error: 1,
         serverMsgCallbacks: {
-            "__WIDGETERROR__": [
+
+            "__TROUBLECODES__": [
+                function (m) {
+                    if(m){
+                        CogsWidgetApiSnackbar(m[0], m[1]);
+                    }
+                }
+            ],
+            "__ERROR__": [
                 function (m) {
                     console.error(m);
-                    if (lastDidSnackbarError < Date.now() + 60000) {
-                        lastDidSnackbarError = Date.now()
+                    if (cogsapi.lastDidSnackbarError < Date.now() + 60000) {
+                        cogsapi.lastDidSnackbarError = Date.now()
                         CogsWidgetApiSnackbar("Ratelimited msg" + m)
                     }
                 }

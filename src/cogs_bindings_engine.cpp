@@ -480,7 +480,7 @@ Binding::Binding(const std::string &target_name, const std::string &input)
     this->target_name = target_name;
   }
 
-  this->input_expression = compileExpression(input);
+  this->inputExpression = compileExpression(input);
 
   if (!this->target_name.size())
   {
@@ -514,7 +514,7 @@ bool Binding::trySetupTarget()
 }
 void Binding::eval()
 {
-  if (!this->input_expression)
+  if (!this->inputExpression)
   {
     return;
   }
@@ -549,7 +549,7 @@ void Binding::eval()
     for (int i = 0; i < this->multiCount; i++)
     {
 
-      float x = te_eval(this->input_expression);
+      float x = te_eval(this->inputExpression);
 
       if (this->onchange)
       {
@@ -609,9 +609,9 @@ void Binding::eval()
 
 Binding::~Binding()
 {
-  if (this->input_expression)
+  if (this->inputExpression)
   {
-    te_free(this->input_expression);
+    te_free(this->inputExpression);
   }
   if (this->fadeInTime)
   {

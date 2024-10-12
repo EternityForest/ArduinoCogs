@@ -77,7 +77,6 @@ namespace cogs_rules
   class Binding
   {
   private:
-    te_expr *input_expression;
     std::shared_ptr<IntTagPoint> target;
     std::string target_name;
 
@@ -88,6 +87,8 @@ namespace cogs_rules
     bool frozen = false;
 
   public:
+      te_expr *inputExpression;
+
     // A binding can be for an array. This is an index and count for what part
     // Of the tag point's data to affect.
     unsigned int multiStart = 0;

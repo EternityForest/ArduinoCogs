@@ -1,38 +1,160 @@
 #include <string>
 #include <vector>
+#include "cogs_util.h"
+#include "web/cogs_web.h"
+#include <ArduinoJson.h>
 #include "cogs_trouble_codes.h"
-
+#include <LittleFS.h>
 
 std::map<std::string, bool> cogs::troubleCodeStatus;
 
-static void persistTroubleCode(const std::string& code, bool clear){
+static void broadcastTroubleCodes()
+{
+    JsonDocument doc = JsonDocument();
 
+    for (auto const &e : cogs::troubleCodeStatus)
+    {
+        doc[e.first] = e.second;
+    }
+
+    cogs_web::wsBroadcast("__troublecodes__", doc.as<JsonObject>());
 }
 
-void cogs::addTroubleCode(const std::string& code,bool persist)
+static void persistTroubleCode(const std::string &code, bool clear)
 {
-    troubleCodeStatus[code] = true;
+
+    bool changed = false;
+
+    std::map<std::string, bool> oldStatus;
+    // get the old file
+    File file = LittleFS.open("/var/trouble-codes.json", "r"); // flawfinder: ignore
+    if (file)
+    {
+        JsonDocument doc = JsonDocument();
+        deserializeJson(doc, file);
+        for (JsonPair pair : doc.as<JsonObject>())
+        {
+            oldStatus[pair.key().c_str()] = pair.value().as<bool>();
+        }
+        file.close();
+    }
+
+    if (clear){
+        if(oldStatus.count(code) == 1){
+            changed = true;
+            oldStatus.erase(code);
+        }
+    }
+    else{
+        if(oldStatus.count(code) == 0){
+            changed = true;
+        }
+        oldStatus[code] = true;
+    }
+    if(!changed){
+        return;
+    }
+    cogs::logInfo("Persisting trouble code: " + code);
+
+    cogs::ensureDirExists("/var");
+    JsonDocument doc = JsonDocument();
+
+    for (auto const &e : oldStatus)
+    {
+        doc[e.first] = e.second;
+    }
+
+    File file2 = LittleFS.open("/var/trouble-codes.json", "w"); // flawfinder: ignore
+    if (!file2)
+    {
+        cogs::logError("Error opening trouble codes file");
+        return;
+    }
+    serializeJson(doc, file2);
+    file.close();
+}
+
+void cogs::addTroubleCode(const std::string &code, bool persist)
+{
+    bool existed = cogs::troubleCodeStatus.count(code) == 1;
+    cogs::troubleCodeStatus[code] = true;
     if (persist)
     {
         persistTroubleCode(code, false);
     }
-}
 
-void cogs::inactivateTroubleCode(const std::string& code)
-{
-    if(troubleCodeStatus.count(code)==1)
+    if (!existed)
     {
-        troubleCodeStatus[code] = false;
+        cogs::logError("New trouble code: " + code);
+        broadcastTroubleCodes();
     }
 }
 
-void cogs::clearTroubleCode(const std::string& code)
+void cogs::inactivateTroubleCode(const std::string &code)
 {
-    if(troubleCodeStatus.count(code)==1)
+    if (cogs::troubleCodeStatus.count(code) == 1)
     {
-        if(troubleCodeStatus[code]==false)
+        cogs::troubleCodeStatus[code] = false;
+        broadcastTroubleCodes();
+    }
+}
+
+void cogs::clearTroubleCode(const std::string &code)
+{
+    if (cogs::troubleCodeStatus.count(code) == 1)
+    {
+        if (cogs::troubleCodeStatus[code] == false)
         {
-            troubleCodeStatus.erase(code);
+            cogs::troubleCodeStatus.erase(code);
         }
+
+        persistTroubleCode(code, true);
+        broadcastTroubleCodes();
     }
+}
+
+static void clearTroubleCodeWebAPI(AsyncWebServerRequest *request)
+{
+    if (!request->hasArg("code"))
+    {
+        request->send(500, "text/plain", "nocodeparam");
+        cogs::unlock();
+        return;
+    }
+
+    std::string c = request->arg("code").c_str();
+    cogs::clearTroubleCode(c);
+    request->send(200, "text/plain", "ok");
+}
+
+static void getTroubleCodesWebAPI(AsyncWebServerRequest *request)
+{
+
+    JsonDocument doc = JsonDocument().to<JsonObject>();
+    for (auto const &e : cogs::troubleCodeStatus)
+    {
+        doc[e.first] = e.second;
+    }
+    String output;
+    serializeJson(doc, output);
+    request->send(200, "application/json", output);
+}
+
+void cogs_web::_troubleCodeSetup()
+{
+
+    File file = LittleFS.open("/var/trouble-codes.json", "r"); // flawfinder: ignore
+    if (file)
+    {
+        JsonDocument doc = JsonDocument();
+        deserializeJson(doc, file);
+        for (JsonPair pair : doc.as<JsonObject>())
+        {
+            cogs::troubleCodeStatus[pair.key().c_str()] = pair.value().as<bool>();
+        }
+        file.close();
+    }
+
+    cogs_web::server.on("/api/cogs.trouble-codes", HTTP_GET, getTroubleCodesWebAPI);
+    cogs_web::server.on("/api/cogs.clear-trouble-code", HTTP_POST, clearTroubleCodeWebAPI);
 }

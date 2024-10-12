@@ -25,37 +25,58 @@ export class PageRoot extends LitElement {
         this.data = {
             "tags": {},
         };
+        this.troublecodes = {};
 
         var t = this;
 
-        async function getMoreData(tn){
-            var x = await fetch('/api/cogs.tag?tag='+tn);
+        async function getMoreData(tn) {
+            var x = await fetch('/api/cogs.tag?tag=' + tn);
             var y = await x.json();
             t.data.tags[tn] = y;
             t.requestUpdate()
 
+            x = await fetch('/api/cogs.trouble-codes');
+            y = await x.json();
+            t.troublecodes = y;
+            t.requestUpdate()
         }
         async function getData() {
 
             var x = await fetch('/api/cogs.tags');
             var y = await x.json();
-            for(var i in y.tags){
+            for (var i in y.tags) {
                 y.tags[i] = {};
                 getMoreData(i);
             }
             t.data = y;
         }
         getData();
-    }
+    };
+
+    async handleTroubleCodeAck(key) {
+        await fetch('/api/cogs.clear-trouble-code?code=' + key, {
+            method: 'POST'
+        });
+        delete this.troublecodes[key];
+        this.requestUpdate()
+    };
 
 
     render() {
         return html`
         <div>
+        <h2>Alerts</h2>
+        <ul>
+        ${Object.entries(this.troublecodes).map(function ([key, value]) {
+            return html`
+            <li>${key}<button ?disabled="${value}" @click=${this.handleTroubleCodeAck.bind(this, key)}>Clear</button></li>
+            `
+        })}
+        </ul>
         <h2>Variables</h2>
 
         <table>
-            ${Object.entries(this.data.tags).map(function ([key, value]) {
+            ${Object.entries(this.data.tags).sort((a, b) => a[0].localeCompare(b[0])).map(function ([key, value]) {
             if (value.unit == 'trigger' || value.unit == 'bang') {
                 return html`
                 <tr><td>${key}</td><td><ds-button source="tag:${key}">Go!</ds-button></td></tr>

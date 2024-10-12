@@ -28,6 +28,7 @@
 #include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
 #include "../cogs_bindings_engine.h"
 
 namespace cogs_web
@@ -42,16 +43,14 @@ namespace cogs_web
 
     /// Send a gzipped file with the encoding header
     void sendGzipFile(AsyncWebServerRequest *request,
-                           const unsigned char *data,
-                           unsigned int size,
-                           const char *mime);
-
+                      const unsigned char *data,
+                      unsigned int size,
+                      const char *mime);
 
     //! If /api/cogs.theme.css does not exist, set it to a basic Nord colors theme
     void setupDefaultWebTheme();
     //! Add a unique cache id to the url derived from the build time.
     std::string addCacheIDToURL(const std::string &);
-
 
     //! Represents one entry in the nav bar.  On creation, it is automatically active.
     //! Used by plugins.  Created with cogs_web::NavBarEntry::create(title, url)
@@ -93,7 +92,9 @@ namespace cogs_web
     void setDefaultWifi(std::string ssid, std::string password, std::string hostname);
 
     //! Make a json document with this key and val and push it everywhere.
-    void wsBroadcast(const char *key, const char *val);
+    void wsBroadcast(const char *, const char *);
+
+    void wsBroadcast(const char *, const JsonVariant &);
 
     //! Push all tag point changes to web UI
     void exposeTagPoint(std::shared_ptr<cogs_rules::IntTagPoint>);
@@ -102,5 +103,7 @@ namespace cogs_web
     void setup_cogs_core_web_apis();
     // Called internally
     void setupWebSocketServer();
+
+    void _troubleCodeSetup();
 
 }

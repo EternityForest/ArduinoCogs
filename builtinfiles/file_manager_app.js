@@ -108,7 +108,7 @@ export class PageRoot extends LitElement {
         </form>
 
         <ul>
-            ${Object.entries(this.data.dirs).sort().map(([key, value]) => html`
+            ${Object.entries(this.data.dirs).sort((a, b) => a[0].localeCompare(b[0])).map(([key, value]) => html`
             <li><a href="/default-template?load-module=/builtin/files_app.js&dir=${this.data.path}/${key}">${key}/</a>
             <button @click=${this.handleDelete.bind(this, key)}>Delete</button>
             </li>

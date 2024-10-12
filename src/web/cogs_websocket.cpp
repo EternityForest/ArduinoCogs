@@ -31,6 +31,20 @@ static void handleWsData(char *d)
     }
 }
 
+void cogs_web::wsBroadcast(const char *key, const JsonVariant &val){
+    JsonDocument doc;
+    doc["vars"][key] = val;
+    char *buf = reinterpret_cast<char *>(malloc(512));
+    if (!buf)
+    {
+        cogs::logError("malloc failed");
+        return;
+    }
+    serializeJson(doc, buf, 512);
+    ws.textAll(buf);
+    free(buf);
+}
+
 void cogs_web::wsBroadcast(const char *key, const char *data)
 {
     JsonDocument doc;

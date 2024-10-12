@@ -9,6 +9,7 @@
 #include "cogs_bindings_engine.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
+#include "cogs_trouble_codes.h"
 #include "web/cogs_web.h"
 #include "web/generated_data/automation_schema_json_gz.h"
 
@@ -16,18 +17,37 @@ using namespace cogs_rules;
 
 static std::map<std::string, std::shared_ptr<Clockwork>> webClockworks;
 
+
+static void closeAllClockworks(){
+
+    for (auto it = webClockworks.begin(); it != webClockworks.end(); ++it)
+    {
+        it->second->close();
+    }
+    webClockworks.clear();
+}
+
+static void badAutomation(){
+    closeAllClockworks();
+    cogs::addTroubleCode("EBADAUTOMATION");
+}
+
 // Creates clockworks according to files.
 static void _loadFromFile()
 {
+
     auto f = LittleFS.open("/config/automation.json", "r"); // flawfinder: ignore
     if (!f)
     {
         cogs::logError("No automation.json found.");
+        badAutomation();
         return;
     }
     if (f.isDirectory())
     {
-        throw std::runtime_error("automation.json is a directory.");
+        cogs::logError("automation.json is a directory.");
+        badAutomation();
+        return;
     }
 
     JsonDocument doc;
@@ -35,13 +55,17 @@ static void _loadFromFile()
     DeserializationError error = deserializeJson(doc, f);
     if (error)
     {
-        throw std::runtime_error(error.c_str());
+        cogs::logError("Error parsing automation.json: " + std::string(error.c_str()));
+        badAutomation();
+        return;
     }
 
     JsonVariant clockworks = doc["clockworks"];
     if (!clockworks.is<JsonArray>())
     {
-        throw std::runtime_error("No clockworks in automation.json");
+        cogs::logError("No clockworks found.");
+        badAutomation();
+        return;
     }
 
     for (auto const &clockworkData : clockworks.as<JsonArray>())
@@ -58,6 +82,7 @@ static void _loadFromFile()
             if (!(webClockworks.count(clockworkData["name"].as<std::string>()) == 1))
             {
                 cogs::logError("Clockwork " + clockworkData["name"].as<std::string>() + " is hardcoded.");
+                badAutomation();
                 continue;
             }
             else
@@ -83,6 +108,10 @@ static void _loadFromFile()
         JsonVariant states = clockworkData["states"];
         if (!states.is<JsonArray>())
         {
+            cogs::logError("Clockwork " + clockworkData["name"].as<std::string>() + " has no states.");
+            badAutomation();
+            return;
+        
             throw std::runtime_error(clockworkData["name"].as<std::string>() + " has no states.");
         }
 
@@ -93,7 +122,8 @@ static void _loadFromFile()
             auto bindings = stateData["bindings"];
             if (!bindings.is<JsonArray>())
             {
-                throw std::runtime_error("Clockwork " + clockworkData["name"].as<std::string>() + " bindings type error");
+                badAutomation();
+                return;
             }
 
             // Now add the bindings
@@ -101,6 +131,10 @@ static void _loadFromFile()
             {
                 cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
                 auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
+                if(!b->inputExpression){
+                    badAutomation();
+                    return;
+                }
 
                 if (bindingData["mode"].is<const char *>())
                 {
@@ -127,6 +161,10 @@ static void _loadFromFile()
                     if (!(fadeInTime == "0" || fadeInTime == "0.0" || fadeInTime == ""))
                     {
                         b->fadeInTime = cogs_rules::compileExpression(fadeInTime);
+                        if(!b->fadeInTime){
+                            badAutomation();
+                            return;
+                        }
                         b->trySetupTarget();
                     }
                 }
@@ -155,6 +193,7 @@ static void _loadFromFile()
 
     f.close();
     cogs_rules::refreshBindingsEngine();
+    cogs::inactivateTroubleCode("EBADAUTOMATION");
 }
 
 // Wrap it in an exception handler
