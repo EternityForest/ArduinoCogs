@@ -66,11 +66,11 @@ namespace cogs_web
     }
 
     void sendGzipFile(AsyncWebServerRequest *request,
-                      const unsigned char *data,
-                      unsigned int size,
+                      const uint8_t *data,
+                      size_t size,
                       const char *mime)
     {
-        AsyncWebServerResponse *response = request->beginResponse(200,
+        AsyncWebServerResponse *response = request->beginResponse_P(200,
                                                                   mime,
                                                                   data,
                                                                   size);
