@@ -40,17 +40,13 @@ This is all you need to get started!
 
 ```cpp
 #include "cogs.h"
-#include "cogs_sound.h"
+#include <LittleFS.h>
 
 using namespace cogs_rules;
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Start");
-
-  WiFi.mode(WIFI_STA);
-  WiFi.persistent(false);
-  WiFi.setSleep(true);
 
   // Use power management to save battery
   cogs_pm::begin();
@@ -68,30 +64,19 @@ void setup() {
 
   cogs_rules::begin();
 
-
-
   // This can be overridden via config file later
   cogs_web::setDefaultWifi("MySSID", "MyPassword", "the-hostname");
-
 
   // Enable auto-reconnecting
   cogs_web::manageWifi();
 
   // Enable the web features
-  cogs_web::setupWebServer();
+  cogs_web::begin();
 
   // Let users add rules via the web.
   cogs_editable_automation::begin();
 
-
   cogs_gpio::begin();
-
-
-  auto out = new AudioOutputI2S();
-  // bclk, lrclk, dout pins for an i2s DAX
-  out->SetPinout(45, 46, 42);
-  //out->SetMclk(false);
-  cogs_sound::begin(out);
 
   // Don't forget to unlock when ur done!
   cogs::unlock();

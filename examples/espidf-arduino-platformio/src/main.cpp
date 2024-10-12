@@ -1,12 +1,8 @@
 #include "cogs.h"
-
-// Because platformio needs it
 #include <LittleFS.h>
 
 #include "board.h"
 using namespace cogs_rules;
-
-// void usbVoltage
 
 void setup() {
   Serial.begin(115200);
