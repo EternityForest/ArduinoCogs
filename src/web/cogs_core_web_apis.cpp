@@ -1,6 +1,6 @@
 
 #include "FS.h"
-#include "littlefs_compat.h"
+#include <LittleFS.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <string.h>

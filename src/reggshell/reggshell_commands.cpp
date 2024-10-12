@@ -1,5 +1,5 @@
 #include "reggshell.h"
-#include "littlefs_compat.h"
+#include <LittleFS.h>
 #include <WiFi.h>
 #include <Arduino.h>
 #include "util/base64.h"

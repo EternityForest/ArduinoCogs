@@ -210,6 +210,48 @@ schema URL, with requests like `http://192.168.1.15/default-template?load-module
 Note that this works by going to the default template, which then loads the json editor app.
 
 
+
+## Functions usable in expressions
+
+### +, -, *, /, <, >, =
+
+All the single char operators work. Note that equals is just =, not ==.
+
+### not(a)
+1 if a=0, else 0
+
+### bool(a)
+0 if a=0, else 1
+
+### lte(a, b)
+
+1 if A is less than or equal to b
+
+### gte(a, b)
+
+1 if A is greater than or equal to b
+
+### eq(a, b)
+
+1 if a and b are equal
+
+### either(a, b)
+If a is >0, return a.
+Else if b>0, return b.
+Otherwise 0.
+
+### both(a, b)
+
+Return a if both a and b are greater than 0, otherwise return 0.
+
+### switch(a, b, c)
+
+If a>0, return b, otherwise return c.
+
+### neither(a, b)
+
+If a and b are both 0 return 1
+
 ## Special Values in expressions
 
 ### $res
@@ -223,13 +265,19 @@ This is the special value of 16384.
 When set to nonzero, immediately go to deep sleep. Locked out for 5 minutes after resetting,
 to prevent you from getting into a state you can't modify via the web.
 
+### $deepsleep.time
+Wake up from deep sleep after this time
+
 ### $wifi.on
 When set to zero, disables wifi.  Locked out similarly to deep sleep.
 
 ### $fps
 Minimum poll rate in fps.  Some events can trigger polling immediately regardless of this setting.
 
-## Utility Functions
+
+
+
+## Utility Functions for arduino code
 
 ### cogs::random()
 

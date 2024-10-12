@@ -2,9 +2,9 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "littlefs_compat.h"
 #include <ArduinoJson.h>
 #include <stdexcept>
+#include <LittleFS.h>
 
 #include "cogs_bindings_engine.h"
 #include "cogs_util.h"

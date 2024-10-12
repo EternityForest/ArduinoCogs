@@ -14,9 +14,16 @@
 
     <script type="module">
         const urlParams = new URLSearchParams(window.location.search);
-        const root = urlParams.get('load-module');
+        var root = urlParams.get('load-module');
+        const cacheid = urlParams.get('cacheid') || "";
 
         async function f() {
+            if(!root.includes("?")) {
+                root += "?cacheid="+cacheid
+            }
+            else{
+                root += "&cacheid="+cacheid
+            }
             const m = await import(root);
             customElements.define('page-root', m.PageRoot);
         }

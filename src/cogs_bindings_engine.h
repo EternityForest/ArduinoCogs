@@ -39,7 +39,9 @@ namespace cogs_rules
   extern std::map<std::string, float (*)(float)> user_functions1;
 
   /// 2 argument functions to make available to users
-  extern std::map<std::string, float (*)(float)> user_functions2;
+  extern std::map<std::string, float (*)(float, float)> user_functions2;
+
+  extern std::map<std::string, float (*)(float, float, float)> user_functions3;
 
   /// compile an expression, that will have access to cogs vars.
   te_expr *compileExpression(const std::string &input);

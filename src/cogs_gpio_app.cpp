@@ -7,7 +7,7 @@
 #include "driver/rtc_io.h"
 #include "esp_sleep.h"
 #endif
-#include "littlefs_compat.h"
+#include <LittleFS.h>
 #include <Arduino.h>
 
 namespace cogs_gpio

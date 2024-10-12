@@ -163,8 +163,8 @@ static float npr(float n, float r) {return ncr(n, r) * fac(r);}
 #endif
 
 
-static float bool_inv(float a){
-  if(a==0)
+static float equals(float a, float b){
+  if(a==b)
   {
     return 1;
   }
@@ -197,70 +197,8 @@ static float greaterthan(float a, float b){
 }
 
 
-static float equals(float a, float b){
-  if(a==b)
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static float either(float a, float b){
-  if(a>0 && b>0)
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static float both(float a, float b){
-  if(a>0 && b>0)
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static float neither(float a, float b){
-  if(a>0 || b>0)
-  {
-    return 0;
-  }
-  else
-  {
-    return 1;
-  }
-}
-
-static float terenery(float a, float b, float c){
-  if(a>0)
-  {
-    return c;
-  }
-  else
-  {
-    return b;
-  }
-}
-
 static const te_variable functions[] = {
     /* must be in alphabetical order */
-    {"not", bool_inv,     TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"either", either,     TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"both", both,     TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"neither", neither,     TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"select", terenery,     TE_FUNCTION3 | TE_FLAG_PURE, 0},
-
-
     {"abs", fabs,     TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"acos", acos,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"asin", asin,    TE_FUNCTION1 | TE_FLAG_PURE, 0},

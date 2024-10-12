@@ -1,4 +1,4 @@
-#include "littlefs_compat.h"
+#include <LittleFS.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>

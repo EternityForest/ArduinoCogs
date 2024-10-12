@@ -1,4 +1,4 @@
-#include "littlefs_compat.h"
+#include <LittleFS.h>
 #include "cogs_bindings_engine.h"
 #include "cogs_global_events.h"
 #include "cogs_sound.h"

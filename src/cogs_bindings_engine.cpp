@@ -36,11 +36,13 @@ te_expr *cogs_rules::compileExpression(const std::string &input)
   auto x = te_compile(input.c_str(), global_vars, global_vars_count, &err);
   if (err)
   {
-    throw std::runtime_error("Failed to compile binding" + input + " error:" + std::to_string(err));
+    cogs::logError("Error compiling expression: " + input);
+    return 0;
   }
   if (!x)
   {
-    throw std::runtime_error("Failed to compile binding" + input);
+    cogs::logError("Error compiling expression: " + input);
+    return 0;
   }
   return x;
 }
@@ -48,6 +50,10 @@ te_expr *cogs_rules::compileExpression(const std::string &input)
 float cogs_rules::evalExpression(const std::string &input)
 {
   auto x = compileExpression(input);
+  if (!x)
+  {
+    return 0.0;
+  }
   float f = te_eval(x);
   te_free(x);
   return f;
@@ -206,12 +212,111 @@ static float doFlicker(float idx)
   return (float)flicker_flames_lp[index] / FXP_RES;
 }
 
+static float bool_inv(float a)
+{
+  if (a == 0)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+static float bool_conv(float a)
+{
+  if (a == 0)
+  {
+    return 0;
+  }
+  else
+  {
+    return 1;
+  }
+}
+
+static float lessthanorequal(float a, float b)
+{
+  if (a <= b)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+static float greaterthanorequal(float a, float b)
+{
+  if (a >= b)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+static float either(float a, float b)
+{
+  if (a > 0)
+  {
+    return a;
+  }
+  if (b > 0)
+  {
+    return b;
+  }
+  return 0;
+}
+
+static float both(float a, float b)
+{
+  if (a > 0 && b > 0)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+static float neither(float a, float b)
+{
+  if (a > 0 || b > 0)
+  {
+    return 0;
+  }
+  else
+  {
+    return 1;
+  }
+}
+
+static float terenery(float a, float b, float c)
+{
+  if (a > 0)
+  {
+    return c;
+  }
+  else
+  {
+    return b;
+  }
+}
+
 namespace cogs_rules
 {
   std::map<std::string, float *> constants;
   std::map<std::string, float (*)()> user_functions0;
   std::map<std::string, float (*)(float)> user_functions1;
-  std::map<std::string, float (*)(float)> user_functions2;
+  std::map<std::string, float (*)(float, float)> user_functions2;
+  std::map<std::string, float (*)(float, float, float)> user_functions3;
+
 }
 
 // Used when you want to make something change.
@@ -241,6 +346,16 @@ void setupBuiltins()
   cogs_rules::user_functions1["flicker"] = &doFlicker;
   cogs_rules::user_functions1["bang"] = &fbang;
   cogs_rules::user_functions0["uptime"] = &uptimeFunction;
+
+  cogs_rules::user_functions1["not"] = &bool_inv;
+  cogs_rules::user_functions1["bool"] = &bool_conv;
+
+  cogs_rules::user_functions2["lte"] = &lessthanorequal;
+  cogs_rules::user_functions2["gte"] = &greaterthanorequal;
+  cogs_rules::user_functions2["either"] = &either;
+  cogs_rules::user_functions2["both"] = &both;
+  cogs_rules::user_functions2["neither"] = &neither;
+  cogs_rules::user_functions3["switch"] = &terenery;
 }
 
 void cogs_rules::refreshBindingsEngine()
@@ -265,6 +380,11 @@ void cogs_rules::refreshBindingsEngine()
   for (const auto &[key, f] : cogs_rules::user_functions2)
   {
     append_func(key, reinterpret_cast<void *>(f), TE_FUNCTION2);
+  }
+
+  for (const auto &[key, f] : cogs_rules::user_functions3)
+  {
+    append_func(key, reinterpret_cast<void *>(f), TE_FUNCTION3);
   }
 
   for (const auto &tag : IntTagPoint::all_tags)
@@ -308,7 +428,6 @@ void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
 
   blend_fader = blend_fader / FXP_RES;
 
-  cogs::logInfo("blend_fader: " + std::to_string(blend_fader));
   for (int i = 0; i < this->count; i++)
   {
     int mapped_idx = (this->startIndex + i);
@@ -490,7 +609,10 @@ void Binding::eval()
 
 Binding::~Binding()
 {
-  te_free(this->input_expression);
+  if (this->input_expression)
+  {
+    te_free(this->input_expression);
+  }
   if (this->fadeInTime)
   {
     te_free(this->fadeInTime);
@@ -523,7 +645,6 @@ void Binding::enter()
     this->claim->start = millis();
     this->claim->fadeDone = false;
     this->claim->finished = false;
-
 
     if (this->target)
     {

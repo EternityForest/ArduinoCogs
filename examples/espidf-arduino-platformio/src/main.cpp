@@ -1,7 +1,7 @@
 #include "cogs.h"
 
 // Because platformio needs it
-#include "littlefs_compat.h"
+#include <LittleFS.h>
 
 #include "board.h"
 using namespace cogs_rules;
