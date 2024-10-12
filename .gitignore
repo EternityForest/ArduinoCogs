@@ -35,3 +35,4 @@ cache
 examples/*/cache
 examples/*/build
 examples/*/managed_components
+sdkconfig.esp32*
