@@ -47,8 +47,6 @@ namespace cogs_web
                       unsigned int size,
                       const char *mime);
 
-    //! If /api/cogs.theme.css does not exist, set it to a basic Nord colors theme
-    void setupDefaultWebTheme();
     //! Add a unique cache id to the url derived from the build time.
     std::string addCacheIDToURL(const std::string &);
 
@@ -85,7 +83,7 @@ namespace cogs_web
     void manageWifi();
 
     //! Set up and enable the web UI for cogs.
-    void setupWebServer();
+    void begin();
 
     //! Used to set the default wifi settings.
     /// /config/network.json can override these settings with the corresponding keys.

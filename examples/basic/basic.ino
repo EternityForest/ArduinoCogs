@@ -55,7 +55,7 @@ void setup() {
   cogs_web::setupWebServer();
 
   // Let users add rules via the web.
-  cogs_editable_automation::setupEditableAutomation();
+  cogs_editable_automation::begin();
 
 
   cogs_gpio::begin();

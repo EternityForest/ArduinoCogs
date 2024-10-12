@@ -34,3 +34,4 @@
 cache
 examples/*/cache
 examples/*/build
+examples/*/managed_components

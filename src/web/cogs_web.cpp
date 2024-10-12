@@ -71,22 +71,19 @@ namespace cogs_web
                       const char *mime)
     {
         AsyncWebServerResponse *response = request->beginResponse(200,
-                                                                    mime,
-                                                                    data,
-                                                                    size);
+                                                                  mime,
+                                                                  data,
+                                                                  size);
         response->addHeader("Content-Encoding", "gzip");
         response->addHeader("Cache-Control", "public, max-age=604800");
         request->send(response);
     }
 
-    void setupDefaultWebTheme()
-    {
-        cogs::setDefaultFile("/config/theme.css", std::string(reinterpret_cast<const char *>(nord_theme), sizeof(nord_theme)));
-    }
-
-    void setupWebServer()
+    void begin()
     {
         cogs_web::setup_cogs_core_web_apis();
+
+        cogs::setDefaultFile("/config/theme.css", std::string(reinterpret_cast<const char *>(nord_theme), sizeof(nord_theme)));
 
         cogs_web::NavBarEntry::create("Network", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/network.json&filename=/config/network.json");
         cogs_web::NavBarEntry::create("Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
@@ -129,8 +126,9 @@ namespace cogs_web
         {
             if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
             {
-                cogs::logInfo("MDNS started: "+ cogs::getHostname());
-                if(!MDNS.begin(cogs::getHostname().c_str())){
+                cogs::logInfo("MDNS started: " + cogs::getHostname());
+                if (!MDNS.begin(cogs::getHostname().c_str()))
+                {
                     cogs::logError("Error setting up MDNS responder!");
                 }
                 MDNS.addService("http", "tcp", 80);
@@ -264,6 +262,8 @@ namespace cogs_web
 
     void manageWifi()
     {
+        WiFi.persistent(false);
+        WiFi.mode(WIFI_STA);
 
         auto wtag = cogs_rules::IntTagPoint::getTag("$wifi.on", 1, 1);
         auto pstag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);
@@ -274,6 +274,6 @@ namespace cogs_web
         check_wifi();
         cogs::globalEventHandlers.push_back(&handleEvent);
         cogs::slowPollHandlers.push_back(&slowPoll);
-        //cogs::registerFastPollHandler(&doMDNS);
+        // cogs::registerFastPollHandler(&doMDNS);
     }
 }

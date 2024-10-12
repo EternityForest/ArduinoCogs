@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "cogsapi",
         "fbang",
         "flawfinder",
         "gpio",
@@ -12,6 +13,7 @@
         "onclick",
         "onenter",
         "onframe",
+        "picodash",
         "pullup",
         "reggshar",
         "reggshell",
@@ -19,6 +21,7 @@
         "RSSI",
         "shar",
         "tagpoints",
-        "tinyexpr"
+        "tinyexpr",
+        "troublecodes"
     ]
 }

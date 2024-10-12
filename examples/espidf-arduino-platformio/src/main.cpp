@@ -12,10 +12,6 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Start");
 
-  WiFi.mode(WIFI_STA);
-  WiFi.persistent(false);
-  WiFi.setSleep(true);
-
   // Use power management to save battery
   cogs_pm::begin();
 
@@ -28,9 +24,9 @@ void setup() {
   // Everything should happen under this lock.
   cogs::lock();
 
-  cogs_reggshell::setupReggshell();
+  cogs_reggshell::begin();
 
-  cogs_rules::setupRulesEngine();
+  cogs_rules::begin();
 
 
 
@@ -40,23 +36,16 @@ void setup() {
   // See board.h
   setupBoardSupport();
 
-  // Create /config/theme.css which is a standard barrel theme.
-  // Not needed, but nice to give user a starting point for theming.
-  cogs_web::setupDefaultWebTheme();
-
   // Enable auto-reconnecting
   cogs_web::manageWifi();
 
   // Enable the web features
-  cogs_web::setupWebServer();
+  cogs_web::begin();
 
   // Let users add rules via the web.
-  cogs_editable_automation::setupEditableAutomation();
-
+  cogs_editable_automation::begin();
 
   cogs_gpio::begin();
-
-  setupI2S();
 
   // Don't forget to unlock when ur done!
   cogs::unlock();

@@ -73,9 +73,6 @@ void setup() {
   // This can be overridden via config file later
   cogs_web::setDefaultWifi("MySSID", "MyPassword", "the-hostname");
 
-  // Create /config/theme.css which is a standard barrel theme.
-  // Not needed, but nice to give user a starting point for theming.
-  cogs_web::setupDefaultWebTheme();
 
   // Enable auto-reconnecting
   cogs_web::manageWifi();
