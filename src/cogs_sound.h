@@ -13,4 +13,6 @@
 namespace cogs_sound{
     // Make it so user rules can play sounds
     void begin(AudioOutput * o);
+    /// Give a callback cogs can use to enable or disable the hardware DAC
+    void setPowerCallback(void (*setHwEnabled)(bool));
 }

@@ -11,6 +11,9 @@ static inline bool ends_with(std::string const &value, std::string const &ending
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
+// pointer to function taking one bool argument
+static void (*setHwEnabled)(bool) = 0;
+
 namespace cogs_sound
 {
     std::map<std::string, std::shared_ptr<cogs_rules::IntTagPoint>> soundFileMap;
@@ -18,6 +21,10 @@ namespace cogs_sound
     static void waitForAudioThread();
     static void playSoundTag(cogs_rules::IntTagPoint *t);
     static void playMusicTag(cogs_rules::IntTagPoint *t);
+
+    void setPowerCallback(void (*f)(bool)){
+        setHwEnabled = f;
+    }
 
     static void fileChangeHandler(cogs::GlobalEvent evt, int dummy, const std::string &path)
     {
@@ -117,6 +124,11 @@ namespace cogs_sound
 
         SoundPlayer(AudioOutputMixer *mixer, std::string fn, bool loop, float vol, float fade, float initialVol)
         {
+
+            if(setHwEnabled){
+                setHwEnabled(true);
+            }
+
             this->fn = fn;
             cogs::logInfo("SoundPlayer: " + fn);
             this->shouldLoop = loop;
@@ -543,8 +555,11 @@ namespace cogs_sound
     // Need GIL
     void audioMaintainer()
     {
+        bool en=false;
+
         if (music)
         {
+            en=true;
             if (!music->isRunning())
             {
                 SoundPlayer *m = music;
@@ -571,6 +586,7 @@ namespace cogs_sound
 
         if (music_old)
         {
+            en=true;
             if (!music_old->isRunning())
             {
                 SoundPlayer *m = music_old;
@@ -590,6 +606,7 @@ namespace cogs_sound
 
         if (fx)
         {
+            en=true;
             if (!fx->isRunning())
             {
                 SoundPlayer *m = fx;
@@ -604,6 +621,13 @@ namespace cogs_sound
             else
             {
                 fx->doFade();
+            }
+        }
+
+        if (!en)
+        {
+            if(setHwEnabled){
+                setHwEnabled(false);
             }
         }
     };

@@ -20,7 +20,6 @@ namespace cogs_tagpoints
 {
   class TagPointClaim;
 
-
   /// A tag point is a container representing a subscribable value.
   /// They may be of any type, however int32 is the standard type
   /// Tags must be unregistered once you are done, as they automatically store themselves in a global list.
@@ -30,8 +29,6 @@ namespace cogs_tagpoints
   class TagPoint
   {
   private:
-
-
     // Track all claims affecting the tag's value
     // we can only have one claim of each priority.
     // Unsigned long is so we can use more complex keys.
@@ -40,6 +37,7 @@ namespace cogs_tagpoints
     // These functions are called when value changes
     std::vector<void (*)(TagPoint *)> subscribers;
 
+    void notifySubscribers();
 
   public:
     TagPoint(const std::string &n, TAG_DATA_TYPE val, int count = 1);
@@ -65,8 +63,6 @@ namespace cogs_tagpoints
       this->scale_inverse = 1.0f / scale;
     }
 
-
-
     /// The scale is a multiplier used to convert floats to the actual tag value.
     /// Do not set directly.  Use setScale
     int scale = 1;
@@ -74,9 +70,6 @@ namespace cogs_tagpoints
     /// Used to convert tag values to floats
     /// Do not set directly.  Use setScale
     float scale_inverse = 1;
-
-
-
 
     /// The range of values.  Used for metadata only, for performance reasons
     /// We do not constrain automatically in most cases
@@ -153,16 +146,15 @@ namespace cogs_tagpoints
     //! Check if a tag exists
     static bool exists(const std::string &name)
     {
-        for (auto const &tag : TagPoint::all_tags)
+      for (auto const &tag : TagPoint::all_tags)
+      {
+        if (tag->name == name)
         {
-            if (tag->name == name)
-            {
-                return true;
-            }
+          return true;
         }
-        return false;
+      }
+      return false;
     }
-
 
     //! Unregister a tag. It should not be used after that.
     void unregister();
@@ -247,6 +239,5 @@ namespace cogs_tagpoints
 
     ~TagPointClaim();
   };
-
 
 }

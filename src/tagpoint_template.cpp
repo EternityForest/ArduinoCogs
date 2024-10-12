@@ -197,8 +197,10 @@ void TagPoint::silentResetValue()
 void TagPoint::addClaim(std::shared_ptr<TagPointClaim> claim)
 {
     // This check should usually be fast since it's rare to have more than a few claims
-    for(auto it = this->claims.begin(); it != this->claims.end(); it++){
-        if (claim.get() == it->get()){
+    for (auto it = this->claims.begin(); it != this->claims.end(); it++)
+    {
+        if (claim.get() == it->get())
+        {
             return;
         }
     }
@@ -219,10 +221,7 @@ void TagPoint::rerender()
 
             this->floatFirstValueCache = ((float)this->value[0]) * this->scale_inverse;
 
-            for (const auto subscriber : this->subscribers)
-            {
-                subscriber(this);
-            }
+            this->notifySubscribers();
         }
         return;
     }
@@ -267,19 +266,26 @@ void TagPoint::rerender()
     }
     this->floatFirstValueCache = ((float)this->value[0]) * this->scale_inverse;
 
-    // Push data to subscribers
-    for (auto const &func : this->subscribers)
+    if (memcmp(buffer, this->value, sizeof(TAG_DATA_TYPE) * this->count) != 0)
     {
-        func(this);
+        this->notifySubscribers();
     }
 };
+
+void TagPoint::notifySubscribers(){
+        // Push data to subscribers
+        for (auto const &func : this->subscribers)
+        {
+            func(this);
+        }
+}
 
 void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, int count)
 {
     for (int i = 0; i < this->count; i++)
     {
         // Don't go past end
-        if (i >= count)
+        if ((this->startIndex + i) >= count)
         {
             break;
         }

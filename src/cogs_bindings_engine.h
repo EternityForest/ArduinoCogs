@@ -69,7 +69,7 @@ namespace cogs_rules
     int32_t duration;
     int32_t alpha;
     bool fadeDone=false;
-    virtual void applyLayer(int32_t *vals, int count) override;
+    virtual void applyLayer(int32_t *vals, int start) override;
 
     IntFadeClaim(int startIndex, int count);
   };
