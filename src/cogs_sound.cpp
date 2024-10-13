@@ -168,6 +168,9 @@ namespace cogs_sound
             {
                 this->stub = mixer->NewInput();
             }
+            if(!this->stub){
+                throw std::runtime_error("Bad Stub");
+            }
             this->src = new AudioFileSourceLittleFS(fn.c_str());
 
             std::string ext = fn.substr(fn.size() - 3, 3);
@@ -298,6 +301,10 @@ namespace cogs_sound
                     this->stub->ignoreStop = false;
                 }
                 this->gen->stop();
+                delete this->gen;
+                if(this->stub){
+                    delete this->stub;
+                }
                 this->gen = 0;
                 this->stub = 0;
             }
