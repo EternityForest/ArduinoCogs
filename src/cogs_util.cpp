@@ -184,6 +184,9 @@ namespace cogs
 
         Serial.println(msg.c_str());
         cogs_web::wsBroadcast("__ERROR__", msg.c_str());
+        if(msg.size() < 128){
+            Serial.flush();
+        }
     }
 
     void logInfo(const std::string &msg)

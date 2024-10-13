@@ -37,17 +37,17 @@ te_expr *cogs_rules::compileExpression(const std::string &input)
 {
   int err = 0;
   
-  cogs::logInfo("Compiling: " + input);
-  // debug print global vars
-  cogs::logInfo("Global vars count: " + std::to_string(global_vars_count));
-  for (int i = 0; i < global_vars_count; i++){
-    if(global_vars[i].name){
-    cogs::logInfo(global_vars[i].name);
-    }
-    else{
-      cogs::logInfo("NULL");
-    }
-  }
+  // cogs::logInfo("Compiling: " + input);
+  // // debug print global vars
+  // cogs::logInfo("Global vars count: " + std::to_string(global_vars_count));
+  // for (int i = 0; i < global_vars_count; i++){
+  //   if(global_vars[i].name){
+  //   cogs::logInfo(global_vars[i].name);
+  //   }
+  //   else{
+  //     cogs::logInfo("NULL");
+  //   }
+  // }
 
   auto x = te_compile(input.c_str(), global_vars, global_vars_count, &err);
   if (err)

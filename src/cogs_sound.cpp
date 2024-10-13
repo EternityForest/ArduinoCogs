@@ -10,6 +10,28 @@ static inline bool ends_with(std::string const &value, std::string const &ending
         return false;
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
+static unsigned long lastError = 0;
+
+// Called when there's a warning or error (like a buffer underflow or decode hiccup)
+void StatusCallback(void *cbData, int code, const char *string)
+{
+    if (millis() - lastError < 10000)
+    {
+        return;
+    }
+    if (code == 257)
+    {
+        return;
+    }
+    lastError = millis();
+    const char *ptr = reinterpret_cast<const char *>(cbData);
+    // Note that the string may be in PROGMEM, so copy it to RAM for printf
+    char s1[64];
+    strncpy_P(s1, string, sizeof(s1));
+    s1[sizeof(s1) - 1] = 0;
+
+    cogs::logError(std::string(ptr) + " " + std::string(s1) + " (" + std::to_string(code) + ")");
+}
 
 // pointer to function taking one bool argument
 static void (*setHwEnabled)(bool) = 0;
@@ -24,7 +46,8 @@ namespace cogs_sound
 
     static unsigned long lastActivity = 0;
 
-    void setPowerCallback(void (*f)(bool)){
+    void setPowerCallback(void (*f)(bool))
+    {
         setHwEnabled = f;
     }
 
@@ -37,7 +60,7 @@ namespace cogs_sound
         }
         if ((path.rfind("/sfx", 0) == 0) || (path.rfind("/music", 0) == 0))
         {
-            if (!ends_with(path, ".mp3"))
+            if (!(ends_with(path, ".mp3") || ends_with(path, ".wav") || ends_with(path, ".opus")))
             {
                 return;
             }
@@ -111,7 +134,7 @@ namespace cogs_sound
         std::string fn;
         bool shouldLoop = false;
 
-        bool shouldDelete = false;
+        bool shouldDelete = 0;
 
         float vol;
         float fade;
@@ -124,30 +147,74 @@ namespace cogs_sound
 
         unsigned long endTime = 0;
 
-        SoundPlayer(AudioOutputMixer *mixer, std::string fn, bool loop, float vol, float fade, float initialVol)
+        SoundPlayer(AudioOutputMixer *mixer, std::string fn, bool loop, float vol, float fade, float initialVol, AudioOutputMixerStub *stb = 0)
         {
 
-            if(setHwEnabled){
+            if (setHwEnabled)
+            {
                 setHwEnabled(true);
             }
 
             this->fn = fn;
-            cogs::logInfo("SoundPlayer: " + fn);
             this->shouldLoop = loop;
             this->fade = fade;
             this->vol = vol;
             this->initialVol = initialVol;
-            this->stub = mixer->NewInput();
-            this->src = new AudioFileSourceLittleFS(fn.c_str());
-            this->id3 = new AudioFileSourceID3(this->src);
-            this->gen = new AudioGeneratorMP3();
-            if(!this->gen->begin(this->id3, this->stub)){
-                throw std::runtime_error("err initializing mp3 source");
+            if (stb)
+            {
+                this->stub = stb;
             }
+            else
+            {
+                this->stub = mixer->NewInput();
+            }
+            this->src = new AudioFileSourceLittleFS(fn.c_str());
+
+            std::string ext = fn.substr(fn.size() - 3, 3);
+
+            if (ext == "mp3")
+            {
+
+                this->id3 = new AudioFileSourceID3(this->src);
+                this->gen = new AudioGeneratorMP3();
+                if (!this->gen->begin(this->id3, this->stub))
+                {
+                    cogs::logError("SoundPlayer: unable to start generating sound");
+                    this->shouldDelete = true;
+                }
+            }
+            else if (ext == "wav")
+            {
+                this->gen = new AudioGeneratorWAV();
+                if (!this->gen->begin(this->src, this->stub))
+                {
+                    cogs::logError("SoundPlayer: unable to start generating sound");
+                    this->shouldDelete = true;
+                }
+            }
+
+            else if (ext == "pus")
+            {
+                this->gen = new AudioGeneratorOpus();
+                if (!this->gen->begin(this->src, this->stub))
+                {
+                    cogs::logError("SoundPlayer: unable to start generating sound");
+                    this->shouldDelete = true;
+                }
+            }
+
+            //this->gen->RegisterStatusCB(&StatusCallback, (void *)"snd");
             this->stub->SetGain(initialVol);
             this->fadeStart = millis();
         }
 
+        void setGain(float gain)
+        {
+            if (this->stub)
+            {
+                this->stub->SetGain(gain);
+            }
+        }
         bool isRunning()
         {
             if (this->shouldDelete)
@@ -182,6 +249,10 @@ namespace cogs_sound
 
         void doFade()
         {
+            if (this->shouldDelete)
+            {
+                return;
+            }
             if (this->fade > 0.0)
             {
                 unsigned long now = millis();
@@ -202,7 +273,7 @@ namespace cogs_sound
                 }
 
                 float v = this->vol * position + this->initialVol * (1 - position);
-                this->stub->SetGain(v);
+                this->setGain(v);
             }
 
             if (this->endTime)
@@ -212,7 +283,7 @@ namespace cogs_sound
                 // rollover compare
                 if ((now - this->endTime) > 1000000000L)
                 {
-                    this->stop();
+                    this->shouldDelete = true;
                     return;
                 }
             }
@@ -222,8 +293,13 @@ namespace cogs_sound
         {
             if (this->gen)
             {
+                if (this->stub)
+                {
+                    this->stub->ignoreStop = false;
+                }
                 this->gen->stop();
                 this->gen = 0;
+                this->stub = 0;
             }
         }
 
@@ -244,6 +320,7 @@ namespace cogs_sound
             if (this->stub)
             {
                 delete this->stub;
+                this->stub = 0;
             }
         }
     };
@@ -273,12 +350,12 @@ namespace cogs_sound
     AudioFileSourceID3 *id3[2] = {0, 0};
 
     // Need GIL
-    static void playMusic(const std::string &fn, bool loop, float vol, float fade)
+    static void playMusic(const std::string &fn, bool loop, float vol, float fade, AudioOutputMixerStub *stub =0)
     {
 
         // If there is already a background, stop it because we can't have 3
         // at the same time
-        if (music_old && (fade > 0.0))
+        if (music_old)
         {
             SoundPlayer *m2 = music_old;
             music_old = 0;
@@ -289,41 +366,35 @@ namespace cogs_sound
             delete m2;
         }
 
-        if (musicFadeOut > 0.0)
+        // Move it to the background slot,
+        // let if get stopped after the linger time.
+        if (music)
         {
-            // Move it to the background slot
-            if (music)
+            SoundPlayer *m = music;
+            if (musicFadeOut > 0.0)
             {
-                SoundPlayer *m = music;
                 m->fadeStart = millis();
                 m->endTime = millis() + int(musicFadeOut * 1000);
                 m->initialVol = m->vol;
                 m->fade = musicFadeOut;
                 m->vol = 0.0;
-                music = 0;
-                waitForAudioThread();
-                music_old = m;
             }
-        }
-        else
-        {
-            if (music)
+            else
             {
-                SoundPlayer *m = music;
-                music = 0;
-                waitForAudioThread();
-                m->stop();
-                delete m;
+                m->shouldDelete = true;
             }
+            music = 0;
+            waitForAudioThread();
+            music_old = m;
         }
 
         if (fade > 0.0)
         {
-            music = new SoundPlayer(mixer, fn, loop, vol, fade, 0.0);
+            music = new SoundPlayer(mixer, fn, loop, vol, fade, 0.0, stub);
         }
         else
         {
-            music = new SoundPlayer(mixer, fn, loop, vol, 0.0, vol);
+            music = new SoundPlayer(mixer, fn, loop, vol, 0.0, vol, stub);
         }
 
         xTaskNotifyGive(audioThreadHandle);
@@ -362,7 +433,7 @@ namespace cogs_sound
             // Just let fade handle it
             if (m->fade == 0.0)
             {
-                m->stub->SetGain(m->vol);
+                m->setGain(m->vol);
             }
         }
 
@@ -376,7 +447,7 @@ namespace cogs_sound
                 m2->vol = v;
                 if (m2->fade == 0.0)
                 {
-                    m2->stub->SetGain(m2->vol);
+                    m2->setGain(m2->vol);
                 }
             }
         }
@@ -394,7 +465,7 @@ namespace cogs_sound
             // Just let fade handle it
             if (f->fade == 0.0)
             {
-                f->stub->SetGain(f->vol);
+                f->setGain(f->vol);
             }
         }
     }
@@ -477,22 +548,34 @@ namespace cogs_sound
         SoundPlayer *m = music;
         if (m)
         {
+
+            // If there is already a background, stop it.
+            if (music_old)
+            {
+                SoundPlayer *m2 = music_old;
+                music_old = 0;
+                // Make sure audio thread completed its loop
+                // and is done with the object
+                waitForAudioThread();
+                m2->stop();
+                delete m2;
+            }
+
             if (musicFadeOut > 0.0)
             {
+                m->fadeStart = millis();
+                m->endTime = millis() + int(musicFadeOut * 1000);
                 m->initialVol = m->vol;
                 m->fade = musicFadeOut;
                 m->vol = 0.0;
-                m->fadeStart = millis();
-                m->endTime = millis() + int(musicFadeOut * 1000);
             }
             else
             {
-                m->shouldLoop = false;
-                music = 0;
-                waitForAudioThread();
-                m->stop();
-                delete m;
+                m->shouldDelete = true;
             }
+            music = 0;
+            waitForAudioThread();
+            music_old = m;
         }
     }
 
@@ -538,36 +621,37 @@ namespace cogs_sound
             }
             delay(1);
         }
-
-        c = audioThreadIter;
-        // Do it twice, i don't know if needed but off
-        // by ones are confusing      ̄\_(ツ)_/ ̄
-        // and i think i saw a bug from this.
-        // Also kudos to AI for perfect emoji use!
-        while (c == audioThreadIter)
-        {
-            safety--;
-            if (safety == 0)
-            {
-                break;
-            }
-            delay(1);
-        }
     }
 
     // Handles fades and loops.
     // Need GIL
     void audioMaintainer()
     {
-        bool en=false;
+        bool en = false;
 
         if (music)
         {
-            en=true;
+            en = true;
             if (!music->isRunning())
             {
                 SoundPlayer *m = music;
                 bool l = music->shouldLoop;
+                AudioOutputMixerStub *stb = music->stub;
+
+                // Rescue mission!
+                // Take the stub away so it doesn't get trashed
+                // We need to reuse it because the start and end need sample perfect alignment.
+                if (l)
+                {
+                    stb->ignoreStop = true;
+                    m->stub = 0;
+                }
+                else
+                {
+                    stb->ignoreStop = false;
+                    stb = 0;
+                }
+
                 std::string fn = m->fn;
                 music = 0;
                 // Make sure audio thread completed its loop
@@ -579,7 +663,7 @@ namespace cogs_sound
 
                 if (l)
                 {
-                    playMusic(fn, true, musicVol, 0);
+                    playMusic(fn, true, musicVol, 0, stb);
                 }
             }
             else
@@ -590,7 +674,7 @@ namespace cogs_sound
 
         if (music_old)
         {
-            en=true;
+            en = true;
             if (!music_old->isRunning())
             {
                 SoundPlayer *m = music_old;
@@ -610,7 +694,7 @@ namespace cogs_sound
 
         if (fx)
         {
-            en=true;
+            en = true;
             if (!fx->isRunning())
             {
                 SoundPlayer *m = fx;
@@ -627,13 +711,15 @@ namespace cogs_sound
                 fx->doFade();
             }
         }
-        if(en){
-            lastActivity=millis();
+        if (en)
+        {
+            lastActivity = millis();
         }
 
         if ((millis() - lastActivity) > 10000)
         {
-            if(setHwEnabled){
+            if (setHwEnabled)
+            {
                 setHwEnabled(false);
             }
         }
@@ -646,7 +732,15 @@ namespace cogs_sound
             // Idle to reduce power
             if (!(music || music_old || fx))
             {
-                ulTaskNotifyTake(pdTRUE, 1000);
+                // Loop the mixer to be sure it's flushed
+                if (millis() - lastActivity > 500)
+                {
+                    mixer->loop();
+                }
+                else
+                {
+                    ulTaskNotifyTake(pdTRUE, 1000);
+                }
             }
             else
             {
@@ -709,7 +803,6 @@ namespace cogs_sound
             }
             audioThreadIter++;
             // Delays are not precise enough for any fancy duration logic here.
-            // We just keep slightly over 2 ticks of buffer.
             vTaskDelay(2);
         }
     }
@@ -721,9 +814,14 @@ namespace cogs_sound
             cogs::logError("Null pointer");
         }
 
+        if(output){
+            cogs::logError("Audio output already set");
+            return;
+        }
+
         output = op;
 
-        mixer = new AudioOutputMixer(128, op);
+        mixer = new AudioOutputMixer(1024, op);
 
         cogs::registerFastPollHandler(audioMaintainer);
 
@@ -825,11 +923,11 @@ namespace cogs_sound
         cogs::globalEventHandlers.push_back(fileChangeHandler);
 
         xTaskCreate(
-            audioThread,      // Function name of the task
-            "audio",          // Name of the task (e.g. for debugging)
-            4096,             // Stack size (bytes)
-            NULL,             // Parameter to pass
-            10,               // Task priority
+            audioThread,       // Function name of the task
+            "audio",           // Name of the task (e.g. for debugging)
+            8192*2,              // Stack size (bytes)
+            NULL,              // Parameter to pass
+            10,                // Task priority
             &audioThreadHandle // Task handle
         );
     }

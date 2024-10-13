@@ -39,6 +39,8 @@ class AudioOutputMixerStub : public AudioOutput
     virtual bool ConsumeSample(int16_t sample[2]) override;
     virtual bool stop() override;
 
+    bool ignoreStop = false;
+
   protected:
     AudioOutputMixer *parent;
     int id;
@@ -60,6 +62,8 @@ class AudioOutputMixer : public AudioOutput
 
     AudioOutputMixerStub *NewInput(); // Get a new stub to pass to a generator
 
+
+  
   // Stub called functions
   friend class AudioOutputMixerStub;
   private:
