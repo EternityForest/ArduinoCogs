@@ -7,7 +7,7 @@ static bool claimCmpGreater(const std::shared_ptr<TagPointClaim> a, const std::s
     return a->priority < b->priority;
 }
 
-TagPointClaim::TagPointClaim(int startIndex, int count)
+TagPointClaim::TagPointClaim(uint16_t startIndex, uint16_t count)
 {
 
     this->finished = false;

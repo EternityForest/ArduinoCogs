@@ -29,7 +29,12 @@ namespace cogs
 
 
         /// A tag point has been created
-        tagCreatedEvent = 5
+        tagCreatedEvent = 5,
+
+        tagDestroyedEvent = 6,
+        // Anyone who compiles an expression MUST handle
+        // this and recompile.
+        bindingsEngineRefreshEvent = 7
 
 
     };

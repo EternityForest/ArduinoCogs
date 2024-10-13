@@ -19,16 +19,19 @@ static void ledsThread(void *arg)
     {
         xSemaphoreTake(mutex, portMAX_DELAY);
         FastLED.show();
+        xSemaphoreGive(mutex);
+        
         // We refresh every 1000ms or so in case noise has messed up the state.
         ulTaskNotifyTake(pdTRUE, 10000);
-        xSemaphoreGive(mutex);
     }
 }
 
 static void redTagHandler(cogs_rules::IntTagPoint *tp)
 {
     dirty = true;
-    xSemaphoreTake(mutex, portMAX_DELAY);
+    // Since locking isn't critical, ensure we don't get completely jammed
+    // if some unknown thing happens.
+    xSemaphoreTake(mutex, 100);
     for (int i = 0; i < numLeds; i++)
     {
         leds[i].red = tp->value[i];
@@ -39,7 +42,7 @@ static void redTagHandler(cogs_rules::IntTagPoint *tp)
 static void greenTagHandler(cogs_rules::IntTagPoint *tp)
 {
     dirty = true;
-    xSemaphoreTake(mutex, portMAX_DELAY);
+    xSemaphoreTake(mutex, 100);
     for (int i = 0; i < numLeds; i++)
     {
         leds[i].green = tp->value[i];
@@ -50,7 +53,7 @@ static void greenTagHandler(cogs_rules::IntTagPoint *tp)
 static void blueTagHandler(cogs_rules::IntTagPoint *tp)
 {
     dirty = true;
-    xSemaphoreTake(mutex, portMAX_DELAY);
+    xSemaphoreTake(mutex, 100);
     for (int i = 0; i < numLeds; i++)
     {
         leds[i].blue = tp->value[i];
@@ -74,8 +77,9 @@ namespace cogs_leds
         mutex = xSemaphoreCreateMutex();
         xSemaphoreGive(mutex);
 
-        if (!leds)
+        if (!l)
         {
+            cogs::logError("leds is null");
             throw std::runtime_error("leds is null");
         }
 

@@ -184,7 +184,7 @@ static void _loadFromFile()
                     int layer = bindingData["layer"].as<int>();
                     if (layer)
                     {
-                        b->layer = layer
+                        b->layer = layer;
                         b->trySetupTarget();
                     }
                 }

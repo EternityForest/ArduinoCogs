@@ -9,6 +9,8 @@
 
 using namespace cogs_rules;
 
+cogs_rules::needRefresh = false;
+
 static std::vector<Binding> bindings;
 
 /// This is a set of tinyexpr variables.
@@ -1013,6 +1015,31 @@ static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, cons
     rs->println(e.what());
   }
 }
+void refreshHandler(cogs::GlobalEvent evt, int dummy, const std::string &filename)
+{
+  if(evt == cogs::tagCreatedEvent || evt == cogs::tagDestroyedEvent){
+    cogs_rules::needRefresh = true;
+  }
+  if (evt == cogs::bindingsEngineRefreshEvent)
+  {
+    {
+      bool good = true;
+      for (const auto &cw : Clockwork::allClockworks)
+      {
+        if (!cw.second->handleEngineRefresh())
+        {
+          good = false;
+        }
+      }
+      if (!good)
+      {
+        cogs::logError("Clockwork refresh failed");
+        cogs::addTroubleCode("EBADAUTOMATION");
+      }
+    }
+  }
+}
+
 
 void cogs_rules::begin()
 {
@@ -1035,4 +1062,81 @@ void cogs_rules::begin()
   cogs_reggshell::interpreter->statusCallbacks.push_back(statusCallback);
   cogs::fastPollHandlers.push_back(fastPoll);
   refreshBindingsEngine();
+}
+
+
+bool Clockwork::handleEngineRefresh()
+{
+  bool good = true;
+  for (const auto &state : this->states)
+  {
+
+    if (!state.second->handleEngineRefresh())
+    {
+      good = false;
+    }
+  }
+  return good;
+}
+
+bool Binding::handleEngineRefresh()
+{
+  bool good = true;
+
+  if (this->inputExpression)
+  {
+    te_free(this->inputExpression);
+    this->inputExpression = compileExpression(this->inputExpressionSource);
+    if (!this->inputExpression)
+    {
+      this->inputExpression = nullptr;
+      cogs::logError("Error compiling expression: " + this->inputExpressionSource);
+      good = false;
+    }
+  }
+
+  if (this->fadeInTime)
+  {
+    te_free(this->fadeInTime);
+    this->fadeInTime = compileExpression(this->fadeInTimeSource);
+    if (!this->fadeInTime)
+    {
+      this->fadeInTime = nullptr;
+      cogs::logError("Error compiling expression: " + this->fadeInTimeSource);
+      good = false;
+    }
+  }
+
+  if(this->alpha){
+    te_free(this->alpha);
+    this->alpha = compileExpression(this->alphaSource);
+    if (!this->alpha)
+    {
+      this->alpha = nullptr;
+      cogs::logError("Error compiling expression: " + this->alphaSource);
+      good = false;
+    }
+  }
+
+  if (this->target)
+  {
+    this->target = nullptr;
+    this->trySetupTarget();
+  }
+
+  return good;
+}
+
+bool State::handleEngineRefresh()
+{
+  bool good = true;
+  for (const auto &binding : this->bindings)
+  {
+    if (!binding->handleEngineRefresh())
+    {
+      good = false;
+    }
+  }
+
+  return good;
 }

@@ -22,6 +22,8 @@ namespace cogs_sound
     static void playSoundTag(cogs_rules::IntTagPoint *t);
     static void playMusicTag(cogs_rules::IntTagPoint *t);
 
+    static unsigned long lastActivity;
+
     void setPowerCallback(void (*f)(bool)){
         setHwEnabled = f;
     }
@@ -623,8 +625,11 @@ namespace cogs_sound
                 fx->doFade();
             }
         }
+        if(en){
+            lastActivity=millis();
+        }
 
-        if (!en)
+        if ((millis() - lastActivity) > 10000)
         {
             if(setHwEnabled){
                 setHwEnabled(false);

@@ -27,6 +27,8 @@ extern "C"
 
 namespace cogs_rules
 {
+
+  extern bool needRefresh;
   typedef cogs_tagpoints::TagPoint IntTagPoint;
 
   /// Constants available in the expressions
@@ -68,7 +70,7 @@ namespace cogs_rules
     int32_t start;
     int32_t duration;
     uint16_t alpha;
-    bool fadeDone=false;
+    bool fadeDone = false;
     virtual void applyLayer(int32_t *vals, uint16_t start) override;
 
     IntFadeClaim(uint16_t startIndex, uint16_t count);
@@ -87,7 +89,9 @@ namespace cogs_rules
     bool frozen = false;
 
   public:
-      te_expr *inputExpression;
+    std::string inputExpressionSource;
+
+    te_expr *inputExpression;
 
     // A binding can be for an array. This is an index and count for what part
     // Of the tag point's data to affect.
@@ -97,13 +101,14 @@ namespace cogs_rules
     /// Should we apply to bg value, or create a claim with priority?
     uint16_t layer = 0;
 
-
     // Eval'ed when the binding enters
-    te_expr * fadeInTime = nullptr;
+    std::string fadeInTimeSource;
+
+    te_expr *fadeInTime = nullptr;
 
     // Eval'ed every frame
-    te_expr * alpha = nullptr;
-
+    std::string alphaSource;
+    te_expr *alpha = nullptr;
 
     /// If you change fadeInTime, set up the target again
     bool trySetupTarget();
@@ -135,6 +140,7 @@ namespace cogs_rules
     void exit();
 
     ~Binding();
+    bool handleEngineRefresh();
   };
 
   //! Represents one state machine state.
@@ -175,6 +181,7 @@ namespace cogs_rules
     void removeBinding(std::shared_ptr<cogs_rules::Binding> binding);
 
     ~State();
+    bool handleEngineRefresh();
   };
 
   //! A clockwork is a state machine with extra features.
@@ -229,6 +236,7 @@ namespace cogs_rules
     void eval();
 
     ~Clockwork();
+    bool handleEngineRefresh();
 
   private:
     /// Clockworks can own tag points. They are auto unregistered.

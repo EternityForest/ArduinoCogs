@@ -71,7 +71,7 @@ export class PageRoot extends LitElement {
             return html`
             <li>${key}<button ?disabled="${value}" @click=${this.handleTroubleCodeAck.bind(this, key)}>Clear</button></li>
             `
-        })}
+        }.bind(this))}
         </ul>
         <h2>Variables</h2>
 
