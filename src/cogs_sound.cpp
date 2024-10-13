@@ -22,7 +22,7 @@ namespace cogs_sound
     static void playSoundTag(cogs_rules::IntTagPoint *t);
     static void playMusicTag(cogs_rules::IntTagPoint *t);
 
-    static unsigned long lastActivity;
+    static unsigned long lastActivity = 0;
 
     void setPowerCallback(void (*f)(bool)){
         setHwEnabled = f;
@@ -539,8 +539,10 @@ namespace cogs_sound
             delay(1);
         }
 
+        c = audioThreadIter;
         // Do it twice, i don't know if needed but off
         // by ones are confusing      ̄\_(ツ)_/ ̄
+        // and i think i saw a bug from this.
         // Also kudos to AI for perfect emoji use!
         while (c == audioThreadIter)
         {

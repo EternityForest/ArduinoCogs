@@ -6,10 +6,11 @@
 #include <Regexp.h>
 #include "reggshell/reggshell.h"
 #include "cogs_reggshell.h"
+#include "cogs_trouble_codes.h"
 
 using namespace cogs_rules;
 
-cogs_rules::needRefresh = false;
+bool cogs_rules::needRefresh = false;
 
 static std::vector<Binding> bindings;
 
@@ -35,18 +36,35 @@ static void onStateTagSet(IntTagPoint *tag);
 te_expr *cogs_rules::compileExpression(const std::string &input)
 {
   int err = 0;
+  
+  cogs::logInfo("Compiling: " + input);
+  // debug print global vars
+  cogs::logInfo("Global vars count: " + std::to_string(global_vars_count));
+  for (int i = 0; i < global_vars_count; i++){
+    if(global_vars[i].name){
+    cogs::logInfo(global_vars[i].name);
+    }
+    else{
+      cogs::logInfo("NULL");
+    }
+  }
+
   auto x = te_compile(input.c_str(), global_vars, global_vars_count, &err);
   if (err)
   {
-    cogs::logError("Error compiling expression: " + input);
+    cogs::logError("Error compiling expression: " + input + " (" + std::to_string(err) + ")");
     return 0;
   }
   if (!x)
   {
-    cogs::logError("Error compiling expression: " + input);
+    cogs::logError("Error compiling expression: " + input + " (unknown error)");
     return 0;
   }
   return x;
+}
+
+void cogs_rules::freeExpression(te_expr *x){
+  te_free(x);
 }
 
 float cogs_rules::evalExpression(const std::string &input)
@@ -214,91 +232,6 @@ static float doFlicker(float idx)
   return (float)flicker_flames_lp[index] / FXP_RES;
 }
 
-static float bool_inv(float a)
-{
-  if (a == 0)
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static float bool_conv(float a)
-{
-  if (a == 0)
-  {
-    return 0;
-  }
-  else
-  {
-    return 1;
-  }
-}
-
-static float lessthanorequal(float a, float b)
-{
-  if (a <= b)
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static float greaterthanorequal(float a, float b)
-{
-  if (a >= b)
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static float either(float a, float b)
-{
-  if (a > 0)
-  {
-    return a;
-  }
-  if (b > 0)
-  {
-    return b;
-  }
-  return 0;
-}
-
-static float both(float a, float b)
-{
-  if (a > 0 && b > 0)
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static float neither(float a, float b)
-{
-  if (a > 0 || b > 0)
-  {
-    return 0;
-  }
-  else
-  {
-    return 1;
-  }
-}
-
 static float terenery(float a, float b, float c)
 {
   if (a > 0)
@@ -348,15 +281,6 @@ void setupBuiltins()
   cogs_rules::user_functions1["flicker"] = &doFlicker;
   cogs_rules::user_functions1["bang"] = &fbang;
   cogs_rules::user_functions0["uptime"] = &uptimeFunction;
-
-  cogs_rules::user_functions1["not"] = &bool_inv;
-  cogs_rules::user_functions1["bool"] = &bool_conv;
-
-  cogs_rules::user_functions2["lte"] = &lessthanorequal;
-  cogs_rules::user_functions2["gte"] = &greaterthanorequal;
-  cogs_rules::user_functions2["either"] = &either;
-  cogs_rules::user_functions2["both"] = &both;
-  cogs_rules::user_functions2["neither"] = &neither;
   cogs_rules::user_functions3["switch"] = &terenery;
 }
 
@@ -404,6 +328,7 @@ void cogs_rules::refreshBindingsEngine()
   }
 
   global_vars_count = p;
+  cogs_rules::needRefresh = false;
 };
 
 IntFadeClaim::IntFadeClaim(uint16_t startIndex, uint16_t count) : cogs_tagpoints::TagPointClaim(startIndex, count) {
@@ -482,6 +407,7 @@ Binding::Binding(const std::string &target_name, const std::string &input)
     this->target_name = target_name;
   }
 
+  this->inputExpressionSource = input;
   this->inputExpression = compileExpression(input);
 
   if (!this->target_name.size())
@@ -903,6 +829,9 @@ void Clockwork::eval()
 
 static void fastPoll()
 {
+  if(cogs_rules::needRefresh){
+    cogs_rules::refreshBindingsEngine();
+  }
   cogs_rules::Clockwork::evalAll();
 }
 
@@ -1061,6 +990,7 @@ void cogs_rules::begin()
   cogs_reggshell::interpreter->addSimpleCommand("set", reggshellWriteTagPoint, "set <tag> <value> sets a tag value.  \nIf value is a floating point, it will be multiplied by $res=16384.\n If tag is array, sets every element.");
   cogs_reggshell::interpreter->statusCallbacks.push_back(statusCallback);
   cogs::fastPollHandlers.push_back(fastPoll);
+  cogs::globalEventHandlers.push_back(&refreshHandler);
   refreshBindingsEngine();
 }
 

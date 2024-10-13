@@ -65,6 +65,7 @@ void TagPoint::unregister()
         if ((*tag)->name == name)
         {
             TagPoint::all_tags.erase(tag);
+            cogs::triggerGlobalEvent(cogs::tagDestroyedEvent, 0, name);
             break;
         }
     }

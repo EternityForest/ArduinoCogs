@@ -39,54 +39,6 @@ customElements.define('cogs-builtin-navbar', NavBar);
 
 
 
-var CogsWidgetApiSnackbar = function (m, d) {
-
-    if (cogsapi.currentSnackbar) {
-        cogsapi.currentSnackbar.remove()
-    }
-
-    if (m == '') {
-        return
-    }
-    // create a new div element
-    const newDiv = document.createElement("div");
-
-    // and give it some content
-    //const newContent = document.createTextNode(m);
-
-    // add the text node to the newly created div
-    //newDiv.appendChild(newContent);
-    newDiv.classList = "card paper"
-    newDiv.innerHTML = "<header>Alert (x)</header><p>" + m + "</p>"
-
-    // add the newly created element and its content into the DOM
-    const currentDiv = document.getElementById("div1");
-    newDiv.onclick = function () {
-        newDiv.remove()
-    }
-
-    var sb = {
-        minWidth: "250px",
-        maxWidth: "70%",
-        margin: "auto",
-        textAlign: "center",
-        position: "fixed",
-        zIndex: 10000,
-        top: "30px",
-        fontSize: "32px",
-        WebkitAnimation: "fadein 0.5s, fadeout 0.5s 2.5s",
-        animation: "fadein 0.5s, fadeout 0.5s 2.5s",
-
-    }
-    for (var i in sb) {
-        newDiv.style[i] = sb[i]
-    }
-    document.body.appendChild(newDiv);
-    cogsapi.currentSnackbar = newDiv;
-
-
-    setTimeout(function () { newDiv.remove() }, (d || 5) * 1000);
-}
 
 var CogsApi = function () {
     var x = {
@@ -101,7 +53,8 @@ var CogsApi = function () {
             "__TROUBLECODES__": [
                 function (m) {
                     if(m){
-                        CogsWidgetApiSnackbar(m[0], m[1]);
+                        picodash.snackbar.createSnackbar(m,{ accent: 'error',
+                            timeout: 60000 });
                     }
                 }
             ],
@@ -110,35 +63,11 @@ var CogsApi = function () {
                     console.error(m);
                     if (cogsapi.lastDidSnackbarError < Date.now() + 60000) {
                         cogsapi.lastDidSnackbarError = Date.now()
-                        CogsWidgetApiSnackbar("Ratelimited msg" + m)
+                        picodash.snackbar.createSnackbar(m, { accent: 'error',
+                            timeout: 60000 });
                     }
                 }
-            ],
-            "__SHOWMESSAGE__": [
-                function (m) {
-                    alert(m);
-                }
-            ],
-            "__SHOWSNACKBAR__": [
-                function (m) {
-                    CogsWidgetApiSnackbar(m[0], m[1]);
-                }
-            ],
-
-            "__KEYMAP__": [
-                function (m) {
-                    self.uuidToWidgetId[m[0]] = m[1];
-                    self.widgetIDtoUUID[m[1]] = m[0];
-                }
-            ],
-
-            "__FORCEREFRESH__": [
-                function (m) {
-                    window.location.reload();
-                }
             ]
-
-
         },
 
         //Unused for now

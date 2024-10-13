@@ -46,7 +46,13 @@ namespace cogs_rules
   extern std::map<std::string, float (*)(float, float, float)> user_functions3;
 
   /// compile an expression, that will have access to cogs vars.
+  /// This is invalidated and MUST not be used if a global engine refresh
+  /// happens.  So you must keep track of the source, free the expr,
+  /// and recompile when a bindingEngineRefreshEvent happens.
+
   te_expr *compileExpression(const std::string &input);
+
+  void freeExpression(te_expr *x);
 
   /// evaluate an expression and return the result
   float evalExpression(const std::string &input);

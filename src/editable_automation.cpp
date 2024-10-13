@@ -160,6 +160,7 @@ static void _loadFromFile()
                     std::string fadeInTime = bindingData["fadeInTime"].as<std::string>();
                     if (!(fadeInTime == "0" || fadeInTime == "0.0" || fadeInTime == ""))
                     {
+                        b->fadeInTimeSource = fadeInTime;
                         b->fadeInTime = cogs_rules::compileExpression(fadeInTime);
                         if(!b->fadeInTime){
                             badAutomation();
@@ -174,6 +175,7 @@ static void _loadFromFile()
                     std::string alpha = bindingData["alpha"].as<std::string>();
                     if (!(alpha == "1" || alpha == "1.0" || alpha == ""))
                     {
+                        b->alphaSource = alpha;
                         b->alpha = cogs_rules::compileExpression(alpha);
                         b->trySetupTarget();
                     }
