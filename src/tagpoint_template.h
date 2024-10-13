@@ -40,7 +40,7 @@ namespace cogs_tagpoints
     void notifySubscribers();
 
   public:
-    TagPoint(const std::string &n, TAG_DATA_TYPE val, int count = 1);
+    TagPoint(const std::string &n, TAG_DATA_TYPE val, uint16_t count = 1);
     ~TagPoint();
 
     /// This is the current "base" value before applying any claims.
@@ -181,7 +181,7 @@ namespace cogs_tagpoints
     @param value the value of the claim
     */
 
-    std::shared_ptr<TagPointClaim> overrideClaim(int layer, TAG_DATA_TYPE value, int startIndex = 0, int count = 1);
+    std::shared_ptr<TagPointClaim> overrideClaim(uint16_t layer, TAG_DATA_TYPE value, uint16_t startIndex = 0, uint16_t count = 1);
 
     //! Remove a claim.  There is no way to add it back.
     void removeClaim(std::shared_ptr<TagPointClaim> c);
@@ -196,7 +196,7 @@ namespace cogs_tagpoints
     /// Does not automatically rerender.
     /// If count is 0, sets all values(So we can pretend it's a scalar)
     /// If count is not 0, sets only the first count values after startIndex.
-    void setValue(TAG_DATA_TYPE val, int startIndex = 0, int count = 0);
+    void setValue(TAG_DATA_TYPE val, uint16_t startIndex = 0, uint16_t count = 0);
 
     void addClaim(std::shared_ptr<TagPointClaim> claim);
 
@@ -222,20 +222,23 @@ namespace cogs_tagpoints
     TAG_DATA_TYPE *value;
 
     /// Index into the tagpoint's value array where we are affecting
-    int startIndex = 0;
+    uint16_t startIndex = 0;
 
     /// How many vals
-    int count = 1;
+    uint16_t count = 1;
 
-    int priority = 0;
+    uint16_t priority = 0;
+
+    // When a tag is "finished", it's value can be "folded into" the background
+    // layer, assuming  it is the next layer above
     bool finished = false;
 
     // applyLayer is an in place paint operation
-    virtual void applyLayer(TAG_DATA_TYPE *old, int count);
+    virtual void applyLayer(TAG_DATA_TYPE *old, uint16_t count);
 
     /// Count must be specified up front, everything else can be done later
     /// Because it's mostly type specific
-    TagPointClaim(int startIndex, int count);
+    TagPointClaim(uint16_t startIndex, uint16_t count);
 
     ~TagPointClaim();
   };

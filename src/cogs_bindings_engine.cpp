@@ -404,11 +404,11 @@ void cogs_rules::refreshBindingsEngine()
   global_vars_count = p;
 };
 
-IntFadeClaim::IntFadeClaim(int startIndex, int count) : cogs_tagpoints::TagPointClaim(startIndex, count) {
+IntFadeClaim::IntFadeClaim(uint16_t startIndex, uint16_t count) : cogs_tagpoints::TagPointClaim(startIndex, count) {
 
                                                         };
 
-void IntFadeClaim::applyLayer(int32_t *vals, int tagLength)
+void IntFadeClaim::applyLayer(int32_t *vals, uint16_t tagLength)
 {
 
   // Calculate how far along we are as a 0 to 100% control value
@@ -500,12 +500,23 @@ bool Binding::trySetupTarget()
   {
     this->target = IntTagPoint::getTag(this->target_name, 0, 1);
 
-    if (this->fadeInTime)
+    if (this->fadeInTime || this->alpha || this->layer)
     {
+      if(!this->claim){
       this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
           this->multiStart,
           this->multiCount);
-      this->claim->priority = CLAIM_PRIORITY_FADE;
+      }
+
+      int l = this->layer;
+      if(this->fadeInTime || this->alpha){
+        if(l<1){
+          l = 1;
+        }
+      }
+
+      this->claim->priority = l;
+
     }
     return true;
   }
@@ -658,7 +669,13 @@ void Binding::exit()
   // We don't need that claim anymore, merge it back into the background state if possible.
   if (this->claim)
   {
-    this->claim->finished = true;
+
+    // Layers don't get folded into the background.
+    // They go away when we're done so we can use them as overrides.
+    if(this->layer == 0){
+      this->claim->finished = true;
+    }
+
     if (this->target)
     {
       // Needed to properly clean the finished claims.

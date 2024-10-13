@@ -178,6 +178,17 @@ static void _loadFromFile()
                         b->trySetupTarget();
                     }
                 }
+
+                if (bindingData["layer"].is<int>())
+                {
+                    int layer = bindingData["layer"].as<int>();
+                    if (layer)
+                    {
+                        b->layer = layer
+                        b->trySetupTarget();
+                    }
+                }
+                
             }
         }
         // State doesn't exist, use default

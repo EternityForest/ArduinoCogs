@@ -29,7 +29,7 @@ TagPointClaim::~TagPointClaim()
     }
 };
 
-TagPoint::TagPoint(const std::string &n, TAG_DATA_TYPE val, int count)
+TagPoint::TagPoint(const std::string &n, TAG_DATA_TYPE val, uint16_t count)
 {
     this->name = n;
     // Dynamic allocation because we don't know how big this will be.
@@ -99,7 +99,7 @@ void TagPoint::cleanFinished()
     }
 };
 
-std::shared_ptr<TagPointClaim> TagPoint::overrideClaim(int layer, TAG_DATA_TYPE value, int startIndex, int count)
+std::shared_ptr<TagPointClaim> TagPoint::overrideClaim(uint16_t layer, TAG_DATA_TYPE value, uint16_t startIndex, uint16_t count)
 {
     TagPointClaim *c = new TagPointClaim(startIndex, count);
     c->startIndex = startIndex;
@@ -154,7 +154,7 @@ void TagPoint::unsubscribe(void (*func)(TagPoint *))
     }
 };
 
-void TagPoint::setValue(TAG_DATA_TYPE val, int startIndex, int count)
+void TagPoint::setValue(TAG_DATA_TYPE val, uint16_t startIndex, uint16_t count)
 {
     if (count == 0)
     {
@@ -280,7 +280,7 @@ void TagPoint::notifySubscribers(){
         }
 }
 
-void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, int count)
+void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, uint16_t count)
 {
     for (int i = 0; i < this->count; i++)
     {

@@ -67,11 +67,11 @@ namespace cogs_rules
   public:
     int32_t start;
     int32_t duration;
-    int32_t alpha;
+    uint16_t alpha;
     bool fadeDone=false;
-    virtual void applyLayer(int32_t *vals, int start) override;
+    virtual void applyLayer(int32_t *vals, uint16_t start) override;
 
-    IntFadeClaim(int startIndex, int count);
+    IntFadeClaim(uint16_t startIndex, uint16_t count);
   };
 
   class Binding
@@ -91,8 +91,12 @@ namespace cogs_rules
 
     // A binding can be for an array. This is an index and count for what part
     // Of the tag point's data to affect.
-    unsigned int multiStart = 0;
-    unsigned int multiCount = 1;
+    uint16_t multiStart = 0;
+    uint16_t multiCount = 1;
+
+    /// Should we apply to bg value, or create a claim with priority?
+    uint16_t layer = 0;
+
 
     // Eval'ed when the binding enters
     te_expr * fadeInTime = nullptr;
