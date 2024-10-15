@@ -39,9 +39,6 @@ namespace cogs
                 Serial.println("slow poll cycle ");
                 Serial.println(lastFastPollTime);
             }
-
-            Serial.print("fpt: " );
-            Serial.println(lastFastPollTime);
             lastSlowPoll = millis();
             doSlowPoll();
         }

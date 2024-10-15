@@ -302,6 +302,7 @@ namespace cogs_sound
         void fadeOut(float fade)
         {
             this->fadeStart = millis();
+            // Todo get real vol
             this->initialVol = this->vol;
             this->fade = fade;
             this->vol = 0;
@@ -347,7 +348,7 @@ namespace cogs_sound
                 unsigned long now = millis();
 
                 // rollover compare
-                if ((now - this->endTime) > 1000000000L)
+                if ((now - this->endTime) < 1000000000L)
                 {
                     this->shouldDelete = true;
                     return;
@@ -700,7 +701,6 @@ namespace cogs_sound
     // Need GIL
     void audioMaintainer()
     {
-        Serial.println(audioThreadTime);
         bool en = false;
         SoundPlayer *m = music.load();
         if (m)
@@ -800,10 +800,12 @@ namespace cogs_sound
 
     void audioThread(void *parameter)
     {
+        unsigned long start = micros();
         while (1)
         {
-            // Wake every 11ms, buffer up to 40ms.
-            unsigned long start = millis();
+            unsigned long now = millis();
+            unsigned long idle = now-start;
+            start = micros();
 
             xSemaphoreTake(mutex, portMAX_DELAY);
 
@@ -855,8 +857,8 @@ namespace cogs_sound
                     }
                 }
             }
-            unsigned long taken = millis() - start;
-            audioThreadTime = taken*0.05 + audioThreadTime*0.95;
+            
+            audioThreadTime = ((float)(start+idle)/(float)start)*0.05 + audioThreadTime*0.95;
 
             xSemaphoreGive(mutex);
 
@@ -875,7 +877,7 @@ namespace cogs_sound
     void statusCallback(reggshell::Reggshell *rs)
     {
         rs->println("Audio:");
-        rs->print("  audioThreadTime(ms): ");
+        rs->print("  Thread %: ");
         rs->println(audioThreadTime);
     }
     void begin(AudioOutput *op)
