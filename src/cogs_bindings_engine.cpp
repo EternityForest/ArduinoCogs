@@ -603,6 +603,9 @@ void Binding::exit()
     if(this->layer == 0){
       this->claim->finished = true;
     }
+    else{
+      this->target->removeClaim(this->claim);
+    }
 
     if (this->target)
     {

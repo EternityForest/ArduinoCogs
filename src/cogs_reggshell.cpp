@@ -5,7 +5,7 @@
 reggshell::Reggshell * cogs_reggshell::interpreter = NULL;
 
 static void fastPoll(){
-    if(Serial.available()){
+    while (Serial.available()){
         cogs_reggshell::interpreter->parseChar(Serial.read()); //flawfinder: ignore
     }
 }

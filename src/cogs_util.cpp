@@ -23,16 +23,20 @@ namespace cogs
 
     std::vector<std::shared_ptr<const std::string>> stringPool;
 
-    void wakeMainThread(){
+    void wakeMainThread()
+    {
         TaskHandle_t handle = mainThreadHandle;
-        if (handle != 0){
+        if (handle != 0)
+        {
             xTaskNotifyGive(mainThreadHandle);
         }
     }
 
-    void wakeMainThreadISR(){
+    void wakeMainThreadISR()
+    {
         TaskHandle_t handle = mainThreadHandle;
-        if (handle != 0){
+        if (handle != 0)
+        {
             BaseType_t xHigherPriorityTaskWoken = pdFALSE;
             xTaskNotifyFromISR(mainThreadHandle, 0, eNoAction, &xHigherPriorityTaskWoken);
         }
@@ -118,7 +122,14 @@ namespace cogs
 
     void waitFrame()
     {
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS((1000/cogs_pm::fps)));
+        if (cogs_pm::boostFPS > 0)
+        {
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS((1000 / 48)));
+        }
+        else
+        {
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS((1000 / cogs_pm::fps)));
+        }
     }
 
     void ensureDirExists(const std::string &dir)
@@ -183,9 +194,17 @@ namespace cogs
         }
 
         Serial.println(msg.c_str());
-        cogs_web::wsBroadcast("__ERROR__", msg.c_str());
-        if(msg.size() < 128){
+        if (msg.size() < 128)
+        {
             Serial.flush();
+        }
+
+        if(xSemaphoreTakeRecursive(mutex, pdMS_TO_TICKS(300))){
+        cogs_web::wsBroadcast("__ERROR__", msg.c_str());
+        cogs::unlock();
+        }
+        else{
+            Serial.println("Timed out waiting for mutex to broadcast error");
         }
     }
 

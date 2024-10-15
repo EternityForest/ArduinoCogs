@@ -38,6 +38,7 @@ class AudioOutputMixerStub : public AudioOutput
     virtual bool begin() override;
     virtual bool ConsumeSample(int16_t sample[2]) override;
     virtual bool stop() override;
+    virtual bool loop() override;
 
     bool ignoreStop = false;
 

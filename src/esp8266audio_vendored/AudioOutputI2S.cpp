@@ -228,7 +228,7 @@ bool AudioOutputI2S::begin(bool txDAC)
           .communication_format = comm_fmt,
           .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
           .dma_buf_count = dma_buf_count,
-          .dma_buf_len = 128,
+          .dma_buf_len = 1024,
           .use_apll = use_apll, // Use audio PLL
           .tx_desc_auto_clear = true, // Silence on underflow
           .fixed_mclk = 0, // Unused

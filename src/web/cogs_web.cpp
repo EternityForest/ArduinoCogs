@@ -41,6 +41,8 @@ namespace cogs_web
 
     static bool lastWifiEnabled = true;
 
+    static std::shared_ptr<cogs_rules::IntTagPoint> connectedTag = nullptr;
+
     void handlePSTag(cogs_rules::IntTagPoint *tp)
     {
         if (tp->value[0] == 0)
@@ -71,9 +73,9 @@ namespace cogs_web
                       const char *mime)
     {
         AsyncWebServerResponse *response = request->beginResponse_P(200,
-                                                                  mime,
-                                                                  data,
-                                                                  size);
+                                                                    mime,
+                                                                    data,
+                                                                    size);
         response->addHeader("Content-Encoding", "gzip");
         response->addHeader("Cache-Control", "public, max-age=604800");
         request->send(response);
@@ -105,12 +107,37 @@ namespace cogs_web
     /// Poll this periodically to check if wifi is connected.
     void check_wifi(bool force = false)
     {
+
+        if (connectedTag.get())
+        {
+            if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
+            {
+                int rssi = WiFi.RSSI();
+                connectedTag->setValue(rssi);
+
+                // /// Assume max tx power to get worst case loss
+                // int loss = rssi - 30;
+
+                // /// Try to target -70dBm at RX
+                // int tx = -70+loss;
+
+                // if(tx<0){ tx=0; }
+                // if(tx>30){ tx=30; }
+
+                // WiFi.setTxPower(rssi);
+            }
+            else
+            {
+                connectedTag->setValue(-999);
+            }
+        }
+
         if (!wifiEnabled)
         {
             if (lastWifiEnabled)
             {
 
-                if ((cogs::uptime() > (10 * 1000)) || cogs_pm::allowImmediateSleep)
+                if ((cogs::uptime() > (60 * 5 * 1000)) || cogs_pm::allowImmediateSleep)
                 {
                     cogs::logInfo("WIFI OFF");
                     WiFi.mode(WIFI_OFF);
@@ -203,6 +230,7 @@ namespace cogs_web
         WiFi.mode(WIFI_STA);
 
         auto slptag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);
+
         WiFi.setSleep(slptag->value[0] > 0);
         WiFi.setHostname(default_host.c_str());
 
@@ -264,6 +292,9 @@ namespace cogs_web
     {
         WiFi.persistent(false);
         WiFi.mode(WIFI_STA);
+
+        connectedTag = cogs_rules::IntTagPoint::getTag("$wifi.rssi", -999, 1);
+        connectedTag->setUnit("dBm");
 
         auto wtag = cogs_rules::IntTagPoint::getTag("$wifi.on", 1, 1);
         auto pstag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);

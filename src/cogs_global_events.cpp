@@ -9,6 +9,8 @@ namespace cogs
     unsigned long lastSlowPoll = 0;
     unsigned int slowPollIndex = 0;
 
+    volatile int lastFastPollTime = 0;
+
     std::vector<void (*)()> fastPollHandlers;
     std::vector<void (*)()> slowPollHandlers;
 
@@ -24,13 +26,22 @@ namespace cogs
 
     void poll()
     {
+        unsigned long now = millis();
         for (auto const &e : fastPollHandlers)
         {
             e();
         }
+        lastFastPollTime = millis()-now;
 
         if (millis() - lastSlowPoll > 1000)
         {
+            if(lastFastPollTime>50){
+                Serial.println("slow poll cycle ");
+                Serial.println(lastFastPollTime);
+            }
+
+            Serial.print("fpt: " );
+            Serial.println(lastFastPollTime);
             lastSlowPoll = millis();
             doSlowPoll();
         }

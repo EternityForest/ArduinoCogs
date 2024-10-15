@@ -15,6 +15,7 @@ namespace cogs_pm
 #endif
 
         int fps = 48;
+        int boostFPS = 0;
 
         static void onFPSTag(cogs_rules::IntTagPoint *tp)
         {
@@ -26,6 +27,7 @@ namespace cogs_pm
                 {
                         fps = 1000;
                 }
+                cogs::wakeMainThread();
         }
 
         static void onDeepSleepGo(cogs_rules::IntTagPoint *tp)
@@ -33,7 +35,7 @@ namespace cogs_pm
                 if (tp->value[0] > 0)
                 {
                         // Don't allow user to make a boot loop accidentally
-                        if (cogs::uptime() < 60)
+                        if (cogs::uptime() < 60*5*1000)
                         {
                                 if (!allowImmediateSleep)
                                 {

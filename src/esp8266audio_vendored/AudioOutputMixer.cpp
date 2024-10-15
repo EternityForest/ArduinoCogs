@@ -53,6 +53,9 @@ bool AudioOutputMixerStub::begin()
   return parent->begin(id);
 }
 
+bool AudioOutputMixerStub::loop(){
+  return parent->loop();
+}
 bool AudioOutputMixerStub::ConsumeSample(int16_t sample[2])
 {
   int16_t amp[2];
@@ -242,8 +245,6 @@ bool AudioOutputMixer::loop()
 
 bool AudioOutputMixer::ConsumeSample(int16_t sample[2], int id)
 {
-  loop(); // Send any pre-existing, completed I2S data we can fit
-
   // Now, do we have space for a new sample?
   int nextWritePtr = (writePtr[id] + 1) % buffSize;
   if (nextWritePtr == readPtr)

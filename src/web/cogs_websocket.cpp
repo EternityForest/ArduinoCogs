@@ -15,6 +15,7 @@ static void handleWsData(char *d)
     // Vars is going to be a dict of things to set the values of
     if (doc["vars"].is<JsonObject>())
     {
+        cogs::lock();
         for (auto kv : doc["vars"].as<JsonObject>())
         {
             int v = kv.value().as<int>();
@@ -28,10 +29,12 @@ static void handleWsData(char *d)
                 }
             }
         }
+        cogs::unlock();
     }
 }
 
-void cogs_web::wsBroadcast(const char *key, const JsonVariant &val){
+void cogs_web::wsBroadcast(const char *key, const JsonVariant &val)
+{
     JsonDocument doc;
     doc["vars"][key] = val;
     char *buf = reinterpret_cast<char *>(malloc(512));
@@ -82,10 +85,11 @@ void cogs_web::exposeTagPoint(std::shared_ptr<cogs_rules::IntTagPoint> tp)
 
 static void tagCreatedHandler(cogs::GlobalEvent evt, int dummy, const std::string &name)
 {
-    if(evt != cogs::tagCreatedEvent){
+    if (evt != cogs::tagCreatedEvent)
+    {
         return;
     }
-    
+
     auto t = cogs_rules::IntTagPoint::getTag(name, 0, 1);
     if (name[0] == '_')
     {
@@ -96,7 +100,6 @@ static void tagCreatedHandler(cogs::GlobalEvent evt, int dummy, const std::strin
         cogs_web::exposeTagPoint(t);
     }
 }
-
 
 static void onEvent(AsyncWebSocket *server,
                     AsyncWebSocketClient *client,
@@ -122,7 +125,6 @@ static void onEvent(AsyncWebSocket *server,
     }
     else if (type == WS_EVT_DATA)
     {
-        cogs::lock();
         // data packet
         AwsFrameInfo *info = reinterpret_cast<AwsFrameInfo *>(arg);
         if (info->final && info->index == 0 && info->len == len)
@@ -137,7 +139,7 @@ static void onEvent(AsyncWebSocket *server,
                 }
                 catch (std::exception &e)
                 {
-                    cogs::logError(e.what());
+                    cogs::logError(e.what());   
                 }
             }
         }
@@ -145,8 +147,6 @@ static void onEvent(AsyncWebSocket *server,
         {
             cogs::logError("Multiple frames not supported");
         }
-
-        cogs::unlock();
     }
 }
 
