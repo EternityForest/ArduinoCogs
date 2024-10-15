@@ -18,10 +18,17 @@ namespace cogs
 
     // Slow poll happens one at a time, and only one handler at a time,
     // so they don't all happen at once and make lag.
+    // but if they all take less that 2ms we'll do them all.
     static void doSlowPoll()
     {
-        slowPollIndex++;
-        slowPollHandlers[slowPollIndex % slowPollHandlers.size()]();
+        int m = slowPollHandlers.size();
+        unsigned long start = millis();
+
+        while ((m>0) && (millis() - start < 2)){
+            m--;
+            slowPollIndex++;
+            slowPollHandlers[slowPollIndex % slowPollHandlers.size()]();
+        }
     }
 
     void poll()

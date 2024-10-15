@@ -1,5 +1,5 @@
 #include <LittleFS.h>
-#include "cogs_bindings_engine.h"
+#include "cogs_rules.h"
 #include "cogs_global_events.h"
 #include "cogs_sound.h"
 #include "cogs_power_management.h"
@@ -803,9 +803,9 @@ namespace cogs_sound
         unsigned long start = micros();
         while (1)
         {
-            unsigned long now = millis();
-            unsigned long idle = now-start;
-            start = micros();
+            unsigned long now = micros();
+            unsigned long total = now-start;
+            start = now;
 
             xSemaphoreTake(mutex, portMAX_DELAY);
 
@@ -823,7 +823,7 @@ namespace cogs_sound
                     ulTaskNotifyTake(pdTRUE, 1000);
                     xSemaphoreTake(mutex, portMAX_DELAY);
                     // Don't make it look like audio thread time is long when it's not.
-                    start = millis();
+                    start = micros();
                 }
             }
             else
@@ -858,18 +858,22 @@ namespace cogs_sound
                 }
             }
             
-            audioThreadTime = ((float)(start+idle)/(float)start)*0.05 + audioThreadTime*0.95;
+            // No div/0 issues allowed!
+            start +=1;
+
+            unsigned long taken = micros() - start;
+            audioThreadTime = (((float)(total)/(float)taken))*0.05 + audioThreadTime*0.95;
 
             xSemaphoreGive(mutex);
 
             // Limit how much CPU it can use
-            if (taken > 4)
+            if (taken > 4000)
             {
                 delay(3);
             }
             else
             {
-                delay(5 - taken);
+                delay(5 - (taken/1000));
             }
         }
     }

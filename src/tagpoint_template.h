@@ -55,6 +55,16 @@ namespace cogs_tagpoints
     /// but some are arrays
     uint16_t count = 1;
 
+
+    // Used for the web ui to mark if it needs to push data.
+    // we set it to true when the first value in the array changes,
+    // not on any other val.
+    bool webAPIDirty = false;
+
+    /// The time of the previous push to subscribers, set AFTER all subscribers have been notified.
+    /// Useful for rate limiting logic
+    unsigned long lastChangeTime = 0;
+
     /// Set fixed point resolution, 1 in float user expressions
     /// is this many when converted to int.
     void setScale(int s)
@@ -113,12 +123,14 @@ namespace cogs_tagpoints
 
       if (name.size() == 0)
       {
-        throw std::runtime_error("name empty");
+        cogs::logError("Tag name cannot be empty");
+        return nullptr;
       }
 
       if (count == 0)
       {
-        throw std::runtime_error("0-length tag not allowed");
+        cogs::logError("Tag count cannot be 0");
+        return nullptr;
       }
 
       if (!TagPoint::exists(name))

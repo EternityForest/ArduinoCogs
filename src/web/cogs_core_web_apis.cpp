@@ -10,7 +10,8 @@
 #include "web/cogs_static_data.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
-#include "cogs_bindings_engine.h"
+#include "cogs_rules.h"
+#include "cogs_prefs.h"
 
 /// Handles requests to /api/cogs.navbar by returning a JSON list of the nav bar entries
 
@@ -255,6 +256,8 @@ static void handleGetTagInfo(AsyncWebServerRequest *request)
         cogs::unlock();
         return;
     }
+
+
     std::string tagname = request->arg("tag").c_str();
     if (!cogs_rules::IntTagPoint::exists(tagname))
     {
@@ -281,6 +284,20 @@ static void handleGetTagInfo(AsyncWebServerRequest *request)
     doc["scale"] = tag->scale;
     doc["firstValue"] = tag->value[0];
     doc["length"] = tag->count;
+
+    if(cogs_prefs::started){
+        if (cogs_prefs::prefs.find(tagname) == cogs_prefs::prefs.end())
+        {
+            doc["persistent"] = false;
+        }
+        else
+        {
+            doc["persistent"] = true;
+        }
+    }
+    else{
+        doc["persistent"] = false;
+    }
 
     char buf[256];
     serializeJson(doc, buf, 256);

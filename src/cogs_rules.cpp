@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <math.h>
-#include "cogs_bindings_engine.h"
+#include "cogs_rules.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
 #include <Regexp.h>
@@ -978,12 +978,7 @@ void cogs_rules::begin()
   cogs::mainThreadHandle = xTaskGetCurrentTaskHandle();
 
   setupBuiltins();
-  auto t = cogs_rules::IntTagPoint::getTag("temp1", 0);
-  t->setScale(16384);
-  t = cogs_rules::IntTagPoint::getTag("temp2", 0);
-  t->setScale(16384);
-  t = cogs_rules::IntTagPoint::getTag("temp3", 0);
-  t->setScale(16384);
+
 
   cogs_rules::user_functions0["age"] = &getStateAge;
 

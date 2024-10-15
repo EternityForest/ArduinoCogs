@@ -101,7 +101,6 @@ export class PageRoot extends LitElement {
                     array_controls_top: true,
                     disable_array_delete_last_row: true,
                     disable_edit_json: true,
-                    disable_properties: !additionalproperties,
                     ajax: true,
                     theme: "barebones"
                 });

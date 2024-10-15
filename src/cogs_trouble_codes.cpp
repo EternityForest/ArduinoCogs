@@ -27,6 +27,14 @@ static void persistTroubleCode(const std::string &code, bool clear)
 
     std::map<std::string, bool> oldStatus;
     // get the old file
+
+    if (!LittleFS.exists("/var/trouble-codes.json"))
+    {
+        File f = LittleFS.open("/var/trouble-codes.json", "w"); // flawfinder: ignore
+        f.println("{}");
+        f.close();
+    }
+
     File file = LittleFS.open("/var/trouble-codes.json", "r"); // flawfinder: ignore
     if (file)
     {
@@ -39,19 +47,24 @@ static void persistTroubleCode(const std::string &code, bool clear)
         file.close();
     }
 
-    if (clear){
-        if(oldStatus.count(code) == 1){
+    if (clear)
+    {
+        if (oldStatus.count(code) == 1)
+        {
             changed = true;
             oldStatus.erase(code);
         }
     }
-    else{
-        if(oldStatus.count(code) == 0){
+    else
+    {
+        if (oldStatus.count(code) == 0)
+        {
             changed = true;
         }
         oldStatus[code] = true;
     }
-    if(!changed){
+    if (!changed)
+    {
         return;
     }
     cogs::logInfo("Persisting trouble code: " + code);
@@ -143,16 +156,19 @@ static void getTroubleCodesWebAPI(AsyncWebServerRequest *request)
 void cogs_web::_troubleCodeSetup()
 {
 
-    File file = LittleFS.open("/var/trouble-codes.json", "r"); // flawfinder: ignore
-    if (file)
+    if (LittleFS.exists("/var/trouble-codes.json"))
     {
-        JsonDocument doc = JsonDocument();
-        deserializeJson(doc, file);
-        for (JsonPair pair : doc.as<JsonObject>())
+        File file = LittleFS.open("/var/trouble-codes.json", "r"); // flawfinder: ignore
+        if (file)
         {
-            cogs::troubleCodeStatus[pair.key().c_str()] = pair.value().as<bool>();
+            JsonDocument doc = JsonDocument();
+            deserializeJson(doc, file);
+            for (JsonPair pair : doc.as<JsonObject>())
+            {
+                cogs::troubleCodeStatus[pair.key().c_str()] = pair.value().as<bool>();
+            }
+            file.close();
         }
-        file.close();
     }
 
     cogs_web::server.on("/api/cogs.trouble-codes", HTTP_GET, getTroubleCodesWebAPI);

@@ -218,6 +218,12 @@ void TagPoint::rerender()
     {
         if (memcmp(this->value, this->background_value, sizeof(TAG_DATA_TYPE) * this->count) != 0)
         {
+            // Only first value changes affect ws api
+            if(this->value[0] != this->background_value[0])
+            {
+                this->webAPIDirty = true;
+            }
+
             memcpy(this->value, this->background_value, sizeof(TAG_DATA_TYPE) * this->count); // flawfinder: ignore
 
             this->floatFirstValueCache = ((float)this->value[0]) * this->scale_inverse;
@@ -269,6 +275,12 @@ void TagPoint::rerender()
 
     if (memcmp(buffer, this->value, sizeof(TAG_DATA_TYPE) * this->count) != 0)
     {
+        // Only first value changes affect ws api
+        if(this->value[0] != buffer[0])
+        {
+            this->webAPIDirty = true;
+        }
+        
         this->notifySubscribers();
     }
 };
@@ -279,6 +291,9 @@ void TagPoint::notifySubscribers(){
         {
             func(this);
         }
+        // The whole point of this is that it happens after the subscribers have been notified
+        // don't move it up!
+        this->lastChangeTime = millis();
 }
 
 void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, uint16_t count)

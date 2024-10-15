@@ -150,6 +150,16 @@ namespace reggshell
         this->line_buffer_len++;
     }
 
+    void Reggshell::clearLineBuffer()
+    {
+        if(this->line_buffer_len>0)
+        {
+            this->println("Cleared line buffer, partial command ignored");
+        }
+        this->line_buffer_len = 0;
+        this->line_buffer[0] = 0;
+    }
+
     void Reggshell::parseLine(char *line)
     {
         try

@@ -68,6 +68,8 @@ namespace reggshell
         /// Parse one char at a time. If \n, pass it to parseLine
         void parseChar(unsigned char c);
 
+        void clearLineBuffer();
+
         /// Give a command exclusive mode.  
         /// Every line gets passed to the callback until you call releaseExclusive.
         /// MatchState * will be null in this case as you are taking over and getting raw input.

@@ -2,10 +2,10 @@
 #include "cogs_web.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
-#include "cogs_bindings_engine.h"
+#include "cogs_rules.h"
 
 AsyncWebSocket ws("/api/ws");
-static void pushTagPointValue(cogs_rules::IntTagPoint *tp);
+static void pushTagPointValue(cogs_rules::IntTagPoint *tp, bool force = false);
 
 static void handleWsData(char *d)
 {
@@ -23,9 +23,12 @@ static void handleWsData(char *d)
             {
                 auto t = cogs_rules::IntTagPoint::getTag(kv.key().c_str(), 0, 1);
                 t->setValue(v, 0, 1);
+
+                // If for some reason the set fails to change the value
+                // inform the clients of that
                 if (t->value[0] != v)
                 {
-                    pushTagPointValue(t.get());
+                    pushTagPointValue(t.get(), true);
                 }
             }
         }
@@ -63,8 +66,24 @@ void cogs_web::wsBroadcast(const char *key, const char *data)
     free(buf);
 }
 
-static void pushTagPointValue(cogs_rules::IntTagPoint *tp)
+
+// Iterating all tags is slow, we don't want to do that too often
+// so we only do it if there is a change
+static bool atLeastOneTagDirty = false;
+
+static void pushTagPointValue(cogs_rules::IntTagPoint *tp, bool force)
 {
+    if(!force){
+        if(!tp->webAPIDirty){
+            return;
+        }
+        // Frequently changing tags can wait until the next poll.
+        if((millis() - tp->lastChangeTime) < 250){
+            atLeastOneTagDirty = true;
+            return;    
+        }
+    }
+
     JsonDocument doc;
     doc["vars"][tp->name] = tp->value[0];
     char *buf = reinterpret_cast<char *>(malloc(512));
@@ -76,11 +95,27 @@ static void pushTagPointValue(cogs_rules::IntTagPoint *tp)
     serializeJson(doc, buf, 512);
     ws.textAll(buf);
     free(buf);
+    tp->webAPIDirty = false;
+}
+
+static void onChange(cogs_rules::IntTagPoint *tp){
+    pushTagPointValue(tp, false);
+}
+static void pushAllDirtyTags(){
+    if(!atLeastOneTagDirty){
+        return;
+    }
+    for(auto const &tagPoint : cogs_rules::IntTagPoint::all_tags){
+        if(tagPoint->webAPIDirty){
+            pushTagPointValue(tagPoint.get(), true);
+        }
+    }
+    atLeastOneTagDirty = false;
 }
 
 void cogs_web::exposeTagPoint(std::shared_ptr<cogs_rules::IntTagPoint> tp)
 {
-    tp->subscribe(pushTagPointValue);
+    tp->subscribe(onChange);
 }
 
 static void tagCreatedHandler(cogs::GlobalEvent evt, int dummy, const std::string &name)
@@ -153,6 +188,7 @@ static void onEvent(AsyncWebSocket *server,
 void slowPoll()
 {
     ws.cleanupClients(8);
+    pushAllDirtyTags();
 }
 
 void cogs_web::setupWebSocketServer()

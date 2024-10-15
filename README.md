@@ -120,12 +120,21 @@ when one isn't changing.
 
 ### Tag Points/Variables
 
-These are just lists of numbers. Most of the time, they only contain one number. They are used to control things or read from sensors.
+These are just lists of numbers. Most of the time, they only contain one number. They are used to control things or read from sensors.  Using their names in expressions gives you the first value, the rest are
+write-only and used to control stuff like LED strips.
 
 Internally, they are stored as integers. However they are converted using
 the tag's scale factor to floating point for evaluating expressions.
 
-There are three temp variables, temp1, temp2, and temp3, all of which have scale factor 16384. They can store up to the value 262721 in floating point, with about 0.000061 resolution.
+Changes in the first variable are pushed to the web socket API, however the system may
+skip some updates on rapidly changing tags.  The most recent value will always get sent eventually,
+but some updates may be skipped to not overload the CPU with networking.
+
+
+### Prefs
+
+A varia
+
 
 ## Web features
 

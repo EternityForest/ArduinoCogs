@@ -3,10 +3,43 @@
         "disable_collapse": true
     },
     "properties": {
+        "vars": {
+            "description": "Define your own variables here!",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "default": "temp1"
+                    },
+                    "default": {
+                        "type": "number",
+                        "default": "0",
+                        "description": "The default value of the variable at boot"
+                    },
+                    "resolution": {
+                        "type": "number",
+                        "default": "16348",
+                        "minimum": "1",
+                        "maximum": "65535",
+                        "description": "With resolution of 100, the variable would have 0.01 steps."
+                    },
+                    "persistent": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "If true, the variable will save it's value. Variable saving may not be instant. Once marked as persistent, unmarking it requires a restart."
+                    }
+                }
+            }
+        },
         "clockworks": {
             "description": "A clockwork is a virtual timer machine that can trigger different actions in different conditions",
             "format": "tabs-top",
             "items": {
+                "options": {
+                    "disable_collapse": true
+                },
                 "properties": {
                     "name": {
                         "type": "string",
@@ -24,6 +57,9 @@
                             "watch": {
                                 "name": "state.name"
                             },
+                            "options": {
+                                "disable_collapse": true
+                            },
                             "properties": {
                                 "name": {
                                     "type": "string",
@@ -35,9 +71,6 @@
                                         "disable_collapse": true
                                     },
                                     "items": {
-                                        "options": {
-                                            "disable_collapse": true
-                                        },
                                         "properties": {
                                             "source": {
                                                 "title": "Source Expression",
@@ -99,7 +132,8 @@
                                         "title": "Binding",
                                         "type": "object",
                                         "options": {
-                                            "disable_properties": false
+                                            "disable_properties": false,
+                                            "disable_collapse": true
                                         }
                                     },
                                     "title": "Bindings",

@@ -6,10 +6,11 @@
 #include <stdexcept>
 #include <LittleFS.h>
 
-#include "cogs_bindings_engine.h"
+#include "cogs_rules.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
 #include "cogs_trouble_codes.h"
+#include "cogs_prefs.h"
 #include "web/cogs_web.h"
 #include "web/generated_data/automation_schema_json_gz.h"
 
@@ -58,6 +59,26 @@ static void _loadFromFile()
         cogs::logError("Error parsing automation.json: " + std::string(error.c_str()));
         badAutomation();
         return;
+    }
+
+    JsonVariant vars = doc["vars"];
+    if (vars.is<JsonArray>())
+    {
+        for (auto const &var : vars.as<JsonArray>())
+        {
+            auto v = cogs_rules::IntTagPoint::getTag(var["name"].as<std::string>(), var["value"].as<int>());
+            if(!v){
+                cogs::logError("Bad var: " + var["name"].as<std::string>());
+                badAutomation();
+                return;
+            }
+
+            if (var["persistent"].as<bool>()){
+                cogs_prefs::addPref(var["name"].as<std::string>());
+            }
+
+            v->setValue(var["default"].as<double>() * var["scale"].as<int>());
+        }
     }
 
     JsonVariant clockworks = doc["clockworks"];
