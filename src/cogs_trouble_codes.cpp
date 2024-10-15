@@ -30,6 +30,7 @@ static void persistTroubleCode(const std::string &code, bool clear)
 
     if (!LittleFS.exists("/var/trouble-codes.json"))
     {
+        cogs::ensureDirExists("/var");
         File f = LittleFS.open("/var/trouble-codes.json", "w"); // flawfinder: ignore
         f.println("{}");
         f.close();

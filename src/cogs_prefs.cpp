@@ -58,7 +58,7 @@ namespace cogs_prefs
 
         for (JsonPair pair : doc.as<JsonObject>())
         {
-            addPref(pair.key().c_str());
+            prefs[pair.key().c_str()] = pair.value().as<double>();
         }
         f.close();
     }
