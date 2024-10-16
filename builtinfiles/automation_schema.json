@@ -28,7 +28,7 @@
                     "persistent": {
                         "type": "boolean",
                         "default": false,
-                        "description": "If true, the variable will save it's value. Variable saving may not be instant. Once marked as persistent, unmarking it requires a restart."
+                        "description": "If true, the variable will save it's value. Variable saving may not be instant. Once marked as persistent, unmarking it requires deleting the key in prefs.json"
                     }
                 }
             }

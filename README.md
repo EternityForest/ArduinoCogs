@@ -247,6 +247,36 @@ Random 32 bit number
 Min is inclusive, max is not.
 
 
+### cogs::addTroubleCode("WTEMPERATURE50C",true)
+
+Add a "trouble code", marking something as being a problem in the UI.  The second param
+says if it gets stored to LittleFS.
+
+### cogs::inactivateTroubleCode("WTEMPERATURE50C")
+
+Declare that a trouble code is no longer active. Does not clear it,
+that is a manual operation.
+
+### auto tagpoint = cogs_rules::IntTagPoint::getTag(name, default, len)
+
+Get a tag point or create if nonexistant.  May give null pointer on bad vals.
+
+Will have len vals filled with default, if newly created.
+
+#### tagpoint->unregister()
+
+Delete and clean up.  Need to refresh the bindings engine after this.
+
+#### tagpoint->setValue(v)
+
+Set the "background" and rerender.  If there's a fade operation or an override going, the actual final val
+can be different.
+
+#### tagpoint->smartSetValue(v, minDiff, interval)
+
+Set value only if v is at least minDff from the first val, or if it's been `interval` since last change.
+This is important so noise in analog readings doesn't waste CPU.
+
 
 ## Reggshell
 

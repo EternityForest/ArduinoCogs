@@ -72,12 +72,13 @@ static void _loadFromFile()
                 badAutomation();
                 return;
             }
+            
+            v->setValue(var["default"].as<double>() * var["scale"].as<int>());
 
             if (var["persistent"].as<bool>()){
                 cogs_prefs::addPref(var["name"].as<std::string>());
             }
 
-            v->setValue(var["default"].as<double>() * var["scale"].as<int>());
         }
     }
 
@@ -318,7 +319,7 @@ void cogs_editable_automation::begin()
                         { cogs_web::sendGzipFile(request, automation_schema_json_gz, sizeof(automation_schema_json_gz), "application/json"); });
 
     // Add a navbar entry allowing editing of automation.json
-    cogs_web::NavBarEntry::create("Automation Rules",
+    cogs_web::NavBarEntry::create("⚙️Automation Rules",
                                   "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/automation.json&filename=/config/automation.json");
 
     cogs::globalEventHandlers.push_back(fileChangeHandler);

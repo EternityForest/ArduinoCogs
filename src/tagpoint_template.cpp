@@ -177,6 +177,38 @@ void TagPoint::setValue(TAG_DATA_TYPE val, uint16_t startIndex, uint16_t count)
     this->rerender();
 };
 
+void TagPoint::smartSetValue(TAG_DATA_TYPE val, int minDifference, int interval)
+{
+    bool x = false;
+
+    if (val > this->background_value[0])
+    {
+        if (val - this->background_value[0] >= minDifference)
+        {
+            x = true;
+        }
+    }
+    else
+    {
+        if (this->background_value[0] - val >= minDifference)
+        {
+            x = true;
+        }
+    }
+
+    if (!x)
+    {
+        if (millis() - this->lastChangeTime >= interval)
+        {
+            x = true;
+        }
+    }
+    if (x)
+    {
+        this->setValue(val);
+    }
+}
+
 /// Set all vals to 0 if there are no claims
 /// Do not trigger subscribers
 /// Call from within a "bang" type one shot handler
@@ -219,7 +251,7 @@ void TagPoint::rerender()
         if (memcmp(this->value, this->background_value, sizeof(TAG_DATA_TYPE) * this->count) != 0)
         {
             // Only first value changes affect ws api
-            if(this->value[0] != this->background_value[0])
+            if (this->value[0] != this->background_value[0])
             {
                 this->webAPIDirty = true;
             }
@@ -276,24 +308,25 @@ void TagPoint::rerender()
     if (memcmp(buffer, this->value, sizeof(TAG_DATA_TYPE) * this->count) != 0)
     {
         // Only first value changes affect ws api
-        if(this->value[0] != buffer[0])
+        if (this->value[0] != buffer[0])
         {
             this->webAPIDirty = true;
         }
-        
+
         this->notifySubscribers();
     }
 };
 
-void TagPoint::notifySubscribers(){
-        // Push data to subscribers
-        for (auto const &func : this->subscribers)
-        {
-            func(this);
-        }
-        // The whole point of this is that it happens after the subscribers have been notified
-        // don't move it up!
-        this->lastChangeTime = millis();
+void TagPoint::notifySubscribers()
+{
+    // Push data to subscribers
+    for (auto const &func : this->subscribers)
+    {
+        func(this);
+    }
+    // The whole point of this is that it happens after the subscribers have been notified
+    // don't move it up!
+    this->lastChangeTime = millis();
 }
 
 void TagPointClaim::applyLayer(TAG_DATA_TYPE *old, uint16_t count)

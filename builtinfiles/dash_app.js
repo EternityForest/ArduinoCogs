@@ -24,6 +24,7 @@ export class PageRoot extends LitElement {
         super();
         this.data = {
             "tags": {},
+            "tagSections": {},
         };
         this.troublecodes = {};
 
@@ -33,25 +34,47 @@ export class PageRoot extends LitElement {
             var x = await fetch('/api/cogs.tag?tag=' + tn);
             var y = await x.json();
             t.data.tags[tn] = y;
+            t.setTagSection(tn, y)
             t.requestUpdate()
 
-            x = await fetch('/api/cogs.trouble-codes');
-            y = await x.json();
-            t.troublecodes = y;
-            t.requestUpdate()
+
         }
+
+
         async function getData() {
 
             var x = await fetch('/api/cogs.tags');
             var y = await x.json();
             for (var i in y.tags) {
+                t.setTagSection(i, y.tags[i])
                 y.tags[i] = {};
                 getMoreData(i);
             }
-            t.data = y;
+            t.data.tags = y.tags;
+
+            x = await fetch('/api/cogs.trouble-codes');
+            y = await x.json();
+            t.troublecodes = y;
+            t.requestUpdate()
+            t.requestUpdate()
+
         }
         getData();
+
     };
+
+    setTagSection(tn, d) {
+        let section = tn.split(".")[0]
+        if (tn[0] == "$") {
+            section = "special"
+        }
+        if (tn == section) {
+            section = "misc"
+        }
+        this.data.tagSections[section] = this.data.tagSections[section] || {};
+        this.data.tagSections[section][tn] = d;
+    }
+
 
     async handleTroubleCodeAck(key) {
         await fetch('/api/cogs.clear-trouble-code?code=' + key, {
@@ -75,22 +98,29 @@ export class PageRoot extends LitElement {
         </ul>
         <h2>Variables</h2>
 
-        <table>
-            ${Object.entries(this.data.tags).sort((a, b) => a[0].localeCompare(b[0])).map(function ([key, value]) {
-            if (value.unit == 'trigger' || value.unit == 'bang') {
-                return html`
-                <tr><td>${key}</td><td><ds-button source="tag:${key}">Go!</ds-button></td></tr>
+        ${Object.entries(this.data.tagSections).sort((a, b) => a[0].localeCompare(b[0])).map(function ([section, sectiontags]) {
+            return html`
+            <details><summary>${section}</summary>
+        <div class="stacked-form">
+            ${Object.entries(sectiontags).sort((a, b) => a[0].localeCompare(b[0])).map(function ([key, value]) {
+                if (value.unit == 'trigger' || value.unit == 'bang') {
+                    return html`
+                <label>${key}<ds-button source="tag:${key}" filter="confirm: Confirm?">💥 Go!</ds-button></label>
                 `
-            } else if (value.unit == 'bool' || value.unit == 'boolean') {
-                return html`
-                <tr><td>${key}</td><td><ds-input type="checkbox" source="tag:${key}"></ds-input></td></tr>
+                } else if (value.unit == 'bool' || value.unit == 'boolean') {
+                    return html`
+                <label>${key} <ds-input type="checkbox" source="tag:${key}" filter="confirm: Confirm?"></ds-input></label>
                 `
-            } else {
-                return html`
-            <tr><td>${key}</td><td><ds-input type="number" source="tag:${key}"></ds-input></td></tr>
+                } else {
+                    return html`
+            <label>${key}<ds-input type="number" source="tag:${key}" filter="confirm: Confirm?"></ds-input></label>
             `}
-        })}
-        </table>
+            })}
+        </div>
+        </details>
+        `
+        }.bind(this))}
+        
 
         </div>
         `;

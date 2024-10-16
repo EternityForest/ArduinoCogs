@@ -86,13 +86,13 @@ static void pushTagPointValue(cogs_rules::IntTagPoint *tp, bool force)
 
     JsonDocument doc;
     doc["vars"][tp->name] = tp->value[0];
-    char *buf = reinterpret_cast<char *>(malloc(512));
+    char *buf = reinterpret_cast<char *>(malloc(256));
     if (!buf)
     {
         cogs::logError("malloc failed");
         return;
     }
-    serializeJson(doc, buf, 512);
+    serializeJson(doc, buf, 256);
     ws.textAll(buf);
     free(buf);
     tp->webAPIDirty = false;

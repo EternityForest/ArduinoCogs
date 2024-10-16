@@ -106,6 +106,9 @@ void cogs::addTroubleCode(const std::string &code, bool persist)
 
 void cogs::inactivateTroubleCode(const std::string &code)
 {
+    if(cogs::troubleCodeStatus.size()==0){
+        return;
+    }
     if (cogs::troubleCodeStatus.count(code) == 1)
     {
         cogs::troubleCodeStatus[code] = false;

@@ -7,4 +7,4 @@
 #include "cogs_gpio_app.h"
 #include "cogs_power_management.h"
 #include "cogs_prefs.h"
-
+#include "cogs_trouble_codes.h"

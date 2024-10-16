@@ -972,6 +972,13 @@ void refreshHandler(cogs::GlobalEvent evt, int dummy, const std::string &filenam
   }
 }
 
+auto ram = IntTagPoint::getTag("$ram", 0);
+
+static void slowPoll(){
+#if defined(ESP32) || defined(ESP8266)
+  ram->smartSetValue(ESP.getFreeHeap(), 2048, 600000);
+#endif
+}
 
 void cogs_rules::begin()
 {
@@ -979,6 +986,9 @@ void cogs_rules::begin()
 
   setupBuiltins();
 
+  ram->setUnit("bytes");
+
+  cogs::slowPollHandlers.push_back(slowPoll);
 
   cogs_rules::user_functions0["age"] = &getStateAge;
 

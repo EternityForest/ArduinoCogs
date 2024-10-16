@@ -1,6 +1,9 @@
 #include "cogs_prefs.h"
 #include "cogs_global_events.h"
 #include "cogs_reggshell.h"
+#include "web/generated_data/prefs_schema_json_gz.h"
+#include "web/cogs_web.h"
+
 #include <ArduinoJson.h>
 
 namespace cogs_prefs
@@ -58,6 +61,11 @@ namespace cogs_prefs
 
         for (JsonPair pair : doc.as<JsonObject>())
         {
+            if(cogs_rules::IntTagPoint::exists(pair.key().c_str())){
+                auto tp = cogs_rules::IntTagPoint::getTag(pair.key().c_str(),0);
+                tp->setValue(pair.value().as<double>());
+                tp->subscribe(&onPrefsTagSet);
+            }
             prefs[pair.key().c_str()] = pair.value().as<double>();
         }
         f.close();
@@ -69,7 +77,7 @@ namespace cogs_prefs
         {
             if (s == "/var/prefs.json")
             {
-                begin();
+                loadPrefs();
             }
         }
     }
@@ -87,6 +95,13 @@ namespace cogs_prefs
             return;
         }
         started = true;
+
+        cogs_web::server.on("/builtin/schemas/prefs.json", HTTP_GET, [](AsyncWebServerRequest *request) {
+           cogs_web::sendGzipFile(request, prefs_schema_json_gz, sizeof(prefs_schema_json_gz), "application/json");
+        });
+
+        cogs_web::NavBarEntry::create("🧔Prefs", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/prefs.json&filename=/var/prefs.json");
+
         loadPrefs();
         cogs::slowPollHandlers.push_back(slowPollHandler);
         cogs::globalEventHandlers.push_back(handleGlobalEvent);

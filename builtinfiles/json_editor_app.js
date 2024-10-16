@@ -28,7 +28,7 @@ var lastSavedVersion = null;
 
 window.addEventListener("beforeunload", function (e) {
 
-    if (JSON.stringify(editor.getValue(), null, 2) == lastSavedVersion) {
+    if (editor.getValue() ==lastSavedVersion) {
         return;
     }
     var confirmationMessage = 'If you leave before saving, your changes will be lost.';

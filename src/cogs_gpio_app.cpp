@@ -10,24 +10,62 @@
 #include <LittleFS.h>
 #include <Arduino.h>
 
+class GPIOInfo
+{
+public:
+    int pin;
+    char *name;
+    bool in;
+    bool out;
+};
+
 namespace cogs_gpio
 {
-    std::map<std::string, int> availableInputs;
-    std::map<std::string, int> availableOutputs;
-    std::map<int, bool (*)()> inputFunctions;
-    std::map<int, void (*)(int)> outputFunctions;
+    std::vector<GPIOInfo *> gpioInfo;
 
     std::vector<CogsSimpleInput> simpleInputs;
     std::vector<CogsSimpleOutput> simpleOutputs;
 
+    static GPIOInfo *gpioByName(const std::string &name)
+    {
+        for (auto &i : gpioInfo)
+        {
+            if (strcmp(i->name, name.c_str()) == 0)
+            {
+                return i;
+            }
+        }
+        return 0;
+    }
+
     void declareInput(const std::string &name, int pin)
     {
-        availableInputs[name] = pin;
+        auto p = gpioByName(name);
+        if (!p)
+        {
+            p = new GPIOInfo();
+            gpioInfo.push_back(p);
+        }
+        p->pin = pin;
+        char *n = new char[name.size() + 1];
+        strcpy(n, name.c_str());
+        p->name = n;
+        p->in = true;
     }
 
     void declareOutput(const std::string &name, int pin)
     {
-        availableOutputs[name] = pin;
+        auto p = gpioByName(name);
+        if (!p)
+        {
+            p = new GPIOInfo();
+            gpioInfo.push_back(p);
+        }
+        p->pin = pin;
+        char *n = new char[name.size() + 1];
+        strcpy(n, name.c_str());
+        p->name = n;
+        p->out = true;
     }
 
     /// This thread manages GPIO inputs
@@ -51,10 +89,13 @@ namespace cogs_gpio
         JsonDocument doc;
         doc["type"] = "string";
         int ctr = 0;
-        for (auto const &e : availableInputs)
+        for (auto const &e : gpioInfo)
         {
-            doc["enum"][ctr] = e.first;
-            ctr++;
+            if (e->in == true)
+            {
+                doc["enum"][ctr] = e->name;
+                ctr++;
+            }
         }
 
         char output[4096];
@@ -67,10 +108,13 @@ namespace cogs_gpio
         JsonDocument doc;
         doc["type"] = "string";
         int ctr = 0;
-        for (auto const &e : availableOutputs)
+        for (auto const &e : gpioInfo)
         {
-            doc["enum"][ctr] = e.first;
-            ctr++;
+            if (e->out == true)
+            {
+                doc["enum"][ctr] = e->name;
+                ctr++;
+            }
         }
 
         char output[4096];
@@ -139,8 +183,15 @@ namespace cogs_gpio
         }
     }
 
+    static bool alreadySetup = false;
     void begin()
     {
+        if (alreadySetup)
+        {
+            cogs::logInfo("Already setup gpio app");
+            return;
+        }
+        alreadySetup = true;
         cogs::globalEventHandlers.push_back(globalEventsHandler);
         cogs::registerFastPollHandler(pollAllSimpleInputs);
         cogs_web::server.on("/builtin/schemas/gpio.json", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -206,17 +257,17 @@ namespace cogs_gpio
         }
 
         std::string pinName = config["pin"].as<std::string>();
-        int pin = availableOutputs[pinName];
+        auto p = gpioByName(pinName);
+        if (p == 0)
+        {
+            throw std::runtime_error("Invalid pin " + pinName);
+        }
+
+        int pin = p->pin;
+
         cogs::logInfo("Using output " + pinName + " at " + std::to_string(pin));
 
-        if (outputFunctions.count(pin) == 1)
-        {
-            this->writeFunction = outputFunctions[pin];
-        }
-        else
-        {
-            pinMode(pin, OUTPUT);
-        }
+        pinMode(pin, OUTPUT);
 
         std::string st = config["source"].as<std::string>();
 
@@ -248,33 +299,25 @@ namespace cogs_gpio
             pullup = config["pullup"].as<bool>();
         }
 
-        if (!(availableInputs.count(pinName) == 1))
+        auto p = gpioByName(pinName);
+        if (!p)
         {
             throw std::runtime_error("Pin " + pinName + " not found");
         }
 
-        unsigned int pin = availableInputs[pinName];
+        unsigned int pin = p->pin;
 
         cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
 
-        if (inputFunctions.count(pin) == 1)
+        if (pullup)
         {
-            this->readFunction = inputFunctions[pin];
-            this->lastInputLevel = this->readFunction();
-            cogs::registerFastPollHandler(pollAllSimpleInputs);
+            pinMode(pin, INPUT_PULLUP);
         }
         else
         {
-            if (pullup)
-            {
-                pinMode(pin, INPUT_PULLUP);
-            }
-            else
-            {
-                pinMode(pin, INPUT);
-            }
-            this->lastInputLevel = digitalRead(pin);
+            pinMode(pin, INPUT);
         }
+        this->lastInputLevel = digitalRead(pin);
 
         this->pin = pin;
 

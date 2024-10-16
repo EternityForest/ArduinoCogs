@@ -87,10 +87,10 @@ namespace cogs_web
 
         cogs::setDefaultFile("/config/theme.css", std::string(reinterpret_cast<const char *>(nord_theme), sizeof(nord_theme)));
 
-        cogs_web::NavBarEntry::create("Network", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/network.json&filename=/config/network.json");
-        cogs_web::NavBarEntry::create("Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
-        cogs_web::NavBarEntry::create("Files", "/default-template?load-module=/builtin/files_app.js");
-        cogs_web::NavBarEntry::create("Dashboard", "/default-template?load-module=/builtin/dashboard_app.js");
+        cogs_web::NavBarEntry::create("🛜Network", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/network.json&filename=/config/network.json");
+        cogs_web::NavBarEntry::create("🛠️Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
+        cogs_web::NavBarEntry::create("📂Files", "/default-template?load-module=/builtin/files_app.js");
+        cogs_web::NavBarEntry::create("🎚️Dashboard", "/default-template?load-module=/builtin/dashboard_app.js");
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
                   { request->redirect("/default-template?load-module=/builtin/welcome_page"); });
@@ -113,7 +113,8 @@ namespace cogs_web
             if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
             {
                 int rssi = WiFi.RSSI();
-                connectedTag->setValue(rssi);
+                /// Update every 240 seconds or when the val changes by 4.
+                connectedTag->smartSetValue(rssi, 4, 240000);
 
                 // /// Assume max tx power to get worst case loss
                 // int loss = rssi - 30;

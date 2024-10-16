@@ -93,6 +93,6 @@ namespace cogs_leds
         auto b = cogs_rules::IntTagPoint::getTag("leds.blue", 0, numLeds);
         b->subscribe(&blueTagHandler);
 
-        xTaskCreate(ledsThread, "ledsThread", 8192, 0, 19, &ledThreadHandle);
+        xTaskCreate(ledsThread, "ledsThread", 2048, 0, 19, &ledThreadHandle);
     }
 }

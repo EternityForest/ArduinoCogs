@@ -210,6 +210,12 @@ namespace cogs_tagpoints
     /// If count is not 0, sets only the first count values after startIndex.
     void setValue(TAG_DATA_TYPE val, uint16_t startIndex = 0, uint16_t count = 0);
 
+    /// Set the value only if the first val is more than minDifference
+    /// from the last val, or if it's been more than interval ms.
+    void smartSetValue(TAG_DATA_TYPE val, int minDifference, int interval);
+
+
+
     void addClaim(std::shared_ptr<TagPointClaim> claim);
 
     void silentResetValue();
