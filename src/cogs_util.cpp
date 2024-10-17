@@ -193,7 +193,11 @@ namespace cogs
             return;
         }
 
+        //Red text
+        Serial.print("\033[0;41m");
         Serial.println(msg.c_str());
+        Serial.print("\033[0m");
+
         if (msg.size() < 128)
         {
             Serial.flush();

@@ -263,10 +263,6 @@ namespace cogs_web
         {
             return;
         }
-        else
-        {
-            cogs::logInfo("j");
-        }
 
         auto default_host = cogs::getHostname();
 

@@ -14,4 +14,8 @@ namespace cogs_pm
     extern int boostFPS;
 
     void begin();
+
+    /// Prevent light sleep from happening for the next few minutes.
+    /// Automatically goes away after a while.
+    void keepAwake();
 }

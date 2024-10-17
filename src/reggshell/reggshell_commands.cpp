@@ -183,11 +183,11 @@ static void printSharFile(Reggshell *rs, const char *fn)
     // We don't want that because it wouldn't make sense on linux.
     if (fn[0] == '/')
     {
-        strcpy(fn2, fn); // flawfinder: ignore
+        strcpy(fn2, fn + 1); // flawfinder: ignore
     }
     else
     {
-        strcpy(fn2, fn + 1); // flawfinder: ignore
+        strcpy(fn2, fn); // flawfinder: ignore
     }
 
     // Only trusted users can access this function, safe to ignore
@@ -236,6 +236,7 @@ static void printSharFile(Reggshell *rs, const char *fn)
     rs->println("");
     rs->println("");
 
+    bool lastWasNl = false;
     if (printAsHex)
     {
         int p = 0;
@@ -273,11 +274,14 @@ static void printSharFile(Reggshell *rs, const char *fn)
         while (f.available())
         {
             char c = f.read(); // flawfinder: ignore
+            c = (c == '\n');
             buf[0] = c;
             rs->print(buf);
         }
     }
-    rs->println("");
+    if(!lastWasNl){
+        rs->println("");
+    }
     rs->println("---EOF---");
     f.close();
 }

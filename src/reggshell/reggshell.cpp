@@ -32,10 +32,7 @@ namespace reggshell
         // strip_quotes(arg2);
         // strip_quotes(arg3);
 
-        reggshell->print(">>> ");
-        reggshell->println(rawline);
-
-        if (reggshell->commands_map.count(name)==1)
+        if (reggshell->commands_map.count(name) == 1)
         {
             reggshell->commands_map[name]->callback(reggshell, arg1, arg2, arg3);
         }
@@ -55,12 +52,12 @@ namespace reggshell
 
     Reggshell::~Reggshell()
     {
-        for (auto const & cmd : this->commands)
+        for (auto const &cmd : this->commands)
         {
             delete cmd;
         }
 
-        for (auto const & cmd : this->commands_map)
+        for (auto const &cmd : this->commands_map)
         {
             delete cmd.second;
         }
@@ -119,7 +116,7 @@ namespace reggshell
         cmd->pattern = pattern;
         cmd->callback = callback;
         this->commands.push_back(cmd);
-        if(help)
+        if (help)
         {
             this->documentation[pattern] = help;
         }
@@ -128,22 +125,68 @@ namespace reggshell
     void Reggshell::parseChar(unsigned char c)
     {
 
-        if (c == '\r')
+        if ((c == '\r') || (c == '\n'))
         {
-            return;
-        }
-        if (c == '\n')
-        {   this->line_buffer[this->line_buffer_len] = 0;
+            if (c == '\r')
+            {
+                this->ignoreNextNewline = true;
+            }
+            else
+            {
+                if (this->ignoreNextNewline)
+                {
+                    this->ignoreNextNewline = false;
+                    return;
+                }
+            }
+            this->print("\r\n");
+            this->line_buffer[this->line_buffer_len] = 0;
             this->parseLine(this->line_buffer);
             this->line_buffer_len = 0;
             return;
         }
 
-        if (this->line_buffer_len > 120)
+        this->ignoreNextNewline = false;
+
+        if (c == 27)
         {
-            this->println("Line too long");
+            escape = true;
             return;
         }
+
+        if (escape)
+        {
+            if (c != '[')
+            {
+                escape = false;
+            }
+            return;
+        }
+
+        if (c == 8)
+        {
+            if (this->line_buffer_len > 0)
+            {
+                this->line_buffer_len--;
+
+                // Backspace space backspace
+                this->write(8);
+                this->write(32);
+                this->write(8);
+            }
+        }
+
+        if (this->line_buffer_len > 120)
+        {
+            this->println("Line buffer full");
+            return;
+        }
+
+        if ((c < 32) || (c > 126))
+        {
+            return;
+        }
+        this->write(c);
 
         this->line_buffer[this->line_buffer_len] = c;
         this->line_buffer_len++;
@@ -151,7 +194,7 @@ namespace reggshell
 
     void Reggshell::clearLineBuffer()
     {
-        if(this->line_buffer_len>0)
+        if (this->line_buffer_len > 0)
         {
             this->println("Cleared line buffer, partial command ignored");
         }
@@ -168,11 +211,7 @@ namespace reggshell
                 this->exclusive->callback(this, nullptr, line);
                 return;
             }
-            else
-            {
-                this->print(">>> ");
-                this->println(line);
-            }
+
 
             int len = strlen(line); // flawfinder: ignore
             if (len > 256)
@@ -192,7 +231,7 @@ namespace reggshell
                 }
                 else if (line[i] == '#')
                 {
-                    return;
+                    break;
                 }
                 else
                 {
@@ -204,6 +243,7 @@ namespace reggshell
             // All whitespace, ignore line
             if (!found)
             {
+                this->print("\r\n>>> ");
                 return;
             }
 
@@ -231,9 +271,9 @@ namespace reggshell
             {
                 this->current = NULL;
                 doSimpleCommand(this, &ms, line);
+                this->print(">>> ");
                 return;
             }
-
         }
         catch (std::exception &e)
         {
@@ -261,7 +301,7 @@ namespace reggshell
         this->exclusive = NULL;
     }
 
-    void Reggshell::addSimpleCommand(const std::string & name, void (*callback)(Reggshell *, const char *, const char *, const char *), const char *help)
+    void Reggshell::addSimpleCommand(const std::string &name, void (*callback)(Reggshell *, const char *, const char *, const char *), const char *help)
     {
         auto cmd = new ReggshellSimpleCommand();
         cmd->name = name;

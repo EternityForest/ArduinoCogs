@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "cogs_reggshell.h"
 #include "cogs_global_events.h"
+#include "cogs_power_management.h"
+
 #include <atomic>
 
 #if defined(ESP32) || defined(ESP8266)
@@ -13,10 +15,9 @@ static std::atomic<bool> enableSerial(true);
 
 static void fastPoll(){
     while (Serial.available()){
+        cogs_pm::keepAwake();
         if(enableSerial.load()){
-            char c = Serial.read();
-            Serial.write(c);
-            cogs_reggshell::interpreter->parseChar(c); //flawfinder: ignore
+            cogs_reggshell::interpreter->parseChar(Serial.read()); //flawfinder: ignore
         }
         else{
             Serial.print("E");

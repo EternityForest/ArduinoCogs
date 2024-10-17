@@ -62,6 +62,9 @@ namespace reggshell
         /// The command we are currently executing.
         ReggshellCommand *current = NULL;
 
+        bool ignoreNextNewline = false;
+        bool escape = false;
+
         ///  Parse a line.
         void parseLine(char *line);
 
@@ -89,6 +92,11 @@ namespace reggshell
         /// Print to the output.
         void print(const char *s);
         void println(const char *s);
+
+        void write(char c){
+            char buf[2] = {c, 0};
+            this->print(buf);
+        }
 
 
         /// Print numbers to the output
