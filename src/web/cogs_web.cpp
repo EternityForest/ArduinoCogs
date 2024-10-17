@@ -21,6 +21,10 @@ static inline bool ends_with(std::string const &value, std::string const &ending
         return false;
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
+static std::map<std::string, unsigned long> wifiFailTimestamps;
+static std::string connectingAttempt = "";
+
+static unsigned long lastWifiScan = 0;
 
 namespace cogs_web
 {
@@ -104,6 +108,23 @@ namespace cogs_web
         server.begin();
     }
 
+    static int rssiForScannedNetwork(const std::string &ssid)
+    {
+        int num = WiFi.scanComplete();
+        if (num <= 0)
+        {
+            return -127;
+        }
+
+        for (int i = 0; i < num; i++)
+        {
+            if (strcmp(WiFi.SSID(i).c_str(), ssid.c_str()) == 0)
+            {
+                return WiFi.RSSI(i);
+            }
+        }
+        return -127;
+    }
     /// Poll this periodically to check if wifi is connected.
     void check_wifi(bool force = false)
     {
@@ -131,6 +152,15 @@ namespace cogs_web
             {
                 connectedTag->setValue(-999);
             }
+        }
+
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            if (wifiFailTimestamps.count(connectingAttempt) > 0)
+            {
+                wifiFailTimestamps.erase(connectingAttempt);
+            }
+            connectingAttempt = "";
         }
 
         if (!wifiEnabled)
@@ -170,14 +200,18 @@ namespace cogs_web
             {
                 lastGoodConnection = millis();
             }
-            if (millis() - lastGoodConnection < 20000)
+            if (lastGoodConnection > 0)
             {
-                return;
-            }
-            else
-            {
-                // Connected but no IP for 20 seconds
-                WiFi.mode(WIFI_OFF);
+                if (millis() - lastGoodConnection < 20000)
+                {
+                    return;
+                }
+                else
+                {
+                    // Connected but no IP for 20 seconds
+                    WiFi.mode(WIFI_OFF);
+                    WiFi.mode(WIFI_STA);
+                }
             }
         }
 
@@ -209,37 +243,72 @@ namespace cogs_web
             return;
         }
 
-        std::string default_ssid;
-        std::string default_pass;
-        std::string default_host;
-
-        if (doc["ssid"].is<const char *>())
+        if ((!lastWifiScan) || (millis() - lastWifiScan > 40000))
         {
-            default_ssid = doc["ssid"].as<const char *>();
+            cogs::logInfo("Begin wifi scan");
+            WiFi.scanNetworks(true);
+            lastWifiScan = millis();
+        }
+        if (WiFi.status() == WL_CONNECT_FAILED)
+        {
+            cogs::logError("Wifi connect failed");
+            if (connectingAttempt.length() > 0)
+            {
+                wifiFailTimestamps[connectingAttempt] = millis();
+                connectingAttempt = "";
+            }
         }
 
-        if (doc["password"].is<const char *>())
+        if (WiFi.scanComplete() < 0)
         {
-            default_pass = doc["password"].as<const char *>();
+            return;
+        }
+        else
+        {
+            cogs::logInfo("j");
         }
 
-        if (doc["hostname"].is<const char *>())
+        auto default_host = cogs::getHostname();
+
+        // Find the first matching WiFi network in our list.
+        auto networks = doc["networks"].as<JsonArray>();
+        for (auto network : networks)
         {
-            default_host = doc["hostname"].as<const char *>();
+            std::string ssid = network["ssid"].as<std::string>();
+            std::string pass = network["password"].as<std::string>();
+            int minRSSI = -100;
+
+            cogs::logInfo("Wifi candidate:");
+            cogs::logInfo(ssid);
+
+            if (rssiForScannedNetwork(ssid) > minRSSI)
+            {
+
+                if (wifiFailTimestamps.count(ssid) > 0)
+                {
+                    if (millis() - wifiFailTimestamps[ssid] > 30000)
+                    {
+                        cogs::logInfo("Skipping");
+                        continue;
+                    }
+                }
+
+                connectingAttempt = ssid;
+
+                WiFi.begin(ssid.c_str(), pass.c_str());
+                auto slptag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);
+
+                WiFi.setSleep(slptag->value[0] > 0);
+                WiFi.setHostname(default_host.c_str());
+
+                Serial.println("Connecting to WiFi");
+                Serial.println(ssid.c_str());
+                // Give it 20s to connect
+                lastGoodConnection = millis();
+
+                break;
+            }
         }
-        WiFi.persistent(false);
-        WiFi.mode(WIFI_STA);
-
-        auto slptag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);
-
-        WiFi.setSleep(slptag->value[0] > 0);
-        WiFi.setHostname(default_host.c_str());
-
-        Serial.println("Connecting to WiFi");
-        Serial.println(default_ssid.c_str());
-        WiFi.begin(default_ssid.c_str(), default_pass.c_str());
-        // Give it 20s to connect
-        lastGoodConnection = millis();
     }
 
     std::string addCacheIDToURL(const std::string &u)
@@ -264,9 +333,9 @@ namespace cogs_web
     void setDefaultWifi(std::string ssid, std::string password, std::string hostname)
     {
         cogs::setDefaultFile("/config/network.json",
-                             "{\"ssid\":\"" + ssid +
+                             "{\"networks\":[{\"ssid\":\"" + ssid +
                                  "\",\n\"password\":\"" + password +
-                                 "\"\n}");
+                                 "\"\n}]}");
         cogs::setDefaultFile("/config/device.json",
                              "{\"hostname\":\"" + hostname +
                                  "\"\n}");
@@ -291,6 +360,7 @@ namespace cogs_web
 
     void manageWifi()
     {
+        cogs::logInfo("Cogs is managing wifi");
         WiFi.persistent(false);
         WiFi.mode(WIFI_STA);
 
@@ -302,7 +372,6 @@ namespace cogs_web
 
         pstag->subscribe(&handlePSTag);
         wtag->subscribe(&handleWifiTag);
-        lastGoodConnection = millis();
         check_wifi();
         cogs::globalEventHandlers.push_back(&handleEvent);
         cogs::slowPollHandlers.push_back(&slowPoll);

@@ -14,7 +14,12 @@ static std::atomic<bool> enableSerial(true);
 static void fastPoll(){
     while (Serial.available()){
         if(enableSerial.load()){
-            cogs_reggshell::interpreter->parseChar(Serial.read()); //flawfinder: ignore
+            char c = Serial.read();
+            Serial.write(c);
+            cogs_reggshell::interpreter->parseChar(c); //flawfinder: ignore
+        }
+        else{
+            Serial.print("E");
         }
     }
 }
@@ -40,12 +45,13 @@ void cogs_reggshell::begin()
     if(cogs_reggshell::interpreter){
         return;
     }
+    enableSerial = true;
 
     #if defined(ESP32) || defined(ESP8266)
     esp_log_level_set("*",ESP_LOG_WARN);
     #endif
     cogs_reggshell::interpreter = new reggshell::Reggshell();
-    cogs::fastPollHandlers.push_back(fastPoll);
+    cogs::registerFastPollHandler(fastPoll);
 
     Serial.println("Reggshell initialized");
 }

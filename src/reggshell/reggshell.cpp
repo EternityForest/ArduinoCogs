@@ -133,8 +133,7 @@ namespace reggshell
             return;
         }
         if (c == '\n')
-        {
-            this->line_buffer[this->line_buffer_len] = 0;
+        {   this->line_buffer[this->line_buffer_len] = 0;
             this->parseLine(this->line_buffer);
             this->line_buffer_len = 0;
             return;
@@ -164,7 +163,6 @@ namespace reggshell
     {
         try
         {
-
             if (this->exclusive)
             {
                 this->exclusive->callback(this, nullptr, line);

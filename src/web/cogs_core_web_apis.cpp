@@ -299,8 +299,8 @@ static void handleGetTagInfo(AsyncWebServerRequest *request)
         doc["persistent"] = false;
     }
 
-    char buf[256];
-    serializeJson(doc, buf, 256);
+    char buf[384];
+    serializeJson(doc, buf, 384);
 
     request->send(200, "text/plain", buf);
 

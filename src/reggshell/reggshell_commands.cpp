@@ -505,6 +505,11 @@ static void deepSleepCommand(reggshell::Reggshell *interpreter, const char *arg1
     esp_deep_sleep_start();
 }
 
+static void rmCommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
+{
+    LittleFS.remove(arg1);
+}
+
 void Reggshell::addBuiltins()
 {
 
@@ -519,4 +524,5 @@ void Reggshell::addBuiltins()
     this->addSimpleCommand("status", statusCommand, "Prints status info");
     this->addSimpleCommand("i2cdetect", scanCommand, "Scans for I2C devices");
     this->addSimpleCommand("deepsleep", deepSleepCommand, "Go to deep sleep for $deepsleep.time seconds");
+    this->addSimpleCommand("rm", rmCommand, "Removes a file");
 }
