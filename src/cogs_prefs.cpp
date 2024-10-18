@@ -129,6 +129,7 @@ namespace cogs_prefs
             auto tp = cogs_rules::IntTagPoint::getTag(name, 0);
             if(tp){
                 tp->setValue(prefs[name]*tp->scale);
+                tp->subscribe(onPrefsTagSet);
             }
         }
     }

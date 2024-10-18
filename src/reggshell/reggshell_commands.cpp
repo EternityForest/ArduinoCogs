@@ -490,10 +490,11 @@ static void statusCommand(Reggshell *reggshell, const char *arg1, const char *ar
 static void scanCommand(reggshell::Reggshell *interpreter, const char *arg1, const char *arg2, const char *arg3)
 {
     interpreter->println("Scanning I2C");
-    for (int i = 0; i < 127; i++)
+    for (int i = 1; i < 127; i++)
     {
         Wire.beginTransmission(i);
-        if (Wire.endTransmission() == 0)
+        unsigned char e = Wire.endTransmission(true);
+        if (e == 0 || e == 4)
         {
             interpreter->println(i);
         }

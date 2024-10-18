@@ -187,7 +187,7 @@ static void onEvent(AsyncWebSocket *server,
 
 void slowPoll()
 {
-    ws.cleanupClients(8);
+    ws.cleanupClients(12);
     pushAllDirtyTags();
 }
 
