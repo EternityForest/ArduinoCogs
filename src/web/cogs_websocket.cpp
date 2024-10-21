@@ -152,7 +152,7 @@ static void onEvent(AsyncWebSocket *server,
     }
     else if (type == WS_EVT_ERROR)
     {
-        cogs::logError("WS Err");
+        //cogs::logError("WS Err");
     }
     else if (type == WS_EVT_PONG)
     {

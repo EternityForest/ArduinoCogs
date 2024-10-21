@@ -66,14 +66,15 @@ static void _loadFromFile()
     {
         for (auto const &var : vars.as<JsonArray>())
         {
-            auto v = cogs_rules::IntTagPoint::getTag(var["name"].as<std::string>(), var["value"].as<int>());
+            auto v = cogs_rules::IntTagPoint::getTag(var["name"].as<std::string>(), var["default"].as<int>());
             if(!v){
                 cogs::logError("Bad var: " + var["name"].as<std::string>());
                 badAutomation();
                 return;
             }
             
-            v->setValue(var["default"].as<double>() * var["scale"].as<int>());
+            v->setScale(var["resolution"].as<int>());
+            v->setValue(var["default"].as<double>() * var["resolution"].as<int>());
 
             if (var["persistent"].as<bool>()){
                 cogs_prefs::addPref(var["name"].as<std::string>());

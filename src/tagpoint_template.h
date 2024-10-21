@@ -56,6 +56,9 @@ namespace cogs_tagpoints
     uint16_t count = 1;
 
 
+    /// Can users write to the tag or just read?
+    bool readOnly = false;
+
     // Used for the web ui to mark if it needs to push data.
     // we set it to true when the first value in the array changes,
     // not on any other val.
