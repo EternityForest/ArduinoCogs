@@ -9,6 +9,7 @@
 #include "cogs_rules.h"
 #include "cogs_global_events.h"
 #include "cogs_power_management.h"
+#include "cogs_trouble_codes.h"
 #include "web/data/cogs_default_theme.h"
 
 using namespace cogs_web;
@@ -36,6 +37,8 @@ namespace cogs_web
     bool error_once = false;
 
     bool mdns_started = false;
+
+    bool scan_res_once = true;
 
     std::string localIp = "";
 
@@ -111,9 +114,14 @@ namespace cogs_web
     static int rssiForScannedNetwork(const std::string &ssid)
     {
         int num = WiFi.scanComplete();
-        if (num <= 0)
+        if (num == 0)
         {
-            return -127;
+            return -126;
+        }
+
+        if (num < 0)
+        {
+            return -125;
         }
 
         for (int i = 0; i < num; i++)
@@ -136,6 +144,15 @@ namespace cogs_web
                 int rssi = WiFi.RSSI();
                 /// Update every 240 seconds or when the val changes by 4.
                 connectedTag->smartSetValue(rssi, 4, 240000);
+
+                if (rssi < -85)
+                {
+                    cogs::addTroubleCode("ILOWRSSIWIFI");
+                }
+                else
+                {
+                    cogs::inactivateTroubleCode("ILOWRSSIWIFI");
+                }
 
                 // /// Assume max tx power to get worst case loss
                 // int loss = rssi - 30;
@@ -208,9 +225,14 @@ namespace cogs_web
                 }
                 else
                 {
-                    // Connected but no IP for 20 seconds
-                    WiFi.mode(WIFI_OFF);
-                    WiFi.mode(WIFI_STA);
+                    // Really long time try resetting
+                    // TODO this has issues because I think interrupting
+                    // an async scan breaks something
+                    // if ((millis() - lastGoodConnection > 120000))
+                    // {
+                    //     WiFi.mode(WIFI_OFF);
+                    //     WiFi.mode(WIFI_STA);
+                    // }
                 }
             }
         }
@@ -246,7 +268,11 @@ namespace cogs_web
         if ((!lastWifiScan) || (millis() - lastWifiScan > 40000))
         {
             cogs::logInfo("Begin wifi scan");
-            WiFi.scanNetworks(true);
+            scan_res_once = true;
+            WiFi.mode(WIFI_STA);
+            if(WiFi.scanNetworks(true) == WIFI_SCAN_RUNNING){
+                cogs::logInfo("Already running");
+            }
             lastWifiScan = millis();
         }
         if (WiFi.status() == WL_CONNECT_FAILED)
@@ -261,30 +287,50 @@ namespace cogs_web
 
         if (WiFi.scanComplete() < 0)
         {
+
+            cogs::logInfo("still scanning");
             return;
         }
 
+        if (scan_res_once)
+        {
+            int found = WiFi.scanComplete();
+            cogs::logInfo("Found:" + std::to_string(found));
+            for (int i = 0; i < found; i++)
+            {
+                cogs::logInfo("   " + std::string( WiFi.SSID(i).c_str()));
+            }
+            scan_res_once = false;
+        }
         auto default_host = cogs::getHostname();
 
         // Find the first matching WiFi network in our list.
         auto networks = doc["networks"].as<JsonArray>();
+        int safety = 24;
         for (auto network : networks)
         {
+            safety--;
+            if (safety < 0)
+            {
+                cogs::logError("Too many networks");
+                break;
+            }
             std::string ssid = network["ssid"].as<std::string>();
             std::string pass = network["password"].as<std::string>();
             int minRSSI = -100;
 
             cogs::logInfo("Wifi candidate:");
             cogs::logInfo(ssid);
-
-            if (rssiForScannedNetwork(ssid) > minRSSI)
+            int rssi = rssiForScannedNetwork(ssid);
+            cogs::logInfo("RSSI is " + std::to_string(rssi));
+            if (rssi > minRSSI)
             {
 
                 if (wifiFailTimestamps.count(ssid) > 0)
                 {
                     if (millis() - wifiFailTimestamps[ssid] > 30000)
                     {
-                        cogs::logInfo("Skipping");
+                        cogs::logInfo("Skipping due to recent fail");
                         continue;
                     }
                 }
@@ -297,12 +343,16 @@ namespace cogs_web
                 WiFi.setSleep(slptag->value[0] > 0);
                 WiFi.setHostname(default_host.c_str());
 
-                Serial.println("Connecting to WiFi");
-                Serial.println(ssid.c_str());
+                cogs::logInfo("Connecting to WiFi");
+                cogs::logInfo(ssid.c_str());
                 // Give it 20s to connect
                 lastGoodConnection = millis();
 
                 break;
+            }
+            else
+            {
+                cogs::logInfo("Skipping");
             }
         }
     }

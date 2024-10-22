@@ -63,7 +63,7 @@
                             "properties": {
                                 "name": {
                                     "type": "string",
-                                    "default": "state"
+                                    "default": "default"
                                 },
                                 "bindings": {
                                     "description": "While a state is active, a binding sets the value of a variable. similar to spreadsheet expressions",

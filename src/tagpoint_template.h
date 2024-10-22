@@ -226,6 +226,12 @@ namespace cogs_tagpoints
     /// Clean the list of claims.  Once something is marked finished, if it is
     /// Right above background, it's value is the new background and we delete it
     void cleanFinished();
+
+    /// Increment the value by 1, looping at 1M, and skipping 0.
+    void bang(){
+      this->setValue(cogs::bang(this->value[0]));
+    }
+    
   };
 
   /// A tag point claim is an an object that sets the value of a tag.

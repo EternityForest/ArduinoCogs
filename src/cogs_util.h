@@ -43,6 +43,9 @@ namespace cogs
     void logError(const std::string &msg);
     void logInfo(const std::string &msg);
 
+    bool isValidIdentifier(const std::string &str);
+    void logErrorIfBadIdentifier(const std::string &str);
+
     //! Delay till next frame
     void waitFrame();
 

@@ -218,23 +218,25 @@ bool AudioOutputFilterBiquad::begin()
   return sink->begin();
 }
 
+// Modified to force mono, stereo was wasting CPU.
 bool AudioOutputFilterBiquad::ConsumeSample(int16_t sample[2])
 {
-
   int32_t leftSample = (sample[LEFTCHANNEL] << BQ_SHIFT) / 2;
-  int32_t rightSample = (sample[RIGHTCHANNEL] << BQ_SHIFT) / 2;
+  //int32_t rightSample = (sample[RIGHTCHANNEL] << BQ_SHIFT) / 2;
 
   int64_t leftOutput = ((leftSample * i_a0) >> BQ_SHIFT) + i_lz1;
   i_lz1 = ((leftSample * i_a1) >> BQ_SHIFT) + i_lz2 - ((i_b1 * leftOutput) >> BQ_SHIFT);
   i_lz2 = ((leftSample * i_a2) >> BQ_SHIFT) - ((i_b2 * leftOutput) >> BQ_SHIFT);
 
-  int64_t rightOutput = ((rightSample * i_a0) >> BQ_SHIFT) + i_rz1;
-  i_rz1 = ((rightSample * i_a1) >> BQ_SHIFT) + i_rz2 - ((i_b1 * rightOutput) >> BQ_SHIFT);
-  i_rz2 = ((rightSample * i_a2) >> BQ_SHIFT) - ((i_b2 * rightOutput) >> BQ_SHIFT);
+  // int64_t rightOutput = ((rightSample * i_a0) >> BQ_SHIFT) + i_rz1;
+  // i_rz1 = ((rightSample * i_a1) >> BQ_SHIFT) + i_rz2 - ((i_b1 * rightOutput) >> BQ_SHIFT);
+  // i_rz2 = ((rightSample * i_a2) >> BQ_SHIFT) - ((i_b2 * rightOutput) >> BQ_SHIFT);
   
   int16_t out[2];
   out[LEFTCHANNEL] = (int16_t)(leftOutput >> BQ_SHIFT);
-  out[RIGHTCHANNEL] = (int16_t)(rightOutput >> BQ_SHIFT);
+  out[RIGHTCHANNEL] = (int16_t)(leftOutput >> BQ_SHIFT);
+
+  //out[RIGHTCHANNEL] = (int16_t)(rightOutput >> BQ_SHIFT);
 
   return sink->ConsumeSample(out);
 }

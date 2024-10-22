@@ -12,6 +12,7 @@
 #include "cogs_global_events.h"
 #include "cogs_rules.h"
 #include "cogs_prefs.h"
+#include "cogs_power_management.h"
 
 /// Handles requests to /api/cogs.navbar by returning a JSON list of the nav bar entries
 
@@ -125,6 +126,7 @@ static void handleDownload(AsyncWebServerRequest *request)
 static void handleUpload(AsyncWebServerRequest *request, String orig_filename, size_t index, uint8_t *data, size_t len, bool final)
 {
     cogs::lock();
+    cogs_pm::keepAwake()
     uploadFileName = orig_filename.c_str();
 
     if (!index)

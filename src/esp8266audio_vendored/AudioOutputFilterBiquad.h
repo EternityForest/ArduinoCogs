@@ -51,12 +51,12 @@ class AudioOutputFilterBiquad : public AudioOutput
     virtual bool ConsumeSample(int16_t sample[2]) override;
     virtual bool stop() override;
 
-  private:
     void SetType(int type);
     void SetFc(float Fc);
     void SetQ(float Q);
     void SetPeakGain(float peakGain);
     void SetBiquad(int type, float Fc, float Q, float peakGain);
+  private:
 
   protected:
     AudioOutput *sink;

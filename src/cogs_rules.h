@@ -31,20 +31,27 @@ namespace cogs_rules
   extern bool needRefresh;
   typedef cogs_tagpoints::TagPoint IntTagPoint;
 
-  /// Constants available in the expressions
+
   extern std::map<std::string, float *> constants;
 
-  /// 0 argument functions to make available to users
+  /// Do not directly add things, use addUserFunction
   extern std::map<std::string, float (*)()> user_functions0;
 
-  /// 1 argument functions to make available to users
+  /// Do not directly add things, use addUserFunction
+
   extern std::map<std::string, float (*)(float)> user_functions1;
 
-  /// 2 argument functions to make available to users
+  /// Do not directly add things, use addUserFunction
   extern std::map<std::string, float (*)(float, float)> user_functions2;
 
+  // Do not directly add things, use addUserFunction
   extern std::map<std::string, float (*)(float, float, float)> user_functions3;
 
+  /// Add 0 argument user function
+  void addUserFunction0(const std::string &name, float (*f)());
+  void addUserFunction1(const std::string &name, float (*f)(float));
+  void addUserFunction2(const std::string &name, float (*f)(float, float));
+  void addUserFunction3(const std::string &name, float (*f)(float, float, float));
   /// compile an expression, that will have access to cogs vars.
   /// This is invalidated and MUST not be used if a global engine refresh
   /// happens.  So you must keep track of the source, free the expr,

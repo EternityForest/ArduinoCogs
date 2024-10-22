@@ -4,6 +4,7 @@
 #include "cogs_util.h"
 #include "cogs_global_events.h"
 #include "cogs_power_management.h"
+#include "cogs_trouble_codes.h"
 #include "web/cogs_web.h"
 
 static uint32_t randomState = 1;
@@ -39,6 +40,44 @@ namespace cogs
         {
             BaseType_t xHigherPriorityTaskWoken = pdFALSE;
             xTaskNotifyFromISR(mainThreadHandle, 0, eNoAction, &xHigherPriorityTaskWoken);
+        }
+    }
+
+    bool isValidIdentifier(const std::string &str)
+    {
+        if (str.size() == 0)
+        {
+            return false;
+        }
+        bool first = true;
+        for (char c : str)
+        {
+            if (isdigit(c) || c == '.'){
+                if(first){
+                    return false;
+                }
+            }
+
+            if (!(isalnum(c) && c != '_' && c != '.'))
+            {
+                return false;
+            }
+
+            if(isUpperCase(c)){
+                return false;
+            }
+
+            first = false;
+        }
+
+        return true;
+    }
+
+    void logErrorIfBadIdentifier(const std::string &str)
+    {
+        if(!isValidIdentifier(str)){
+            cogs::logError("Invalid identifier: " + str);
+            cogs::addTroubleCode("EBADIDENTIFIER");
         }
     }
 
@@ -97,6 +136,10 @@ namespace cogs
     int bang(int v)
     {
         v++;
+        if (v > 1048576)
+        {
+            v = 1;
+        }
         if (v < 1)
         {
             v = 1;
@@ -204,7 +247,7 @@ namespace cogs
         }
 
         if(xSemaphoreTakeRecursive(mutex, pdMS_TO_TICKS(300))){
-        cogs_web::wsBroadcast("__ERROR__", msg.c_str());
+        cogs_web::wsBroadcast("__error__", msg.c_str());
         cogs::unlock();
         }
         else{

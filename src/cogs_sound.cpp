@@ -70,16 +70,21 @@ static esp_pm_lock_handle_t pmlock;
 
 static bool lastPowerState = false;
 
-static void powerSaveSetting(bool en){
-    if(lastPowerState == en){
+static void powerSaveSetting(bool en)
+{
+    if (lastPowerState == en)
+    {
         return;
     }
     lastPowerState = en;
 
 #if defined(ESP32) || defined(ESP8266)
-    if(en){
+    if (en)
+    {
         esp_pm_lock_acquire(pmlock);
-    }else{
+    }
+    else
+    {
         esp_pm_lock_release(pmlock);
     }
 #endif
@@ -91,8 +96,6 @@ static void powerSaveSetting(bool en){
 
 namespace cogs_sound
 {
-
-
 
     SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
 
@@ -116,22 +119,25 @@ namespace cogs_sound
         {
             return;
         }
+
         if ((path.rfind("/sfx", 0) == 0) || (path.rfind("/music", 0) == 0))
         {
-            if (!(ends_with(path, ".mp3") || ends_with(path, ".wav") || ends_with(path, ".opus")))
+            if (!(ends_with(path, ".mp3") || ends_with(path, ".wav")))
             {
                 return;
             }
 
-            File f = LittleFS.open(path.c_str()); // flawfinder: ignore
-
             // If the file exists, add it to the map
-            if (f)
+            if (LittleFS.exists(path.c_str()))
             {
+
+                cogs::logInfo("Discovered sound file: " + path);
                 if (soundFileMap.count(path) == 1)
                 {
                     return;
                 }
+
+                File f = LittleFS.open(path.c_str(), "r");
 
                 std::string fn = f.path();
 
@@ -144,6 +150,8 @@ namespace cogs_sound
                 strcpy(buf, fn.c_str()); // flawfinder: ignore
 
                 std::string tn = f.name();
+
+                f.close();
 
                 if (path.rfind("/sfx", 0) == 0)
                 {
@@ -169,14 +177,14 @@ namespace cogs_sound
             }
             else
             {
-
                 if (soundFileMap.count(path) == 1)
                 {
-
+                    cogs::logInfo("Removing sound file: " + path);
                     if (soundFileMap[path]->extraData)
                     {
+                        cogs::logInfo("fr");
                         free(soundFileMap[path]->extraData);
-
+                        cogs::logInfo("eee");
                         soundFileMap[path]->extraData = 0;
                     }
                     soundFileMap[path]->unregister();
@@ -256,15 +264,6 @@ namespace cogs_sound
                 }
             }
 
-            else if (ext == "pus")
-            {
-                this->gen = new AudioGeneratorOpus();
-                if (!this->gen->begin(this->src, this->stub))
-                {
-                    cogs::logError("SoundPlayer: unable to start generating sound");
-                    this->shouldDelete = true;
-                }
-            }
             // cogs::logInfo("gen set");
 
             // this->gen->RegisterStatusCB(&StatusCallback, (void *)"snd");
@@ -396,6 +395,8 @@ namespace cogs_sound
             }
         }
     };
+
+    std::vector<AudioOutputFilterBiquad *> biquads;
 
     AudioOutput *output;
     AudioOutputMixer *mixer;
@@ -672,7 +673,7 @@ namespace cogs_sound
                 f->fade = fxFadeOut;
                 f->vol = 0.0;
                 f->fadeStart = millis();
-                f->endTime = millis() + int(musicFadeOut * 1000);
+                f->endTime = millis() + int(fxFadeOut * 1000);
             }
             else
             {
@@ -798,13 +799,22 @@ namespace cogs_sound
         }
     };
 
+    void onFrequencyTagSet(cogs_rules::IntTagPoint *t)
+    {
+        ((AudioOutputFilterBiquad *)(t->extraData))->SetFc((float)t->value[0]/cogs_rules::FXP_RES);
+    }
+
+    void onGainTagSet(cogs_rules::IntTagPoint *t){
+        ((AudioOutputFilterBiquad *)(t->extraData))->SetGain((float)t->value[0]/cogs_rules::FXP_RES);
+    }
+
     void audioThread(void *parameter)
     {
         unsigned long start = micros();
         while (1)
         {
             unsigned long now = micros();
-            unsigned long total = now-start;
+            unsigned long total = now - start;
             start = now;
 
             xSemaphoreTake(mutex, portMAX_DELAY);
@@ -857,23 +867,23 @@ namespace cogs_sound
                     }
                 }
             }
-            
+
             // No div/0 issues allowed!
-            start +=1;
+            start += 1;
 
             unsigned long taken = micros() - start;
-            audioThreadTime = (((float)(total)/(float)taken))*0.05 + audioThreadTime*0.95;
+            audioThreadTime = (((float)(total) / (float)taken)) * 0.05 + audioThreadTime * 0.95;
 
             xSemaphoreGive(mutex);
 
             // Limit how much CPU it can use
             if (taken > 4000)
             {
-                delay(3);
+                delay(2);
             }
             else
             {
-                delay(5 - (taken/1000));
+                delay(5 - (taken / 1000));
             }
         }
     }
@@ -897,21 +907,46 @@ namespace cogs_sound
             return;
         }
 
-        #if defined(ESP32) || defined(ESP8266)
+#if defined(ESP32) || defined(ESP8266)
         esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "cogs_audio_lock", &pmlock);
-        #endif
+#endif
 
         cogs_reggshell::interpreter->statusCallbacks.push_back(statusCallback);
         xSemaphoreGive(mutex);
 
         output = op;
 
-        mixer = new AudioOutputMixer(2048, op);
+        AudioOutput *p = op;
+        int biquads_count = 0;
+
+        for (int i = 0; i < biquads_count; i++)
+        {
+                p = new AudioOutputFilterBiquad(p);
+                ((AudioOutputFilterBiquad *)p)->SetBiquad(bq_type_peak, 1000, 1.4, 1.0);
+                auto t = cogs_rules::IntTagPoint::getTag("eq.b" + std::to_string(i) + ".freq", cogs_rules::FXP_RES*1000);
+                t->subscribe(&onFrequencyTagSet);
+                t->extraData = p;
+                t->min = 20;
+                t->max = 20000;
+                t->setScale(cogs_rules::FXP_RES);
+
+                t = cogs_rules::IntTagPoint::getTag("eq.b" + std::to_string(i) + ".gain", cogs_rules::FXP_RES);
+                t->subscribe(&onGainTagSet);
+                t->max = 3*cogs_rules::FXP_RES;
+                t->min =0;
+                t->extraData = p;
+                t->setScale(cogs_rules::FXP_RES);
+
+                biquads.push_back((AudioOutputFilterBiquad *)p);
+        }
+
+        mixer = new AudioOutputMixer(2048, p);
 
         cogs::registerFastPollHandler(audioMaintainer);
 
         cogs::ensureDirExists("/sfx");
         cogs::ensureDirExists("/music");
+
 
         auto t = cogs_rules::IntTagPoint::getTag("music.volume", cogs_rules::FXP_RES);
         t->setScale(cogs_rules::FXP_RES);

@@ -65,7 +65,7 @@ static void _loadFromFile()
     if (vars.is<JsonArray>())
     {
         for (auto const &var : vars.as<JsonArray>())
-        {
+        {            
             auto v = cogs_rules::IntTagPoint::getTag(var["name"].as<std::string>(), var["default"].as<int>());
             if(!v){
                 cogs::logError("Bad var: " + var["name"].as<std::string>());

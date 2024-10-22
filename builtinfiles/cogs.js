@@ -50,7 +50,7 @@ var CogsApi = function () {
         first_error: 1,
         serverMsgCallbacks: {
 
-            "__TROUBLECODES__": [
+            "__troublecodes__": [
                 function (m) {
                     if(m){
                         picodash.snackbar.createSnackbar(m,{ accent: 'error',
@@ -58,7 +58,7 @@ var CogsApi = function () {
                     }
                 }
             ],
-            "__ERROR__": [
+            "__error__": [
                 function (m) {
                     console.error(m);
                     if (cogsapi.lastDidSnackbarError < Date.now() + 60000) {
@@ -123,7 +123,7 @@ var CogsApi = function () {
             }
             this.lastErrMsg = Date.now();
 
-            this.sendValue("__ERROR__", error)
+            this.sendValue("__error__", error)
         },
 
         register: function (key, callback) {
@@ -144,7 +144,7 @@ var CogsApi = function () {
             return window.location.protocol.replace("http", "ws") + "//" + window.location.host
         },
 
-        can_show_error: 1,
+        canShowError: 1,
         usual_delay: 0,
         reconnect_timeout: 1500,
 
@@ -160,6 +160,12 @@ var CogsApi = function () {
                 if (apiobj.reconnector) {
                     clearTimeout(apiobj.reconnector)
                     apiobj.reconnector = null;
+                }
+                
+                if(apiobj.canShowError){
+                    apiobj.canShowError = 0;
+                    picodash.snackbar.createSnackbar("Cogs: Connection lost", { accent: 'error',
+                        timeout: 60000 });
                 }
                 apiobj.reconnector = setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
             };
@@ -202,6 +208,7 @@ var CogsApi = function () {
             }
             this.connection.onopen = function (e) {
                 console.log("WS Connection Initialized");
+                apiobj.canShowError = 1;
                 apiobj.reconnect_timeout = 1500;
                 window.setTimeout(function () { apiobj.wpoll() }, 250);
             }

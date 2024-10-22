@@ -36,7 +36,7 @@ static void onStateTagSet(IntTagPoint *tag);
 te_expr *cogs_rules::compileExpression(const std::string &input)
 {
   int err = 0;
-  
+
   // cogs::logInfo("Compiling: " + input);
   // // debug print global vars
   // cogs::logInfo("Global vars count: " + std::to_string(global_vars_count));
@@ -63,7 +63,8 @@ te_expr *cogs_rules::compileExpression(const std::string &input)
   return x;
 }
 
-void cogs_rules::freeExpression(te_expr *x){
+void cogs_rules::freeExpression(te_expr *x)
+{
   te_free(x);
 }
 
@@ -252,6 +253,27 @@ namespace cogs_rules
   std::map<std::string, float (*)(float, float)> user_functions2;
   std::map<std::string, float (*)(float, float, float)> user_functions3;
 
+  void addUserFunction0(const std::string &name, float (*f)())
+  {
+    cogs::logErrorIfBadIdentifier(name);
+    user_functions0[name] = f;
+  }
+  void addUserFunction1(const std::string &name, float (*f)(float))
+  {
+    cogs::logErrorIfBadIdentifier(name);
+    user_functions1[name] = f;
+  }
+  void addUserFunction2(const std::string &name, float (*f)(float, float))
+  {
+    cogs::logErrorIfBadIdentifier(name);
+    user_functions2[name] = f;
+  }
+  void addUserFunction3(const std::string &name, float (*f)(float, float, float))
+  {
+    cogs::logErrorIfBadIdentifier(name);
+    user_functions3[name] = f;
+  }
+
 }
 
 // Used when you want to make something change.
@@ -333,7 +355,7 @@ void cogs_rules::refreshBindingsEngine()
 
 IntFadeClaim::IntFadeClaim(uint16_t startIndex, uint16_t count) : cogs_tagpoints::TagPointClaim(startIndex, count) {
 
-                                                        };
+                                                                  };
 
 void IntFadeClaim::applyLayer(int32_t *vals, uint16_t tagLength)
 {
@@ -430,21 +452,23 @@ bool Binding::trySetupTarget()
 
     if (this->fadeInTime || this->alpha || this->layer)
     {
-      if(!this->claim){
-      this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
-          this->multiStart,
-          this->multiCount);
+      if (!this->claim)
+      {
+        this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
+            this->multiStart,
+            this->multiCount);
       }
 
       int l = this->layer;
-      if(this->fadeInTime || this->alpha){
-        if(l<1){
+      if (this->fadeInTime || this->alpha)
+      {
+        if (l < 1)
+        {
           l = 1;
         }
       }
 
       this->claim->priority = l;
-
     }
     return true;
   }
@@ -600,10 +624,12 @@ void Binding::exit()
 
     // Layers don't get folded into the background.
     // They go away when we're done so we can use them as overrides.
-    if(this->layer == 0){
+    if (this->layer == 0)
+    {
       this->claim->finished = true;
     }
-    else{
+    else
+    {
       this->target->removeClaim(this->claim);
     }
 
@@ -832,7 +858,8 @@ void Clockwork::eval()
 
 static void fastPoll()
 {
-  if(cogs_rules::needRefresh){
+  if (cogs_rules::needRefresh)
+  {
     cogs_rules::refreshBindingsEngine();
   }
   cogs_rules::Clockwork::evalAll();
@@ -949,7 +976,8 @@ static void evalExpressionCommand(reggshell::Reggshell *rs, MatchState *ms, cons
 }
 void refreshHandler(cogs::GlobalEvent evt, int dummy, const std::string &filename)
 {
-  if(evt == cogs::tagCreatedEvent || evt == cogs::tagDestroyedEvent){
+  if (evt == cogs::tagCreatedEvent || evt == cogs::tagDestroyedEvent)
+  {
     cogs_rules::needRefresh = true;
   }
   if (evt == cogs::bindingsEngineRefreshEvent)
@@ -974,7 +1002,8 @@ void refreshHandler(cogs::GlobalEvent evt, int dummy, const std::string &filenam
 
 auto ram = IntTagPoint::getTag("$ram", 0);
 
-static void slowPoll(){
+static void slowPoll()
+{
 #if defined(ESP32) || defined(ESP8266)
   ram->smartSetValue(ESP.getFreeHeap(), 2048, 600000);
 #endif
@@ -1001,7 +1030,6 @@ void cogs_rules::begin()
   cogs::globalEventHandlers.push_back(&refreshHandler);
   refreshBindingsEngine();
 }
-
 
 bool Clockwork::handleEngineRefresh()
 {
@@ -1045,7 +1073,8 @@ bool Binding::handleEngineRefresh()
     }
   }
 
-  if(this->alpha){
+  if (this->alpha)
+  {
     te_free(this->alpha);
     this->alpha = compileExpression(this->alphaSource);
     if (!this->alpha)

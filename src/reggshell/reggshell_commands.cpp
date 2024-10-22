@@ -515,6 +515,10 @@ static void rmCommand(Reggshell *reggshell, const char *arg1, const char *arg2, 
     LittleFS.remove(arg1);
 }
 
+static void wifioffcommand(Reggshell *reggshell, const char *arg1, const char *arg2, const char *arg3)
+{
+    WiFi.mode(WIFI_OFF);
+}
 void Reggshell::addBuiltins()
 {
 
@@ -530,4 +534,5 @@ void Reggshell::addBuiltins()
     this->addSimpleCommand("i2cdetect", scanCommand, "Scans for I2C devices");
     this->addSimpleCommand("deepsleep", deepSleepCommand, "Go to deep sleep for $deepsleep.time seconds");
     this->addSimpleCommand("rm", rmCommand, "Removes a file");
+    this->addSimpleCommand("wifioff", wifioffcommand, "Turns off wifi for testing");
 }
