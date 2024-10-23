@@ -476,7 +476,7 @@ bool Binding::trySetupTarget()
       {
         this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
             this->multiStart,
-            this->multiCount);
+            count);
       }
 
       int l = this->layer;
