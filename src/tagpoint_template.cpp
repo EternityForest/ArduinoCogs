@@ -15,7 +15,7 @@ TagPointClaim::TagPointClaim(uint16_t startIndex, uint16_t count)
     this->value = (TAG_DATA_TYPE *)malloc(sizeof(TAG_DATA_TYPE) * count);
     if (this->value == nullptr)
     {
-        throw std::runtime_error("malloc failed");
+        throw std::runtime_error("malloc failed: " + std::to_string(count));
     }
     this->count = count;
 };
@@ -32,6 +32,7 @@ TagPointClaim::~TagPointClaim()
 TagPoint::TagPoint(const std::string &n, TAG_DATA_TYPE val, uint16_t count)
 {
     this->name = n;
+    this->count = count;
     // Dynamic allocation because we don't know how big this will be.
     this->background_value = reinterpret_cast<TAG_DATA_TYPE *>(malloc(sizeof(TAG_DATA_TYPE) * count));
     this->value = reinterpret_cast<TAG_DATA_TYPE *>(malloc(sizeof(TAG_DATA_TYPE) * count));

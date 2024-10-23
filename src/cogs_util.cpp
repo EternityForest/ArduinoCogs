@@ -273,12 +273,13 @@ namespace cogs
         DeserializationError error = deserializeJson(doc, f);
         if (error)
         {
+            cogs::logError(error.c_str());
             return "cogs";
         }
 
-        if (doc["name"].is<const char *>())
+        if (doc["hostname"].is<const char *>())
         {
-            return doc["name"].as<std::string>();
+            return doc["hostname"].as<std::string>();
         }
         else
         {

@@ -109,7 +109,9 @@ namespace cogs_rules
     // A binding can be for an array. This is an index and count for what part
     // Of the tag point's data to affect.
     uint16_t multiStart = 0;
-    uint16_t multiCount = 1;
+
+    // 0 means all elements
+    uint16_t multiCount = 0;
 
     /// Should we apply to bg value, or create a claim with priority?
     uint16_t layer = 0;

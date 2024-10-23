@@ -69,7 +69,12 @@ namespace cogs_leds
     SemaphoreHandle_t mutex = 0;
     TaskHandle_t ledThreadHandle = 0;
 
-    void begin(CRGB * l, int numLeds)
+    void refresh()
+    {
+        dirty = true;
+    }
+
+    void begin(CRGB * l, int count)
     {
 
         cogs::registerFastPollHandler(dirtyChecker);
@@ -80,18 +85,26 @@ namespace cogs_leds
         if (!l)
         {
             cogs::logError("leds is null");
-            throw std::runtime_error("leds is null");
+            return;
         }
 
         leds = l;
-        numLeds = numLeds;
+        numLeds = count;
+        cogs::logInfo("LED count: " + std::to_string(numLeds));
 
+      
         auto r = cogs_rules::IntTagPoint::getTag("leds.red", 0, numLeds);
         r->subscribe(&redTagHandler);
         auto g = cogs_rules::IntTagPoint::getTag("leds.green", 0, numLeds);
         g->subscribe(&greenTagHandler);
         auto b = cogs_rules::IntTagPoint::getTag("leds.blue", 0, numLeds);
         b->subscribe(&blueTagHandler);
+
+        for (int i = 0; i < numLeds; i++)
+        {
+            leds[i] = CRGB(r->value[i], g->value[i], b->value[i]);
+        }
+        dirty = true;
 
         xTaskCreate(ledsThread, "ledsThread", 2048, 0, 19, &ledThreadHandle);
     }

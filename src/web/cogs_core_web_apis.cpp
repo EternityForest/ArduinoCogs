@@ -126,7 +126,7 @@ static void handleDownload(AsyncWebServerRequest *request)
 static void handleUpload(AsyncWebServerRequest *request, String orig_filename, size_t index, uint8_t *data, size_t len, bool final)
 {
     cogs::lock();
-    cogs_pm::keepAwake()
+    cogs_pm::keepAwake();
     uploadFileName = orig_filename.c_str();
 
     if (!index)

@@ -5,6 +5,8 @@
 #include "esp8266audio_vendored/AudioGeneratorMP3.h"
 #include "esp8266audio_vendored/AudioGeneratorWAV.h"
 #include "esp8266audio_vendored/AudioOutputI2S.h"
+#include "esp8266audio_vendored/AudioOutputI2SNoDAC.h"
+#include "esp8266audio_vendored/AudioOutputULP.h"
 #include "esp8266audio_vendored/AudioOutputMixer.h"
 #include "esp8266audio_vendored/AudioOutputBuffer.h"
 #include "esp8266audio_vendored/AudioFileSource.h"

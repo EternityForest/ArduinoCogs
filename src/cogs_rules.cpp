@@ -413,7 +413,17 @@ Binding::Binding(const std::string &target_name, const std::string &input)
   strcpy(tn, target_name.c_str()); // flawfinder: ignore
 
   ms.Target(tn);
-  if (ms.Match("\\[([0-9]+):([0-9]+)\\]") == REGEXP_MATCHED)
+
+    if (ms.Match("\\[([0-9]+)\\]") == REGEXP_MATCHED)
+  {
+    char c[256]; // flawfinder: ignore
+    ms.GetCapture(c, 1);
+    this->multiStart = atoi(c); // flawfinder: ignore
+    this->multiCount = 1;
+    // Remove the multi specifier part from the target
+    this->target_name = target_name.substr(0, target_name.find('[')+1);
+  }
+  else if (ms.Match("\\[([0-9]+):([0-9]+)\\]") == REGEXP_MATCHED)
   {
     char c[256]; // flawfinder: ignore
     ms.GetCapture(c, 1);
@@ -422,7 +432,7 @@ Binding::Binding(const std::string &target_name, const std::string &input)
     this->multiCount = atoi(c) - this->multiStart; // flawfinder: ignore
 
     // Remove the multi specifier part from the target
-    this->target_name = target_name.substr(0, target_name.find('['));
+    this->target_name = target_name.substr(0, target_name.find('[')+1);
   }
   else
   {
@@ -440,6 +450,12 @@ Binding::Binding(const std::string &target_name, const std::string &input)
   {
     this->trySetupTarget();
   }
+  if(!this->target){
+    cogs::logError("No target: " + target_name);
+  }
+  if(!this->inputExpression){
+    cogs::logError("Bad expression: " + input);
+  }
 
   this->lastState = reinterpret_cast<int *>(malloc(sizeof(int) * this->multiCount));
 };
@@ -450,6 +466,10 @@ bool Binding::trySetupTarget()
   {
     this->target = IntTagPoint::getTag(this->target_name, 0, 1);
 
+    int count = this->multiCount;
+    if(count == 0){
+      count = this->target->count;
+    }
     if (this->fadeInTime || this->alpha || this->layer)
     {
       if (!this->claim)
