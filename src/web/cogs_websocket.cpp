@@ -12,17 +12,16 @@ static void handleWsData(char *d)
     JsonDocument doc;
     deserializeJson(doc, d);
 
-    // Vars is going to be a dict of things to set the values of
-    if (doc["vars"].is<JsonObject>())
+    if (doc.is<JsonObject>())
     {
         cogs::lock();
-        for (auto kv : doc["vars"].as<JsonObject>())
+        for (auto kv : doc.as<JsonObject>())
         {
             int v = kv.value().as<int>();
             if (cogs_rules::IntTagPoint::exists(kv.key().c_str()))
             {
                 auto t = cogs_rules::IntTagPoint::getTag(kv.key().c_str(), 0, 1);
-                t->setValue(v, 0, 1);
+                t->setValue(v, 0, 0);
 
                 // If for some reason the set fails to change the value
                 // inform the clients of that
@@ -39,7 +38,7 @@ static void handleWsData(char *d)
 void cogs_web::wsBroadcast(const char *key, const JsonVariant &val)
 {
     JsonDocument doc;
-    doc["vars"][key] = val;
+    doc[key] = val;
     char *buf = reinterpret_cast<char *>(malloc(512));
     if (!buf)
     {
@@ -54,7 +53,7 @@ void cogs_web::wsBroadcast(const char *key, const JsonVariant &val)
 void cogs_web::wsBroadcast(const char *key, const char *data)
 {
     JsonDocument doc;
-    doc["vars"][key] = data;
+    doc[key] = data;
     char *buf = reinterpret_cast<char *>(malloc(512));
     if (!buf)
     {
@@ -85,7 +84,7 @@ static void pushTagPointValue(cogs_rules::IntTagPoint *tp, bool force)
     }
 
     JsonDocument doc;
-    doc["vars"][tp->name] = tp->value[0];
+    doc[tp->name] = tp->value[0];
     char *buf = reinterpret_cast<char *>(malloc(256));
     if (!buf)
     {

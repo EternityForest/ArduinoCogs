@@ -19,6 +19,7 @@ static void ledsThread(void *arg)
     {
         xSemaphoreTake(mutex, portMAX_DELAY);
         FastLED.show();
+        FastLED.delay(5);
         xSemaphoreGive(mutex);
         
         // We refresh every 1000ms or so in case noise has messed up the state.
@@ -106,6 +107,6 @@ namespace cogs_leds
         }
         dirty = true;
 
-        xTaskCreate(ledsThread, "ledsThread", 2048, 0, 19, &ledThreadHandle);
+        xTaskCreate(ledsThread, "ledsThread", 2048, 0, 23, &ledThreadHandle);
     }
 }

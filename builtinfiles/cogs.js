@@ -198,7 +198,7 @@ var CogsApi = function () {
 
             this.connection.handleIncoming = function (r) {
 
-                var resp = r['vars']
+                var resp = r
                 //Iterate messages
                 for (var n in resp) {
                     for (var j in apiobj.serverMsgCallbacks[n]) {
@@ -217,7 +217,7 @@ var CogsApi = function () {
                 //Don't bother sending if we aren'y connected
                 if (this.connection.readyState == 1) {
                     if (Object.keys(this.toSend).length > 0) {
-                        var toSend = { 'vars': this.toSend, };
+                        var toSend = this.toSend;
                         var j = JSON.stringify(toSend);
                         this.connection.send(j);
                         this.toSend = {};

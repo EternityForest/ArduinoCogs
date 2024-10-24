@@ -18,8 +18,8 @@ using namespace cogs_rules;
 
 static std::map<std::string, std::shared_ptr<Clockwork>> webClockworks;
 
-
-static void closeAllClockworks(){
+static void closeAllClockworks()
+{
 
     for (auto it = webClockworks.begin(); it != webClockworks.end(); ++it)
     {
@@ -28,7 +28,8 @@ static void closeAllClockworks(){
     webClockworks.clear();
 }
 
-static void badAutomation(){
+static void badAutomation()
+{
     closeAllClockworks();
     cogs::addTroubleCode("EBADAUTOMATION");
 }
@@ -41,7 +42,6 @@ static void _loadFromFile()
     if (!f)
     {
         cogs::logError("No automation.json found.");
-        badAutomation();
         return;
     }
     if (f.isDirectory())
@@ -61,25 +61,28 @@ static void _loadFromFile()
         return;
     }
 
+    closeAllClockworks();
+
     JsonVariant vars = doc["vars"];
     if (vars.is<JsonArray>())
     {
         for (auto const &var : vars.as<JsonArray>())
-        {            
+        {
             auto v = cogs_rules::IntTagPoint::getTag(var["name"].as<std::string>(), var["default"].as<int>());
-            if(!v){
+            if (!v)
+            {
                 cogs::logError("Bad var: " + var["name"].as<std::string>());
                 badAutomation();
                 return;
             }
-            
+
             v->setScale(var["resolution"].as<int>());
             v->setValue(var["default"].as<double>() * var["resolution"].as<int>());
 
-            if (var["persistent"].as<bool>()){
+            if (var["persistent"].as<bool>())
+            {
                 cogs_prefs::addPref(var["name"].as<std::string>());
             }
-
         }
     }
 
@@ -134,7 +137,7 @@ static void _loadFromFile()
             cogs::logError("Clockwork " + clockworkData["name"].as<std::string>() + " has no states.");
             badAutomation();
             return;
-        
+
             throw std::runtime_error(clockworkData["name"].as<std::string>() + " has no states.");
         }
 
@@ -153,8 +156,23 @@ static void _loadFromFile()
             for (auto const &bindingData : bindings.as<JsonArray>())
             {
                 cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
-                auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>());
-                if(!b->inputExpression){
+
+                int start = 0;
+                int count = 0;
+
+                if (bindingData["startPosition"].is<int>())
+                {
+                    start = bindingData["startPosition"].as<int>();
+                }
+
+                if (bindingData["count"].is<int>())
+                {
+                    count = bindingData["count"].as<int>();
+                }
+
+                auto b = s->addBinding(bindingData["target"].as<std::string>(), bindingData["source"].as<std::string>(), start, count);
+                if (!b->inputExpression)
+                {
                     badAutomation();
                     return;
                 }
@@ -185,7 +203,8 @@ static void _loadFromFile()
                     {
                         b->fadeInTimeSource = fadeInTime;
                         b->fadeInTime = cogs_rules::compileExpression(fadeInTime);
-                        if(!b->fadeInTime){
+                        if (!b->fadeInTime)
+                        {
                             badAutomation();
                             return;
                         }
@@ -213,7 +232,6 @@ static void _loadFromFile()
                         b->trySetupTarget();
                     }
                 }
-                
             }
         }
         // State doesn't exist, use default

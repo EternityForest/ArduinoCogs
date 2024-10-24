@@ -17,6 +17,11 @@ TagPointClaim::TagPointClaim(uint16_t startIndex, uint16_t count)
     {
         throw std::runtime_error("malloc failed: " + std::to_string(count));
     }
+
+    for (int i = 0; i < count; i++)
+    {
+        this->value[i] = 0;
+    }
     this->count = count;
 };
 

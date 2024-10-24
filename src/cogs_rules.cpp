@@ -398,7 +398,11 @@ void IntFadeClaim::applyLayer(int32_t *vals, uint16_t tagLength)
   }
 };
 
-Binding::Binding(const std::string &target_name, const std::string &input)
+Binding *b = nullptr;
+
+
+
+Binding::Binding(const std::string &target_name, const std::string &input, const int start, const int count)
 {
   // Look for something like [1:4] at the end of the target, which would make this
   // A multi-binding.
@@ -413,31 +417,11 @@ Binding::Binding(const std::string &target_name, const std::string &input)
   strcpy(tn, target_name.c_str()); // flawfinder: ignore
 
   ms.Target(tn);
+  this->target_name = target_name;
+  b = this;
 
-    if (ms.Match("\\[([0-9]+)\\]") == REGEXP_MATCHED)
-  {
-    char c[256]; // flawfinder: ignore
-    ms.GetCapture(c, 1);
-    this->multiStart = atoi(c); // flawfinder: ignore
-    this->multiCount = 1;
-    // Remove the multi specifier part from the target
-    this->target_name = target_name.substr(0, target_name.find('[')+1);
-  }
-  else if (ms.Match("\\[([0-9]+):([0-9]+)\\]") == REGEXP_MATCHED)
-  {
-    char c[256]; // flawfinder: ignore
-    ms.GetCapture(c, 1);
-    this->multiStart = atoi(c); // flawfinder: ignore
-    ms.GetCapture(c, 2);
-    this->multiCount = atoi(c) - this->multiStart; // flawfinder: ignore
-
-    // Remove the multi specifier part from the target
-    this->target_name = target_name.substr(0, target_name.find('[')+1);
-  }
-  else
-  {
-    this->target_name = target_name;
-  }
+  this->multiStart = start;
+  this->multiCount = count;
 
   this->inputExpressionSource = input;
   this->inputExpression = compileExpression(input);
@@ -450,10 +434,12 @@ Binding::Binding(const std::string &target_name, const std::string &input)
   {
     this->trySetupTarget();
   }
-  if(!this->target){
+  if (!this->target)
+  {
     cogs::logError("No target: " + target_name);
   }
-  if(!this->inputExpression){
+  if (!this->inputExpression)
+  {
     cogs::logError("Bad expression: " + input);
   }
 
@@ -466,17 +452,18 @@ bool Binding::trySetupTarget()
   {
     this->target = IntTagPoint::getTag(this->target_name, 0, 1);
 
-    int count = this->multiCount;
-    if(count == 0){
-      count = this->target->count;
+    if (this->multiCount == 0)
+    {
+      this->multiCount = target->count;
     }
+
     if (this->fadeInTime || this->alpha || this->layer)
     {
       if (!this->claim)
       {
         this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
             this->multiStart,
-            count);
+            this->multiCount);
       }
 
       int l = this->layer;
@@ -522,6 +509,17 @@ void Binding::eval()
     {
       shouldRerender = true;
     }
+    else
+    {
+      if (!this->claim->finished)
+      {
+        if (this->layer == 0)
+        {
+          shouldRerender = true;
+          this->claim->finished = true;
+        }
+      }
+    }
   }
 
   if (!this->frozen)
@@ -548,7 +546,14 @@ void Binding::eval()
           {
             if (this->claim)
             {
-              this->claim->value[this->multiStart + i] = x * this->target->scale;
+              if (!this->claim->finished)
+              {
+                this->claim->value[this->multiStart + i] = x * this->target->scale;
+              }
+              else
+              {
+                this->target->background_value[this->multiStart + i] = x * this->target->scale;
+              }
             }
             else
             {
@@ -563,7 +568,14 @@ void Binding::eval()
       {
         if (this->claim)
         {
-          this->claim->value[this->multiStart + i] = x * this->target->scale;
+          if (!this->claim->finished)
+          {
+            this->claim->value[this->multiStart + i] = x * this->target->scale;
+          }
+          else
+          {
+            this->target->background_value[this->multiStart + i] = x * this->target->scale;
+          }
         }
         else
         {
@@ -685,9 +697,10 @@ void State::exit()
   }
 }
 
-std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string input)
+std::shared_ptr<Binding> State::addBinding(std::string target_name, std::string input,
+                                           int start, int count)
 {
-  std::shared_ptr<Binding> binding = std::make_shared<Binding>(target_name, input);
+  std::shared_ptr<Binding> binding = std::make_shared<Binding>(target_name, input, start, count);
   this->bindings.push_back(binding);
 
   return binding;

@@ -97,29 +97,37 @@ export class PageRoot extends LitElement {
         }.bind(this))}
         </ul>
         <h2>Variables</h2>
-
+        <div class="flex-row">
         ${Object.entries(this.data.tagSections).sort((a, b) => a[0].localeCompare(b[0])).map(function ([section, sectiontags]) {
             return html`
-            <details><summary>${section}</summary>
+            <article class="card w-sm-full margin"><header><h3>${section}</h3></header>
         <div class="stacked-form">
             ${Object.entries(sectiontags).sort((a, b) => a[0].localeCompare(b[0])).map(function ([key, value]) {
+
+                let label = key;
+                
+                if(key.includes(".")){
+                label = key.substring(key.split(".")[0].length+1);
+                }
+
                 if (value.unit == 'trigger' || value.unit == 'bang') {
                     return html`
-                <label>${key}<ds-button source="tag:${key}" filter="confirm: Confirm?">💥 Go!</ds-button></label>
+                <label style="word-wrap: break-word"><b>${label}</b><ds-button source="tag:${key}" filter="confirm: Confirm?">💥 Go!</ds-button></label>
                 `
                 } else if (value.unit == 'bool' || value.unit == 'boolean') {
                     return html`
-                <label>${key} <ds-input type="checkbox" source="tag:${key}" filter="confirm: Confirm?"></ds-input></label>
+                <label style="word-wrap: break-word"><b>${label}</b><ds-input type="checkbox" source="tag:${key}" filter="confirm: Confirm?"></ds-input></label>
                 `
                 } else {
                     return html`
-            <label>${key}<ds-input type="number" source="tag:${key}" filter="confirm: Confirm?"></ds-input></label>
+            <label style="word-wrap: break-word"><b>${label}</b><div class="flex-col w-full"><ds-input class="w-full" type="number" source="tag:${key}" filter="confirm: Confirm?"></ds-input></div></label>
             `}
             })}
         </div>
-        </details>
+        </article>
         `
         }.bind(this))}
+        </div>
         
 
         </div>

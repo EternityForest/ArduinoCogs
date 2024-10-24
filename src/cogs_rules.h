@@ -31,7 +31,6 @@ namespace cogs_rules
   extern bool needRefresh;
   typedef cogs_tagpoints::TagPoint IntTagPoint;
 
-
   extern std::map<std::string, float *> constants;
 
   /// Do not directly add things, use addUserFunction
@@ -93,7 +92,6 @@ namespace cogs_rules
   {
   private:
     std::shared_ptr<IntTagPoint> target;
-    std::string target_name;
 
     // In claim mode we use a claim rather than directly setting the value
     std::shared_ptr<cogs_rules::IntFadeClaim> claim = nullptr;
@@ -102,6 +100,8 @@ namespace cogs_rules
     bool frozen = false;
 
   public:
+    std::string target_name;
+
     std::string inputExpressionSource;
 
     te_expr *inputExpression;
@@ -142,7 +142,8 @@ namespace cogs_rules
     /// Used for change detection.
     int *lastState = nullptr;
 
-    Binding(const std::string &target_name, const std::string &input);
+    Binding(const std::string &target_name, const std::string &input,
+            const int start = 0, const int count = 0);
 
     //! Eval the expression, do change detection.
     //! If the value changes, notify target
@@ -190,7 +191,7 @@ namespace cogs_rules
     void enter();
 
     //! Don't create bindings yourself, use this
-    std::shared_ptr<cogs_rules::Binding> addBinding(std::string target_name, std::string input);
+    std::shared_ptr<cogs_rules::Binding> addBinding(std::string target_name, std::string input, int start = 0, int count = 0);
 
     void clearBindings();
     void removeBinding(std::shared_ptr<cogs_rules::Binding> binding);

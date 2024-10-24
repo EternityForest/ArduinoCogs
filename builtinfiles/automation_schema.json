@@ -127,6 +127,17 @@
                                                 "type": "number",
                                                 "description": "Overlay layer, 0 is the background",
                                                 "required": false
+                                            },
+
+                                            "startPosition": {
+                                                "title": "Start Position",
+                                                "type": "number",
+                                                "description": "Start location"
+                                            },
+                                            "count": {
+                                                "title": "Count",
+                                                "type": "number",
+                                                "description": "Number of slots to affect"
                                             }
                                         },
                                         "title": "Binding",
