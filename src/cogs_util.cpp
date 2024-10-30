@@ -287,4 +287,11 @@ namespace cogs
         }
     }
 
+    float getFilterBlendConstant(float tc, float sps){
+        return 1.0f - exp(-1.0f / (tc * sps));
+    }
+    float fastGetApproxFilterBlendConstant(float tc, float sps){
+        return 1.0f - (tc * sps) / (tc * sps + 1.0f);
+    }
+
 };

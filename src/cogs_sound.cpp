@@ -215,7 +215,7 @@ namespace cogs_sound
 
         SoundPlayer(AudioOutputMixer *mixer, std::string fn, bool loop, float vol, float fade, float initialVol, AudioOutputMixerStub *stb = 0)
         {
-
+            cogs::logInfo("SoundPlayer: " + fn);
             powerSaveSetting(true);
 
             boostFPS();
@@ -877,13 +877,13 @@ namespace cogs_sound
             xSemaphoreGive(mutex);
 
             // Limit how much CPU it can use
-            if (taken > 4000)
+            if (taken > 3000)
             {
-                delay(2);
+                delay(1);
             }
             else
             {
-                delay(5 - (taken / 1000));
+                delay(3 - (taken / 1000));
             }
         }
     }
@@ -951,13 +951,13 @@ namespace cogs_sound
         auto t = cogs_rules::IntTagPoint::getTag("music.volume", cogs_rules::FXP_RES);
         t->setScale(cogs_rules::FXP_RES);
         t->min = 0;
-        t->max = 3;
+        t->max = 5;
         t->subscribe(&setMusicVolumeTag);
 
         t = cogs_rules::IntTagPoint::getTag("sfx.volume", cogs_rules::FXP_RES);
         t->setScale(cogs_rules::FXP_RES);
         t->min = 0;
-        t->max = 3;
+        t->max = 5;
 
         t->subscribe(&setSfxVolumeTag);
 

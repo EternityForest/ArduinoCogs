@@ -15,15 +15,22 @@ static void dirtyChecker(){
 
 static void ledsThread(void *arg)
 {
+    unsigned long lastRefresh = 0;
     while (true)
     {
         xSemaphoreTake(mutex, portMAX_DELAY);
         FastLED.show();
-        FastLED.delay(5);
+        FastLED.delay(3);
+        //Periodically do a longer refresh
+        //sending multiple times in case of errors
+        if(millis() - lastRefresh > 250){
+            FastLED.delay(15);
+            lastRefresh = millis();
+        }
         xSemaphoreGive(mutex);
         
         // We refresh every 1000ms or so in case noise has messed up the state.
-        ulTaskNotifyTake(pdTRUE, 10000);
+        ulTaskNotifyTake(pdTRUE, 1000);
     }
 }
 
@@ -107,6 +114,6 @@ namespace cogs_leds
         }
         dirty = true;
 
-        xTaskCreate(ledsThread, "ledsThread", 2048, 0, 23, &ledThreadHandle);
+        xTaskCreate(ledsThread, "ledsThread", 2048, 0, 18, &ledThreadHandle);
     }
 }

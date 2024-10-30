@@ -75,5 +75,22 @@ namespace cogs
     /// This is not fast, don't use it in performance critical code.
     std::shared_ptr<const std::string> getSharedString(const std::string &str);
 
+    /// blend between two floats
+    inline float blend(float a, float b, float t){
+        return a * (1.0f - t) + b * t;
+    }
+
+    /// Get blend amount between old and new that would make a
+    /// first order filter if called at sps hz, for a time constant of tc.
+    /// This is based on the formula for an exponential moving average:
+    ///   blend = 1 - exp(-dt / tc)
+    /// where dt is the time step (1/sps) and tc is the time constant.
+    /// Math done by AI
+    float getFilterBlendConstant(float tc, float sps);
+
+    /// A faster approximation that doesn't use exp()
+    /// I have absolutely no idea how it works
+    /// The math was done by AI
+    float fastGetApproxFilterBlendConstant(float tc, float sps);
 
 }

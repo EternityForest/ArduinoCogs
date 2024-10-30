@@ -10,18 +10,25 @@ static const char generic_object_schema[] = R"(
 // Schema for the wifi settings
 static const char wifi_schema[] = R"(
 {
-  "properties": {
-    "ssid": {
-      "title": "Wifi Name",
-      "type": "string"
+  "items": {
+    "properties": {
+      "ssid": {
+        "title": "SSID/Wifi Name",
+        "type": "string",
+        "required": true
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true
+      }
     },
-    "password": {
-      "title": "Password",
-      "type": "string"
-    }
+    "title": "Network",
+    "type": "object"
   },
   "title": "Network Settings",
-  "type": "object"
+  "type": "array",
+  "minItems": 1
 }
 )";
 

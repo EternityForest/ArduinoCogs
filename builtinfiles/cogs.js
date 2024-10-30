@@ -45,29 +45,68 @@ var CogsApi = function () {
 
         toSend: {},
         enableWidgetGoneAlert: true,
-        lastDidSnackbarError: 0,
+        snackbarHorizon: 0,
+        snackbarCredits: 10,
+
+        getSnackbarCredits: function () {
+            this.snackbarCredits += (Date.now() - this.snackbarHorizon) / 5000
+            this.snackbarHorizon = Date.now()
+            if (this.snackbarCredits >= 1) {
+                this.snackbarCredits -= 1;
+                return this.snackbarCredits+1
+            }
+            return this.snackbarCredits
+        },
 
         first_error: 1,
+
+
         serverMsgCallbacks: {
 
             "__troublecodes__": [
                 function (m) {
                     if(m){
-                        picodash.snackbar.createSnackbar(m,{ accent: 'error',
-                            timeout: 60000 });
+                        picodash.snackbar.createSnackbar(JSON.stringify(m),{ accent: 'error',
+                            timeout: 120000 });
                     }
                 }
             ],
             "__error__": [
                 function (m) {
                     console.error(m);
-                    if (cogsapi.lastDidSnackbarError < Date.now() + 60000) {
-                        cogsapi.lastDidSnackbarError = Date.now()
+                    if (cogsapi.getSnackbarCredits() > 1) {
                         picodash.snackbar.createSnackbar(m, { accent: 'error',
                             timeout: 60000 });
                     }
                 }
-            ]
+            ],
+            "__notification__": [
+                function (m) {
+                    console.error(m);
+                    if (cogsapi.getSnackbarCredits() > 1) {
+                        picodash.snackbar.createSnackbar(m, {
+                            timeout: 10000 });
+                    }
+                }
+            ],
+            "__success__": [
+                function (m) {
+                    console.error(m);
+                    if (cogsapi.getSnackbarCredits() > 1) {
+                        picodash.snackbar.createSnackbar(m, {accent: 'success',
+                            timeout: 10000 });
+                    }
+                }
+            ],
+            "__important_notification__": [
+                function (m) {
+                    console.error(m);
+                    if (cogsapi.getSnackbarCredits() > 1) {
+                        picodash.snackbar.createSnackbar(m, {accent: 'highlight',
+                            timeout: 120000 });
+                    }
+                }
+            ],
         },
 
         //Unused for now
@@ -207,6 +246,7 @@ var CogsApi = function () {
                 }
             }
             this.connection.onopen = function (e) {
+                apiobj.toSend = {};
                 console.log("WS Connection Initialized");
                 apiobj.canShowError = 1;
                 apiobj.reconnect_timeout = 1500;

@@ -1,3 +1,5 @@
+import { picodash } from '/builtin/cogs.js';
+
 const urlParams = new URLSearchParams(window.location.search);
 
 var schema_url = urlParams.get('schema');
@@ -7,7 +9,7 @@ const cacheid = urlParams.get('cacheid') || "";
 var fileurl = new URL('/api/cogs.download', window.location.origin);
 fileurl.searchParams.append('file', filename);
 fileurl.searchParams.append('cacheid', Date.now())
-schema_url.searchParams.append('cacheid', Date.now())
+schema_url.searchParams.append('cacheid', cacheid)
 
 var fileuploadurl = new URL('/api/cogs.upload', window.location.origin);
 fileuploadurl.searchParams.append('file', filename);
@@ -28,7 +30,7 @@ var lastSavedVersion = null;
 
 window.addEventListener("beforeunload", function (e) {
 
-    if (editor.getValue() ==lastSavedVersion) {
+    if (editor.getValue() == lastSavedVersion) {
         return;
     }
     var confirmationMessage = 'If you leave before saving, your changes will be lost.';
@@ -101,20 +103,21 @@ export class PageRoot extends LitElement {
                     array_controls_top: true,
                     disable_array_delete_last_row: true,
                     disable_edit_json: true,
+                    display_required_only: true,
                     ajax: true,
                     theme: "barebones"
                 });
 
                 let filedata = {}
 
-                try{
-                     const response2 = await fetch(fileurl);
-                     filedata = await response2.json();
-                     editor.setValue(filedata);
+                try {
+                    const response2 = await fetch(fileurl);
+                    filedata = await response2.json();
+                    editor.setValue(filedata);
 
                 }
-                catch(e){
-                     alert("No file found, creating.");
+                catch (e) {
+                    alert("No file found, creating.");
                 }
                 lastSavedVersion = editor.getValue();
 
@@ -136,10 +139,16 @@ export class PageRoot extends LitElement {
 
             lastSavedVersion = JSON.stringify(editor.getValue(), null, 2);
 
-            alert("Saved!");
+            picodash.snackbar.createSnackbar("Saved!", {
+                accent: 'success',
+                timeout: 2000
+            });
         }
         catch (err) {
-            alert("Error: " + err);
+            picodash.snackbar.createSnackbar("Error" + err, {
+                accent: 'error',
+                timeout: 60000
+            });
         }
     }
 

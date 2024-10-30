@@ -106,7 +106,7 @@ export class PageRoot extends LitElement {
 
                 let label = key;
                 
-                if(key.includes(".")){
+                if(key.includes(".") && (!key.startsWith("$"))) {
                 label = key.substring(key.split(".")[0].length+1);
                 }
 
