@@ -5,18 +5,30 @@
     "properties": {
         "vars": {
             "description": "Define your own variables here!",
+            "title": "Variables",
             "type": "array",
+            "format": "tabs-top",
             "items": {
                 "type": "object",
+                "options": {
+                    "disable_collapse": true
+                },
+                "id": "var",
+                "headerTemplate": "var: {{name}}",
+                "watch": {
+                    "name": "var.name"
+                },
                 "properties": {
                     "name": {
                         "type": "string",
-                        "default": "temp1"
+                        "default": "temp1",
+                        "required": true
                     },
                     "default": {
                         "type": "number",
                         "default": "0",
-                        "description": "The default value of the variable at boot"
+                        "description": "The default value of the variable at boot",
+                        "required": true
                     },
                     "resolution": {
                         "type": "number",
@@ -61,7 +73,8 @@
             "format": "tabs-top",
             "items": {
                 "options": {
-                    "disable_collapse": true
+                    "disable_collapse": true,
+                    "disable_properties": true
                 },
                 "properties": {
                     "name": {
@@ -76,7 +89,7 @@
                         },
                         "items": {
                             "id": "state",
-                            "headerTemplate": "{{name}}",
+                            "headerTemplate": "state: {{name}}",
                             "watch": {
                                 "name": "state.name"
                             },
@@ -151,7 +164,6 @@
                                                 "description": "Overlay layer, 0 is the background",
                                                 "required": false
                                             },
-
                                             "startPosition": {
                                                 "title": "Start Position",
                                                 "type": "number",
@@ -167,7 +179,13 @@
                                         "type": "object",
                                         "options": {
                                             "disable_properties": false,
-                                            "disable_collapse": true
+                                            "disable_collapse": false
+                                        },
+                                        "id": "binding",
+                                        "headerTemplate": "{{source}} > target",
+                                        "watch": {
+                                            "source": "binding.source",
+                                            "target": "binding.target"
                                         }
                                     },
                                     "title": "Bindings",
@@ -183,7 +201,7 @@
                 },
                 "title": "Clockwork",
                 "id": "clockwork",
-                "headerTemplate": "{{name}}",
+                "headerTemplate": "clockwork: {{name}}",
                 "watch": {
                     "name": "clockwork.name"
                 },

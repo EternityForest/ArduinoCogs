@@ -53,7 +53,7 @@ var CogsApi = function () {
             this.snackbarHorizon = Date.now()
             if (this.snackbarCredits >= 1) {
                 this.snackbarCredits -= 1;
-                return this.snackbarCredits+1
+                return this.snackbarCredits + 1
             }
             return this.snackbarCredits
         },
@@ -65,18 +65,17 @@ var CogsApi = function () {
 
             "__troublecodes__": [
                 function (m) {
-                    if(m){
-                        picodash.snackbar.createSnackbar(JSON.stringify(m),{ accent: 'error',
-                            timeout: 120000 });
-                    }
+                    console.log(m)
                 }
             ],
             "__error__": [
                 function (m) {
                     console.error(m);
                     if (cogsapi.getSnackbarCredits() > 1) {
-                        picodash.snackbar.createSnackbar(m, { accent: 'error',
-                            timeout: 60000 });
+                        picodash.snackbar.createSnackbar(m, {
+                            accent: 'error',
+                            timeout: 60000
+                        });
                     }
                 }
             ],
@@ -85,7 +84,8 @@ var CogsApi = function () {
                     console.error(m);
                     if (cogsapi.getSnackbarCredits() > 1) {
                         picodash.snackbar.createSnackbar(m, {
-                            timeout: 10000 });
+                            timeout: 10000
+                        });
                     }
                 }
             ],
@@ -93,8 +93,10 @@ var CogsApi = function () {
                 function (m) {
                     console.error(m);
                     if (cogsapi.getSnackbarCredits() > 1) {
-                        picodash.snackbar.createSnackbar(m, {accent: 'success',
-                            timeout: 10000 });
+                        picodash.snackbar.createSnackbar(m, {
+                            accent: 'success',
+                            timeout: 10000
+                        });
                     }
                 }
             ],
@@ -102,8 +104,10 @@ var CogsApi = function () {
                 function (m) {
                     console.error(m);
                     if (cogsapi.getSnackbarCredits() > 1) {
-                        picodash.snackbar.createSnackbar(m, {accent: 'highlight',
-                            timeout: 120000 });
+                        picodash.snackbar.createSnackbar(m, {
+                            accent: 'highlight',
+                            timeout: 120000
+                        });
                     }
                 }
             ],
@@ -200,11 +204,13 @@ var CogsApi = function () {
                     clearTimeout(apiobj.reconnector)
                     apiobj.reconnector = null;
                 }
-                
-                if(apiobj.canShowError){
+
+                if (apiobj.canShowError) {
                     apiobj.canShowError = 0;
-                    picodash.snackbar.createSnackbar("Cogs: Connection lost", { accent: 'error',
-                        timeout: 60000 });
+                    picodash.snackbar.createSnackbar("Cogs: Connection lost", {
+                        accent: 'error',
+                        timeout: 60000
+                    });
                 }
                 apiobj.reconnector = setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
             };
@@ -251,6 +257,7 @@ var CogsApi = function () {
                 apiobj.canShowError = 1;
                 apiobj.reconnect_timeout = 1500;
                 window.setTimeout(function () { apiobj.wpoll() }, 250);
+                apiobj.lastKeepalive = Date.now();
             }
 
             this.wpoll = function () {
@@ -263,10 +270,21 @@ var CogsApi = function () {
                         this.toSend = {};
                     }
 
+                    if (Date.now() - this.lastKeepalive > 60000) {
+                        this.connection.send("{}");
+                        this.lastKeepalive = Date.now();
+                    }
+
+
                 }
+
 
                 if (this.toSend && (Object.keys(this.toSend).length > 0)) {
                     window.setTimeout(this.poll_ratelimited.bind(this), 120);
+                }
+                else {
+                    window.setTimeout(this.poll_ratelimited.bind(this), 30000);
+
                 }
 
             }
@@ -329,10 +347,10 @@ class TagDataSource extends picodash.DataSource {
         this.scale = null
 
         async function upd(data) {
-            if(this.scale == null){
+            if (this.scale == null) {
                 return
             }
-            this.data = data/this.scale
+            this.data = data / this.scale
             this.pushData(this.data)
         }
         this.sub = upd.bind(this)
@@ -357,8 +375,8 @@ class TagDataSource extends picodash.DataSource {
                 this_.scale = myArr.scale
                 this_.config.readonly = false
 
-                var x = myArr.firstValue/myArr.scale
-                x = Math.round(x/myArr.step)*myArr.step
+                var x = myArr.firstValue / myArr.scale
+                x = Math.round(x / myArr.step) * myArr.step
 
 
                 this_.data = x
@@ -370,12 +388,12 @@ class TagDataSource extends picodash.DataSource {
     }
 
     async pushData(d) {
-        if(this.scale == null){
+        if (this.scale == null) {
             throw new Error("scale is null, point not set up")
         }
         if (d != this.data) {
             this.data = d
-            cogsapi.sendValue(this.name.split(":")[1], parseInt(d*this.scale))
+            cogsapi.sendValue(this.name.split(":")[1], parseInt(d * this.scale))
         }
         super.pushData(d)
     }
@@ -392,4 +410,4 @@ picodash.addDataSourceProvider("tag", TagDataSource)
 
 
 
-export {picodash, cogsapi}
+export { picodash, cogsapi }

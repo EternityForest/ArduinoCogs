@@ -283,7 +283,7 @@ namespace cogs_gpio
         cogs::registerFastPollHandler(pollAllInputs);
         cogs_web::server.on("/builtin/schemas/gpio.json", HTTP_GET, [](AsyncWebServerRequest *request)
                             { cogs_web::sendGzipFile(request, gpio_schema_json_gz, sizeof(gpio_schema_json_gz), "application/json"); });
-        cogs_web::NavBarEntry::create("GPIO", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/gpio.json&filename=/config/gpio.json");
+        cogs_web::NavBarEntry::create("🔌GPIO", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/gpio.json&filename=/config/gpio.json");
 
         // We use dynamically generated schemas for the pins
         cogs_web::server.on("/gpio/input_pin_schema.json", HTTP_GET, availableInputsAPI);

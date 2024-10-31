@@ -3032,3 +3032,27 @@ label {
         }
     }
 }
+
+.json-editor-btn-edit_properties{
+    border:none;
+    padding:4px;
+    &:before{
+        content:"⚙️"
+    }
+    span{
+        display:none;
+    }
+}
+
+.json-editor-btn-add 
+{
+    border:none;
+    padding:4px;
+    &:before{
+        content:"➕"
+    }
+    span{
+        display:none;
+    }
+}
+
