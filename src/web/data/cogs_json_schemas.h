@@ -16,7 +16,12 @@ static const char wifi_schema[] = R"(
       "type": "array",
       "minItems": 1,
       "required": true,
+      "format": "tabs-top",
       "items": {
+        "options": {
+          "disable_collapse": true,
+          "disable_properties": true
+        },
         "properties": {
           "ssid": {
             "title": "SSID/Wifi Name",

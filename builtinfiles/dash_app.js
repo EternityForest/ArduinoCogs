@@ -30,7 +30,11 @@ export class PageRoot extends LitElement {
 
         var t = this;
 
-        async function getMoreData(tn) {
+        async function getMoreData(tn, prev) {
+            await prev;
+            // Delay so we don't overload server
+            await new Promise(r => setTimeout(r, 50));
+
             var x = await fetch('/api/cogs.tag?tag=' + tn);
             var y = await x.json();
             t.data.tags[tn] = y;
@@ -45,10 +49,11 @@ export class PageRoot extends LitElement {
 
             var x = await fetch('/api/cogs.tags');
             var y = await x.json();
+            var chain = true;
             for (var i in y.tags) {
                 t.setTagSection(i, y.tags[i])
                 y.tags[i] = {};
-                getMoreData(i);
+                chain = getMoreData(i, chain);
             }
             t.data.tags = y.tags;
 
