@@ -33,16 +33,16 @@ namespace cogs
 
     void poll()
     {
-        unsigned long now = millis();
+        unsigned long now = micros();
         for (auto const &e : fastPollHandlers)
         {
             e();
         }
-        lastFastPollTime = millis()-now;
+        lastFastPollTime = micros()-now;
 
         if (millis() - lastSlowPoll > 1000)
         {
-            if(lastFastPollTime>50){
+            if(lastFastPollTime>50000){
                 Serial.println("slow poll cycle ");
                 Serial.println(lastFastPollTime);
             }

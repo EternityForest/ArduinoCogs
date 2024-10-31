@@ -76,6 +76,8 @@ static void _loadFromFile()
                 return;
             }
 
+            cogs::logInfo("User var: " + var["name"].as<std::string>());
+
             v->setScale(var["resolution"].as<int>());
             v->setValue(var["default"].as<double>() * var["resolution"].as<int>());
 
@@ -84,6 +86,7 @@ static void _loadFromFile()
                 cogs_prefs::addPref(var["name"].as<std::string>());
             }
         }
+        cogs_rules::refreshBindingsEngine();
     }
 
     JsonVariant clockworks = doc["clockworks"];

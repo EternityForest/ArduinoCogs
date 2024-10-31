@@ -1,6 +1,7 @@
 #include "cogs_leds.h"
 #include "cogs_rules.h"
 #include "cogs_global_events.h"
+#include "cogs_power_management.h"
 
 using namespace cogs_leds;
 
@@ -20,7 +21,7 @@ static void ledsThread(void *arg)
     {
         xSemaphoreTake(mutex, portMAX_DELAY);
         FastLED.show();
-        FastLED.delay(3);
+        FastLED.delay( (1000/cogs_pm::fps) / 4);
         //Periodically do a longer refresh
         //sending multiple times in case of errors
         if(millis() - lastRefresh > 250){

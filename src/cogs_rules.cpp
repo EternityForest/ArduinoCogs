@@ -11,6 +11,7 @@
 using namespace cogs_rules;
 
 bool cogs_rules::needRefresh = false;
+bool cogs_rules::started = false;
 
 static std::vector<Binding> bindings;
 
@@ -169,6 +170,37 @@ static float randomUserFunction()
   return (float)r / 65535.0f;
 }
 
+float clamp(float x, float min, float max)
+{
+  if (x < min)
+  {
+    return min;
+  }
+  if (x > max)
+  {
+    return max;
+  }
+  return x;
+}
+
+float min(float x, float y)
+{
+  if (x < y)
+  {
+    return x;
+  }
+  return y;
+}
+
+float max(float x, float y)
+{
+  if (x > y)
+  {
+    return x;
+  }
+  return y;
+}
+
 // Time in milliseconds, wrapping around every few hours
 // Losing more than 10ms precision.
 
@@ -304,6 +336,12 @@ void setupBuiltins()
   cogs_rules::user_functions1["bang"] = &fbang;
   cogs_rules::user_functions0["uptime"] = &uptimeFunction;
   cogs_rules::user_functions3["switch"] = &terenery;
+
+  cogs_rules::user_functions3["clamp"] = &clamp;
+
+  cogs_rules::user_functions2["min"] = &min;
+  cogs_rules::user_functions2["max"] = &max;
+
 }
 
 void cogs_rules::refreshBindingsEngine()
@@ -1044,6 +1082,11 @@ static void slowPoll()
 
 void cogs_rules::begin()
 {
+  if(cogs_rules::started){
+    cogs::logError("Rules already started");
+    cogs::addTroubleCode("ESETUPORDER");
+    return;
+  }
   cogs::mainThreadHandle = xTaskGetCurrentTaskHandle();
 
   setupBuiltins();
@@ -1062,6 +1105,8 @@ void cogs_rules::begin()
   cogs::fastPollHandlers.push_back(fastPoll);
   cogs::globalEventHandlers.push_back(&refreshHandler);
   refreshBindingsEngine();
+
+  cogs_rules::started = true;
 }
 
 bool Clockwork::handleEngineRefresh()

@@ -74,4 +74,6 @@ namespace cogs
     void registerFastPollHandler(void (*handler)());
     /// Unregister a fast handler if it is there
     void unregisterFastPollHandler(void (*handler)());
+
+    extern volatile int lastFastPollTime;
 }

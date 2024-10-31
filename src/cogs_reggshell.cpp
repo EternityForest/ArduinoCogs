@@ -41,11 +41,21 @@ void cogs_reggshell::exec(std::string & cmd){
     }
     enableSerial = true;
 }
+
+static void statusCallback(reggshell::Reggshell *rs)
+{
+  rs->print("Poll Cycle Time(us): ");
+  rs->println(cogs::lastFastPollTime);
+}
+
+
 void cogs_reggshell::begin()
 {
     if(cogs_reggshell::interpreter){
         return;
     }
+
+
     enableSerial = true;
 
     #if defined(ESP32) || defined(ESP8266)
@@ -53,6 +63,7 @@ void cogs_reggshell::begin()
     #endif
     cogs_reggshell::interpreter = new reggshell::Reggshell();
     cogs::registerFastPollHandler(fastPoll);
+    cogs_reggshell::interpreter->statusCallbacks.push_back(statusCallback);
 
     Serial.println("Reggshell initialized");
 }

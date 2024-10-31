@@ -108,6 +108,8 @@ export class PageRoot extends LitElement {
                     theme: "barebones"
                 });
 
+                await editor.promise;
+
                 let filedata = {}
 
                 try {
@@ -119,6 +121,7 @@ export class PageRoot extends LitElement {
                 catch (e) {
                     alert("No file found, creating.");
                 }
+
                 lastSavedVersion = editor.getValue();
 
             }

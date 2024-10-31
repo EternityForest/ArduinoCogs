@@ -28,6 +28,7 @@ extern "C"
 namespace cogs_rules
 {
 
+  extern bool started;
   extern bool needRefresh;
   typedef cogs_tagpoints::TagPoint IntTagPoint;
 

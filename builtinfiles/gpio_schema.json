@@ -1,5 +1,38 @@
 {
   "properties": {
+
+    "ouptuts": {
+      "items": {
+        "id": "input",
+        "properties": {
+          "invert": {
+            "title": "Active High",
+            "type": "boolean",
+            "description": "If unset, input is active when the voltage is low",
+            "required": false
+          },
+          "source": {
+            "title": "Source Variable",
+            "type": "string",
+            "description": "Pin will be set based on the value of this variable",
+            "options": {
+              "inputAttributes": {
+                "list": "tags"
+              }
+            }
+          },
+          "pin": {
+            "$ref": "/gpio/output_pin_schema.json",
+            "required": true
+          }
+        },
+        "title": "",
+        "type": "object"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+
     "inputs": {
       "items": {
         "id": "input",
@@ -165,7 +198,7 @@
           },
           "zeroValue": {
             "title": "Zero Value",
-            "type": "number",
+            "type": "string",
             "default": 1.65,
             "description": "Offset in scaled units that is considered zero.",
             "required": true
@@ -177,7 +210,7 @@
             "required": false,
             "description": "If set, automatically zero the value at boot and attempt to correct long term drift, if drift is below zeroValue."
           },
-          "driftSpeed": {
+          "driftTime": {
             "title": "Drift Speed(s)",
             "type": "number",
             "default": 3600,
@@ -186,6 +219,12 @@
           "referencePin": {
             "$ref": "/gpio/output_pin_schema.json",
             "description": "Output used as a reference, to measure conductance.  Use for matrix reading, capsense, etc."
+          },
+          "capSense": {
+            "title": "Capsense",
+            "type": "boolean",
+            "default": false,
+            "description": "If set, use capsense on the pin.  Value range is different on different pins and platforms, uses software fallback if HW not available."
           }
         },
         "title": "",

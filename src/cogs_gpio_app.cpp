@@ -25,6 +25,42 @@ namespace cogs_gpio
 
     bool foundError = false;
 
+    // Always return higher values for touch.
+    // Values may be positive or negative, they are inverted on some platforms
+    int swCapsenseRead(int pin)
+    {
+        int val = 0;
+
+// #if defined(ESP32) || defined(ESP8266)
+//         if (digitalPinToTouchChannel(pin) > -1)
+//         {
+// #if defined(SOC_TOUCH_VERSION_1)
+//             val = touchRead(pin);
+//             val = -val;
+// #else
+//             val = touchRead(pin);
+// #endif
+//         }
+// #endif
+        for (int i = 0; i < 24; i++)
+        {
+
+            pinMode(pin, INPUT_PULLDOWN);
+            delayMicroseconds(1);
+
+            pinMode(pin, INPUT_PULLUP);
+            pinMode(pin, INPUT);
+            val += analogRead(pin);
+
+            pinMode(pin, INPUT_PULLDOWN);
+            pinMode(pin, INPUT);
+            val -= analogRead(pin);
+        }
+        pinMode(pin, INPUT_PULLDOWN);
+
+        return -(val / 24);
+    }
+
     static GPIOInfo *gpioByName(const std::string &name)
     {
         for (auto &i : gpioInfo)
@@ -67,6 +103,19 @@ namespace cogs_gpio
         p->name = n;
         p->out = true;
         p->writeFunction = outputFunction;
+    }
+
+    void markDangerous(const std::string &name)
+    {
+        auto p = gpioByName(name);
+        if (p)
+        {
+            p->danger = true;
+        }
+        else
+        {
+            throw std::runtime_error("Unknown pin " + name);
+        }
     }
 
     /// This thread manages GPIO inputs
@@ -184,11 +233,12 @@ namespace cogs_gpio
             }
         }
 
-        if(foundError)
+        if (foundError)
         {
             cogs::addTroubleCode("EGPIOCONFIG");
         }
-        else{
+        else
+        {
             cogs::inactivateTroubleCode("EGPIOCONFIG");
         }
     }
@@ -220,6 +270,14 @@ namespace cogs_gpio
             cogs::logInfo("Already setup gpio app");
             return;
         }
+
+        if (!cogs_rules::started)
+        {
+            cogs::logError("gpio must start after rules");
+            cogs::addTroubleCode("ESETUPORDER");
+            return;
+        }
+
         alreadySetup = true;
         cogs::globalEventHandlers.push_back(globalEventsHandler);
         cogs::registerFastPollHandler(pollAllInputs);
@@ -296,8 +354,15 @@ namespace cogs_gpio
 
         cogs::logInfo("Using output " + pinName + " at " + std::to_string(pin));
 
-        pinMode(pin, OUTPUT);
+        if (config["pwmSteps"].is<int>())
+        {
+            this->pwmSteps = config["pwmSteps"].as<int>();
+        }
 
+        if (config["invert"].is<bool>())
+        {
+            this->invert = config["invert"].as<bool>();
+        }
         std::string st = config["source"].as<std::string>();
 
         if (cogs_rules::IntTagPoint::exists(st))
@@ -312,6 +377,13 @@ namespace cogs_gpio
             cogs::logError("Source " + st + " does not exist");
             foundError = true;
         }
+
+        onSourceTagSet(this->sourceTag.get());
+        if (pin < 1024)
+        {
+            pinMode(pin, OUTPUT);
+        }
+        onSourceTagSet(this->sourceTag.get());
     }
 
     CogsSimpleOutput::~CogsSimpleOutput()
@@ -360,16 +432,20 @@ namespace cogs_gpio
         }
 
         unsigned int pin = p->pin;
+        this->pin = pin;
 
         cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
 
-        if (pullup)
+        if (pin < 1024)
         {
-            pinMode(pin, INPUT_PULLUP);
-        }
-        else
-        {
-            pinMode(pin, INPUT);
+            if (pullup)
+            {
+                pinMode(pin, INPUT_PULLUP);
+            }
+            else
+            {
+                pinMode(pin, INPUT);
+            }
         }
 
         this->setupDigitalTargetsFromJson(config);
@@ -381,33 +457,32 @@ namespace cogs_gpio
             this->digitalValueTarget->setValue(this->lastInputLevel == this->activeHigh, 0, 1);
         }
 
-        this->pin = pin;
-
         int interuptNumber = -1;
         if (pin < 1024)
         {
+
+#if defined(ESP32) || defined(ESP8266)
+
+            if (config["deepSleepWake"].is<bool>())
+            {
+                if (config["deepSleepWake"].as<bool>())
+                {
+                    esp_sleep_enable_ext0_wakeup((gpio_num_t)pin, this->activeHigh);
+
+                    if (pullup)
+                    {
+                        rtc_gpio_pullup_en((gpio_num_t)pin);
+                        rtc_gpio_pulldown_dis((gpio_num_t)pin);
+                    }
+                }
+            }
+#endif
             interuptNumber = digitalPinToInterrupt(pin);
         }
         if (interuptNumber > -1)
         {
             attachInterrupt(interuptNumber, wakeISR, CHANGE);
         }
-
-#if defined(ESP32) || defined(ESP8266)
-        if (config["deepSleepWake"].is<bool>())
-        {
-            if (config["deepSleepWake"].as<bool>())
-            {
-                esp_sleep_enable_ext0_wakeup((gpio_num_t)pin, this->activeHigh);
-
-                if (pullup)
-                {
-                    rtc_gpio_pullup_en((gpio_num_t)pin);
-                    rtc_gpio_pulldown_dis((gpio_num_t)pin);
-                }
-            }
-        }
-#endif
     }
 
     void CogsDigitalInput::setupDigitalTargetsFromJson(const JsonVariant &config)
@@ -564,10 +639,19 @@ namespace cogs_gpio
         if (config["referencePin"].is<const char *>())
         {
             auto r = gpioByName(config["referencePin"].as<std::string>());
+
             if (r)
             {
-                this->referencePin = r->pin;
-                this->referenceWriteFunction = r->writeFunction;
+                if (!r->danger)
+                {
+                    this->referencePin = r->pin;
+                    this->referenceWriteFunction = r->writeFunction;
+                }
+                else
+                {
+                    cogs::logError("Cannot use dangerous pin as reference");
+                    foundError = true;
+                }
             }
             else
             {
@@ -587,7 +671,7 @@ namespace cogs_gpio
             scale = config["scale"].as<std::string>();
         }
 
-        if (config["driftTime"].is<const char *>())
+        if (config["driftTime"].is<float>())
         {
             this->driftFactor = cogs::fastGetApproxFilterBlendConstant(config["driftTime"].as<float>(), 1.0);
         }
@@ -599,9 +683,9 @@ namespace cogs_gpio
             this->inputScaleFactor = 1;
         }
 
-        if (config["hysteresis"].is<const char *>())
+        if (config["hysteresis"].is<double>())
         {
-            this->hysteresis = cogs_rules::evalExpression(config["hysteresis"].as<std::string>()) / this->inputScaleFactor;
+            this->hysteresis = config["hysteresis"].as<double>() / this->inputScaleFactor;
         }
 
         if (config["analogValueTarget"].is<const char *>())
@@ -629,25 +713,52 @@ namespace cogs_gpio
         }
 
         unsigned int pin = p->pin;
+        this->pin = pin;
 
         cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
 
-        if (pullup)
+        if (pin < 1024)
         {
-            pinMode(pin, INPUT_PULLUP);
-        }
-        else
-        {
-            pinMode(pin, INPUT);
-        }
-
-        if (config["centerValue"].is<const char *>())
-        {
-            this->centerValue = cogs_rules::evalExpression(config["centerValue"].as<std::string>()) / this->inputScaleFactor;
-            this->absoluteZeroOffset = this->centerValue;
+            if (pullup)
+            {
+                pinMode(pin, INPUT_PULLUP);
+            }
+            else
+            {
+                pinMode(pin, INPUT);
+            }
         }
 
-        this->lastInputLevel = ANREAD(pin);
+        if (config["capSense"].is<bool>())
+        {
+            if (config["capSense"].as<bool>())
+            {
+                if (this->pin > 1024)
+                {
+                    cogs::logError("Cannot use capsense on virtual pin");
+                    this->singleEndedSense = false;
+                    foundError = true;
+                }
+                else
+                {
+                    this->readFunction = &swCapsenseRead;
+                }
+            }
+        }
+
+        if (this->referencePin > -1)
+        {
+            if (!this->referenceWriteFunction)
+            {
+                pinMode(this->referencePin, OUTPUT);
+            }
+        }
+
+        if (config["zeroValue"].is<double>())
+        {
+            this->centerValue = config["centerValue"].as<double>() / this->inputScaleFactor;
+            this->absoluteZeroOffset = this->centerValue / this->inputScaleFactor;
+        }
 
         this->hystWindowCenter = this->centerValue;
         this->setupDigitalTargetsFromJson(config);
@@ -655,7 +766,7 @@ namespace cogs_gpio
         int samples = 64;
 
         // Assume virtual pins are slow.
-        if (pin > 1024)
+        if (this->readFunction)
         {
             samples = 8;
         }
@@ -663,14 +774,7 @@ namespace cogs_gpio
         int avg = 0;
         for (int i = 0; i < samples; i++)
         {
-            if (!this->readFunction)
-            {
-                avg += ANREAD(pin);
-            }
-            else
-            {
-                avg += this->readFunction(pin);
-            }
+            avg += this->rawRead();
         }
 
         avg /= samples;
@@ -679,8 +783,10 @@ namespace cogs_gpio
         this->filteredValue = avg;
 
         // Automatic zero at boot, only if it's fairly close to the center
-        if (config["autoZero"].as<bool>())
+        if (config["autoZero"].as<float>())
         {
+
+            this->autoZero = config["autoZero"].as<float>() / this->inputScaleFactor;
 
             // *2 is a random guess for what might be close enough to centered to count.
             if ((avg > this->centerValue + (this->autoZero)) ||
@@ -694,48 +800,45 @@ namespace cogs_gpio
                 this->centerValue = avg;
             }
         }
+        this->centerValueFloat = this->centerValue;
 
         this->hystWindowCenterFloat = this->hystWindowCenter;
-
-        this->pin = pin;
 
         int interuptNumber = -1;
         if (pin < 1024)
         {
+
+#if defined(ESP32) || defined(ESP8266)
+            if (config["deepSleepWake"].is<bool>())
+            {
+                if (config["deepSleepWake"].as<bool>())
+                {
+                    esp_sleep_enable_ext0_wakeup((gpio_num_t)pin, this->activeHigh);
+
+                    if (pullup)
+                    {
+                        rtc_gpio_pullup_en((gpio_num_t)pin);
+                        rtc_gpio_pulldown_dis((gpio_num_t)pin);
+                    }
+                }
+            }
+#endif
             interuptNumber = digitalPinToInterrupt(pin);
         }
         if (interuptNumber > -1)
         {
             attachInterrupt(interuptNumber, wakeISR, CHANGE);
         }
-
-#if defined(ESP32) || defined(ESP8266)
-        if (config["deepSleepWake"].is<bool>())
-        {
-            if (config["deepSleepWake"].as<bool>())
-            {
-                esp_sleep_enable_ext0_wakeup((gpio_num_t)pin, this->activeHigh);
-
-                if (pullup)
-                {
-                    rtc_gpio_pullup_en((gpio_num_t)pin);
-                    rtc_gpio_pulldown_dis((gpio_num_t)pin);
-                }
-            }
-        }
-#endif
     }
 
-    void CogsAnalogInput::poll()
+    inline int CogsAnalogInput::rawRead()
     {
-        bool windowMoved = false;
-
-        int val = 0;
-
         // If we have a reference pin, we actually take two measurements,
         // one with the reference pin high and one with it low,
         // and subtract them.  This gives a lock in amplifier style
         // measurement.
+
+        int val = 0;
         if (this->referencePin > -1)
         {
             if (this->referenceWriteFunction)
@@ -757,7 +860,6 @@ namespace cogs_gpio
             val = this->readFunction(this->pin);
         }
 
-
         if (this->referencePin > -1)
         {
             if (this->referenceWriteFunction)
@@ -778,6 +880,17 @@ namespace cogs_gpio
             }
         }
 
+        return val;
+    }
+
+    void CogsAnalogInput::poll()
+    {
+        unsigned long st = micros();
+
+        bool windowMoved = false;
+
+        int val = this->rawRead();
+
         if (this->filterTime > 0.0)
         {
             float t = cogs::fastGetApproxFilterBlendConstant(this->filterTime, cogs_pm::fps);
@@ -789,7 +902,7 @@ namespace cogs_gpio
         {
             this->hystWindowCenterFloat = val;
             this->hystWindowCenter = val;
-            this->onNewRawDigitalValue(true);
+            this->onNewRawDigitalValue(false);
             windowMoved = true;
         }
         else if (val > this->hystWindowCenter + this->hysteresis)
@@ -800,13 +913,11 @@ namespace cogs_gpio
             windowMoved = true;
         }
 
-
         if (windowMoved || (!this->analogHysteresis))
         {
             if (this->analogValueTarget)
             {
-                float realMeasurement = (val * this->inputScaleFactor) - this->centerValue;
-                cogs::logInfo("Real measurement: " + std::to_string(realMeasurement));
+                float realMeasurement = ((val - this->centerValue) * this->inputScaleFactor);
                 if (this->deadBand > 0.0)
                 {
                     if (abs(realMeasurement) < this->deadBand)
@@ -852,11 +963,14 @@ namespace cogs_gpio
                 {
                     if (val < (this->absoluteZeroOffset + this->autoZero))
                     {
+
                         this->centerValueFloat = cogs::blend(this->centerValueFloat, val, this->driftFactor);
                         this->centerValue = this->centerValueFloat;
                     }
                 }
             }
         }
+
+        // Serial.println(micros() - st);
     }
 }

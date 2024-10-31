@@ -14,8 +14,9 @@ namespace cogs_gpio
     public:
         int pin;
         char *name;
-        bool in;
-        bool out;
+        bool danger=false;
+        bool in=false;
+        bool out=false;
         int (*readFunction)(int) = nullptr;
         void (*writeFunction)(int, int) = nullptr;
     };
@@ -70,7 +71,7 @@ namespace cogs_gpio
         int centerValue = 0;
         float centerValueFloat = 0.0;
 
-        /// The original, not auto drift corrected
+        /// The original, not auto drift corrected, raw units
         float absoluteZeroOffset = 0.0;
 
         int hystWindowCenter = 0;
@@ -79,6 +80,8 @@ namespace cogs_gpio
         int hysteresis = 0;
 
         bool analogHysteresis = false;
+
+        bool singleEndedSense = false;
 
         unsigned long lastDriftCorrection = 0;
 
@@ -96,6 +99,8 @@ namespace cogs_gpio
 
         explicit CogsAnalogInput(const JsonVariant &config);
         virtual void poll();
+
+        inline int rawRead();
 
         // Used in lock-in amplifier mode for reference
         void (*referenceWriteFunction)(int,int) = nullptr;
@@ -129,6 +134,9 @@ namespace cogs_gpio
     //! Pin is GPIO pin number, use a value above 1024 for a virtual pin
     //! Read function is optional, and only relevant with virtual pins
     void declareOutput(const std::string &name, int pin, void (*)(int, int) = nullptr);
+
+    //! Mark a pin as dangerous
+    void markDangerous(const std::string &name);
 
     void begin();
 }
