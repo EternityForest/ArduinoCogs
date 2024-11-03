@@ -432,6 +432,18 @@ static void statusCommand(Reggshell *reggshell, const char *arg1, const char *ar
     reggshell->println("");
     reggshell->println("Status:");
 
+    #if defined(ESP32) || defined(ESP8266)
+    reggshell->print("  System Time: ");
+    char buf[64]; // flawfinder: ignore
+    struct tm timeinfo;
+    getLocalTime(&timeinfo);
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    reggshell->println(buf);
+
+    reggshell->print("  Timezone: ");
+    reggshell->println(getenv("TZ"));
+    #endif
+
     reggshell->print("  IP: ");
     reggshell->println(WiFi.localIP().toString().c_str());
 

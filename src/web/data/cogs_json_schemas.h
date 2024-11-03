@@ -32,6 +32,14 @@ static const char wifi_schema[] = R"(
             "title": "Password",
             "type": "string",
             "required": true
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string",
+            "enum": [
+              "AP",
+              "STA"
+            ]
           }
         },
         "title": "Network",

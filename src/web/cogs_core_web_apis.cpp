@@ -375,6 +375,51 @@ static void uploadFinal(AsyncWebServerRequest *request)
 
     cogs::unlock();
 }
+
+static void infoApi(AsyncWebServerRequest *request){
+
+    cogs::lock();
+
+    JsonDocument output = JsonDocument();
+    output["internalFlash"] = LittleFS.totalBytes();
+
+    #ifdef ESP32
+    output["serialNumber"] = ESP.getEfuseMac();
+    #endif
+    
+    output["hostname"] = cogs::getHostname();
+
+
+    JsonDocument doc = JsonDocument();
+    // Get info from /config/settings.json if possible
+    if (LittleFS.exists("/config/settings.json"))
+    {
+        auto file = LittleFS.open("/config/settings.json", "r");
+        if (file)
+        {
+            doc = JsonDocument();
+            deserializeJson(doc, file);
+            file.close();
+        }
+    }
+
+    output["intermittentAvailability"] = doc["intermittentAvailability"].as<bool>();
+
+    char * buf = (char *)malloc(4096);
+    if(!buf){
+        cogs::logError("malloc failed");
+        cogs::unlock();
+        return;
+    }
+    serializeJson(output, buf, 4096);
+    request->send(200, "application/json", buf);
+
+    delete buf;
+
+    cogs::unlock();
+}
+
+
 namespace cogs_web
 {
 
@@ -399,5 +444,7 @@ namespace cogs_web
         server.on("/api/cogs.tag", HTTP_GET, handleGetTagInfo);
 
         server.on("/api/cogs.tags", HTTP_GET, listTags);
+
+        server.on("/api/cogs.info", HTTP_GET, infoApi);
     }
 }

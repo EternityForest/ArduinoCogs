@@ -15,6 +15,7 @@
 #include "web/generated_data/picodash_min_js_gz.h"
 #include "web/generated_data/dash_app_js_gz.h"
 #include "web/generated_data/favicon_png_gz.h"
+#include "web/generated_data/settings_schema_json_gz.h"
 
 void setup_builtin_static()
 {
@@ -51,6 +52,9 @@ void setup_builtin_static()
 
     cogs_web::server.on("/builtin/schemas/device.json", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/json", device_schema); });
+
+    cogs_web::server.on("/builtin/schemas/settings.json", HTTP_GET, [](AsyncWebServerRequest *request)
+                        { cogs_web::sendGzipFile(request, settings_schema_json_gz, sizeof(settings_schema_json_gz), "application/json"); });
 
     // Automation schema is included on demand in editable automation
     cogs_web::server.on("/builtin/cogs.js", HTTP_GET, [](AsyncWebServerRequest *request)

@@ -14,6 +14,10 @@ namespace cogs{
 
     //! Clear a trouble code from RAM and persistent storage
     void clearTroubleCode(const std::string& code);
+}
 
-    void _troubleCodeSetup();
+namespace cogs_trouble_codes{
+
+    /// Load trouble codes from persistent storage
+    void load();
 }

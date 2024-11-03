@@ -40,6 +40,9 @@ namespace cogs_web
 
     bool scan_res_once = true;
 
+    bool initialSetupLockout = true;
+    bool usingInitialSetup = false;
+
     std::string localIp = "";
 
     unsigned long lastGoodConnection = 0;
@@ -98,6 +101,7 @@ namespace cogs_web
         cogs_web::NavBarEntry::create("🛠️Device", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/device.json&filename=/config/device.json");
         cogs_web::NavBarEntry::create("📂Files", "/default-template?load-module=/builtin/files_app.js");
         cogs_web::NavBarEntry::create("🎚️Dashboard", "/default-template?load-module=/builtin/dashboard_app.js");
+        cogs_web::NavBarEntry::create("⚙️Settings", "/default-template?load-module=/builtin/jsoneditor_app.js&schema=/builtin/schemas/settings.json&filename=/config/settings.json");
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
                   { request->redirect("/default-template?load-module=/builtin/welcome_page"); });
@@ -169,6 +173,19 @@ namespace cogs_web
             {
                 connectedTag->setValue(-999);
             }
+        }
+
+        // Initial setup networks turn off after 5 minutes
+        if(millis()>20000){
+            initialSetupLockout = true;
+        }
+
+        if(usingInitialSetup){
+            if(millis()>(5*60*1000)){
+                usingInitialSetup = false;
+            }
+            WiFi.mode(WIFI_OFF);
+            WiFi.mode(WIFI_STA);
         }
 
         if (WiFi.status() == WL_CONNECTED)
@@ -317,13 +334,23 @@ namespace cogs_web
             }
             std::string ssid = network["ssid"].as<std::string>();
             std::string pass = network["password"].as<std::string>();
+            std::string mode = network["mode"].as<std::string>();
+            bool initialSetup = network["initialSetup"].as<bool>();
+
+            if(initialSetup){
+                if(initialSetupLockout){
+                    continue;
+                }
+            }
+
+
             int minRSSI = -100;
 
             cogs::logInfo("Wifi candidate:");
             cogs::logInfo(ssid);
             int rssi = rssiForScannedNetwork(ssid);
             cogs::logInfo("RSSI is " + std::to_string(rssi));
-            if (rssi > minRSSI)
+            if ((rssi > minRSSI) || (mode == "AP"))
             {
 
                 if (wifiFailTimestamps.count(ssid) > 0)
@@ -337,7 +364,18 @@ namespace cogs_web
 
                 connectingAttempt = ssid;
 
-                WiFi.begin(ssid.c_str(), pass.c_str());
+
+                WiFi.setHostname(default_host.c_str());
+                if(mode == "AP"){
+                    WiFi.mode(WIFI_AP);
+                    WiFi.softAP(ssid.c_str(), pass.c_str());
+                }
+                else{
+                    WiFi.mode(WIFI_STA);
+                    WiFi.begin(ssid.c_str(), pass.c_str());
+                }
+                usingInitialSetup = initialSetup;
+
                 auto slptag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);
 
                 WiFi.setSleep(slptag->value[0] > 0);

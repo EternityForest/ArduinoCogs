@@ -82,7 +82,7 @@ namespace cogs_rules
   public:
     int32_t start;
     int32_t duration;
-    uint16_t alpha;
+    uint16_t alpha = FXP_RES;
     bool fadeDone = false;
     virtual void applyLayer(int32_t *vals, uint16_t start) override;
 

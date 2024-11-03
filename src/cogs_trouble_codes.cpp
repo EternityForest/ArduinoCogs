@@ -163,7 +163,12 @@ static void getTroubleCodesWebAPI(AsyncWebServerRequest *request)
 
 void cogs_web::_troubleCodeSetup()
 {
+    cogs_web::server.on("/api/cogs.trouble-codes", HTTP_GET, getTroubleCodesWebAPI);
+    cogs_web::server.on("/api/cogs.clear-trouble-code", HTTP_POST, clearTroubleCodeWebAPI);
+}
 
+void cogs_trouble_codes::load()
+{
     if (LittleFS.exists("/var/trouble-codes.json"))
     {
         File file = LittleFS.open("/var/trouble-codes.json", "r"); // flawfinder: ignore
@@ -178,7 +183,4 @@ void cogs_web::_troubleCodeSetup()
             file.close();
         }
     }
-
-    cogs_web::server.on("/api/cogs.trouble-codes", HTTP_GET, getTroubleCodesWebAPI);
-    cogs_web::server.on("/api/cogs.clear-trouble-code", HTTP_POST, clearTroubleCodeWebAPI);
 }
