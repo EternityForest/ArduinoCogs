@@ -163,6 +163,7 @@ cat << "--EOF--" > config/network.json
   "password": "hunter3",
   "hostname": "NameForYourDevice"
 }
+--EOF--
 ```
 
 Afterwards it will show up in any recent browser at `http://YourHostname.local`
