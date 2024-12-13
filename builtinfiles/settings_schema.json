@@ -4,7 +4,7 @@
     "properties": {
         "intermittentAvailability": {
             "type": "boolean",
-            "title": "Always on",
+            "title": "Intermittent Availability",
             "description": "If set, the device can declare that going offline is normal and to be expected."
         },
         "model": {
