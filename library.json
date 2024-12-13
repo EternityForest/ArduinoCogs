@@ -21,7 +21,7 @@
       "me-no-dev/AsyncTCP": "^1.1.1",
       "bblanchon/ArduinoJson":"^7.2.0",
       "nickgammon/Regexp":"0.1.0",
-      "fastled/FastLED@":"^3.8.0"
+      "fastled/FastLED":"^3.8.0"
     },
     "frameworks": "*",
     "platforms": "*"

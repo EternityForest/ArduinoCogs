@@ -11,6 +11,28 @@ static const char generic_object_schema[] = R"(
 static const char wifi_schema[] = R"(
 {
   "properties": {
+    "accessPoint": {
+      "title": "Access Point",
+      "type": "object",
+      "required": true,
+      "properties": {
+        "ssid": {
+          "title": "SSID/Wifi Name",
+          "type": "string",
+          "required": true
+        },
+        "password": {
+          "title": "Password",
+          "type": "string",
+          "required": true
+        },
+        "enable": {
+          "title": "Enable",
+          "type": "boolean",
+          "required": true
+        }
+      }
+    },
     "networks": {
       "title": "Networks",
       "type": "array",
@@ -32,14 +54,6 @@ static const char wifi_schema[] = R"(
             "title": "Password",
             "type": "string",
             "required": true
-          },
-          "mode": {
-            "title": "Mode",
-            "type": "string",
-            "enum": [
-              "AP",
-              "STA"
-            ]
           }
         },
         "title": "Network",

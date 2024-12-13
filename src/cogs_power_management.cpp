@@ -43,7 +43,7 @@ namespace cogs_pm
                                         return;
                                 }
                         }
-                        auto t = cogs_rules::IntTagPoint::getTag("$deepsleep.time", 3600);
+                        auto t = cogs_rules::IntTagPoint::getTag("sys.deepsleep.time", 3600);
                         unsigned long tm = t->value[0] * 1000000;
                         cogs::logInfo("Going to deep sleep for max time: " + std::to_string(tm) + "us");
                         esp_sleep_enable_timer_wakeup(tm);
@@ -157,14 +157,14 @@ namespace cogs_pm
 
                 cogs::slowPollHandlers.push_back(&slowPoll);
 
-                auto t = cogs_rules::IntTagPoint::getTag("$deepsleep.time", 3600);
+                auto t = cogs_rules::IntTagPoint::getTag("sys.deepsleep.time", 3600);
                 t->setUnit("s");
 
-                t = cogs_rules::IntTagPoint::getTag("$deepsleep.go", 0);
+                t = cogs_rules::IntTagPoint::getTag("sys.deepsleep.go", 0);
                 t->subscribe(&onDeepSleepGo);
                 t->setUnit("bang");
 
-                t = cogs_rules::IntTagPoint::getTag("$fps", 48);
+                t = cogs_rules::IntTagPoint::getTag("sys.fps", 48);
                 t->subscribe(&onFPSTag);
                 t->setUnit("fps");
                 t->min = 1;

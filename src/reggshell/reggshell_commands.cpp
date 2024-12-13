@@ -517,7 +517,7 @@ static void scanCommand(reggshell::Reggshell *interpreter, const char *arg1, con
 static void deepSleepCommand(reggshell::Reggshell *interpreter, const char *arg1, const char *arg2, const char *arg3)
 {
     interpreter->println("Going to deep sleep");
-    auto t = cogs_rules::IntTagPoint::getTag("$deepsleep.time", 3600);
+    auto t = cogs_rules::IntTagPoint::getTag("sys.deepsleep.time", 3600);
     esp_sleep_enable_timer_wakeup(t->value[0] * 1000000);
     esp_deep_sleep_start();
 }
@@ -544,7 +544,7 @@ void Reggshell::addBuiltins()
     this->addSimpleCommand("help", helpCommand, "Prints this help");
     this->addSimpleCommand("status", statusCommand, "Prints status info");
     this->addSimpleCommand("i2cdetect", scanCommand, "Scans for I2C devices");
-    this->addSimpleCommand("deepsleep", deepSleepCommand, "Go to deep sleep for $deepsleep.time seconds");
+    this->addSimpleCommand("deepsleep", deepSleepCommand, "Go to deep sleep for sys.deepsleep.time seconds");
     this->addSimpleCommand("rm", rmCommand, "Removes a file");
     this->addSimpleCommand("wifioff", wifioffcommand, "Turns off wifi for testing");
 }

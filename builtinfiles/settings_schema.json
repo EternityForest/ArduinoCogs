@@ -1,0 +1,16 @@
+{
+    "type": "object",
+    "title": "System Settings",
+    "properties": {
+        "intermittentAvailability": {
+            "type": "boolean",
+            "title": "Always on",
+            "description": "If set, the device can declare that going offline is normal and to be expected."
+        },
+        "model": {
+            "type": "string",
+            "title": "Device Model",
+            "description": "The model of the device."
+        }
+    }
+}

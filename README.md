@@ -221,17 +221,17 @@ This is the special value of 16384.
 
 ## Builtin Tag Points
 
-### $deepsleep.go
+### sys.deepsleep.go
 When set to nonzero, immediately go to deep sleep. Locked out for 5 minutes after resetting,
 to prevent you from getting into a state you can't modify via the web.
 
-### $deepsleep.time
+### sys.deepsleep.time
 Wake up from deep sleep after this time
 
-### $wifi.on
+### wifi.on
 When set to zero, disables wifi.  Locked out similarly to deep sleep.
 
-### $fps
+### sys.fps
 Minimum poll rate in fps.  Some events can trigger polling immediately regardless of this setting.
 
 

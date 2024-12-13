@@ -40,8 +40,7 @@ namespace cogs_web
 
     bool scan_res_once = true;
 
-    bool initialSetupLockout = true;
-    bool usingInitialSetup = false;
+    bool apStarted = false;
 
     std::string localIp = "";
 
@@ -141,6 +140,10 @@ namespace cogs_web
     void check_wifi(bool force = false)
     {
 
+        std::string ap_ssid = "";
+        std::string ap_pass = "";
+        bool use_ap = false;
+
         if (connectedTag.get())
         {
             if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
@@ -173,19 +176,6 @@ namespace cogs_web
             {
                 connectedTag->setValue(-999);
             }
-        }
-
-        // Initial setup networks turn off after 5 minutes
-        if(millis()>20000){
-            initialSetupLockout = true;
-        }
-
-        if(usingInitialSetup){
-            if(millis()>(5*60*1000)){
-                usingInitialSetup = false;
-            }
-            WiFi.mode(WIFI_OFF);
-            WiFi.mode(WIFI_STA);
         }
 
         if (WiFi.status() == WL_CONNECTED)
@@ -282,12 +272,46 @@ namespace cogs_web
             return;
         }
 
+
+
+        if (doc["accessPoint"].as<JsonObject>())
+        {
+            use_ap = doc["accessPoint"]["enabled"].as<bool>();
+            if (use_ap)
+            {
+                ap_ssid = doc["accessPoint"]["ssid"].as<std::string>();
+                ap_pass = doc["accessPoint"]["password"].as<std::string>();
+
+                if (ap_ssid.length() > 0)
+                {
+                    use_ap = true;
+                    if (!apStarted)
+                    {
+                        apStarted = true;
+                        WiFi.mode(WIFI_AP_STA);
+                        WiFi.softAP(ap_ssid.c_str(), ap_pass.c_str());
+                    }
+                }
+                else{
+                    use_ap = false;
+                }
+            }
+        }
+
         if ((!lastWifiScan) || (millis() - lastWifiScan > 40000))
         {
             cogs::logInfo("Begin wifi scan");
             scan_res_once = true;
-            WiFi.mode(WIFI_STA);
-            if(WiFi.scanNetworks(true) == WIFI_SCAN_RUNNING){
+            if (!use_ap)
+            {
+                WiFi.mode(WIFI_STA);
+            }
+            else
+            {
+                WiFi.mode(WIFI_AP_STA);
+            }
+            if (WiFi.scanNetworks(true) == WIFI_SCAN_RUNNING)
+            {
                 cogs::logInfo("Already running");
             }
             lastWifiScan = millis();
@@ -315,7 +339,7 @@ namespace cogs_web
             cogs::logInfo("Found:" + std::to_string(found));
             for (int i = 0; i < found; i++)
             {
-                cogs::logInfo("   " + std::string( WiFi.SSID(i).c_str()));
+                cogs::logInfo("   " + std::string(WiFi.SSID(i).c_str()));
             }
             scan_res_once = false;
         }
@@ -335,14 +359,6 @@ namespace cogs_web
             std::string ssid = network["ssid"].as<std::string>();
             std::string pass = network["password"].as<std::string>();
             std::string mode = network["mode"].as<std::string>();
-            bool initialSetup = network["initialSetup"].as<bool>();
-
-            if(initialSetup){
-                if(initialSetupLockout){
-                    continue;
-                }
-            }
-
 
             int minRSSI = -100;
 
@@ -350,7 +366,7 @@ namespace cogs_web
             cogs::logInfo(ssid);
             int rssi = rssiForScannedNetwork(ssid);
             cogs::logInfo("RSSI is " + std::to_string(rssi));
-            if ((rssi > minRSSI) || (mode == "AP"))
+            if (rssi > minRSSI)
             {
 
                 if (wifiFailTimestamps.count(ssid) > 0)
@@ -364,19 +380,24 @@ namespace cogs_web
 
                 connectingAttempt = ssid;
 
-
                 WiFi.setHostname(default_host.c_str());
-                if(mode == "AP"){
-                    WiFi.mode(WIFI_AP);
-                    WiFi.softAP(ssid.c_str(), pass.c_str());
+                if (use_ap)
+                {
+                    WiFi.mode(WIFI_AP_STA);
                 }
-                else{
+                else
+                {
                     WiFi.mode(WIFI_STA);
-                    WiFi.begin(ssid.c_str(), pass.c_str());
                 }
-                usingInitialSetup = initialSetup;
 
-                auto slptag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);
+                WiFi.begin(ssid.c_str(), pass.c_str());
+
+                if (use_ap)
+                {
+                    WiFi.softAP(ap_ssid.c_str(), ap_pass.c_str());
+                }
+
+                auto slptag = cogs_rules::IntTagPoint::getTag("wifi.ps", 1, 1);
 
                 WiFi.setSleep(slptag->value[0] > 0);
                 WiFi.setHostname(default_host.c_str());
@@ -432,6 +453,8 @@ namespace cogs_web
         {
             if (ends_with(path, "config/network.json"))
             {
+                // Redo AP mode
+                cogs_web::apStarted = false;
                 cogs_web::check_wifi(true);
             }
         }
@@ -448,11 +471,11 @@ namespace cogs_web
         WiFi.persistent(false);
         WiFi.mode(WIFI_STA);
 
-        connectedTag = cogs_rules::IntTagPoint::getTag("$wifi.rssi", -999, 1);
+        connectedTag = cogs_rules::IntTagPoint::getTag("wifi.rssi", -999, 1);
         connectedTag->setUnit("dBm");
 
-        auto wtag = cogs_rules::IntTagPoint::getTag("$wifi.on", 1, 1);
-        auto pstag = cogs_rules::IntTagPoint::getTag("$wifi.ps", 1, 1);
+        auto wtag = cogs_rules::IntTagPoint::getTag("wifi.on", 1, 1);
+        auto pstag = cogs_rules::IntTagPoint::getTag("wifi.ps", 1, 1);
 
         pstag->subscribe(&handlePSTag);
         wtag->subscribe(&handleWifiTag);

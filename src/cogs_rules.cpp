@@ -1071,7 +1071,7 @@ void refreshHandler(cogs::GlobalEvent evt, int dummy, const std::string &filenam
   }
 }
 
-auto ram = IntTagPoint::getTag("$ram", 0);
+auto ram = IntTagPoint::getTag("sys.memfree", 0);
 
 static void slowPoll()
 {
