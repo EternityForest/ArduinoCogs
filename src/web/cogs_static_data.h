@@ -16,6 +16,7 @@
 #include "web/generated_data/dash_app_js_gz.h"
 #include "web/generated_data/favicon_png_gz.h"
 #include "web/generated_data/settings_schema_json_gz.h"
+#include "web/generated_data/network_schema_json_gz.h"
 
 void setup_builtin_static()
 {
@@ -48,7 +49,7 @@ void setup_builtin_static()
                         { request->send(200, "application/json", generic_object_schema); });
 
     cogs_web::server.on("/builtin/schemas/network.json", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { request->send(200, "application/json", wifi_schema); });
+                        { cogs_web::sendGzipFile(request, network_schema_json_gz, sizeof(network_schema_json_gz), "application/json"); });
 
     cogs_web::server.on("/builtin/schemas/device.json", HTTP_GET, [](AsyncWebServerRequest *request)
                         { request->send(200, "application/json", device_schema); });

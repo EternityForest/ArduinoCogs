@@ -7,64 +7,6 @@ static const char generic_object_schema[] = R"(
 }
 )";
 
-// Schema for the wifi settings
-static const char wifi_schema[] = R"(
-{
-  "properties": {
-    "accessPoint": {
-      "title": "Access Point",
-      "type": "object",
-      "required": true,
-      "properties": {
-        "ssid": {
-          "title": "SSID/Wifi Name",
-          "type": "string",
-          "required": true
-        },
-        "password": {
-          "title": "Password",
-          "type": "string",
-          "required": true
-        },
-        "enable": {
-          "title": "Enable",
-          "type": "boolean",
-          "required": true
-        }
-      }
-    },
-    "networks": {
-      "title": "Networks",
-      "type": "array",
-      "minItems": 1,
-      "required": true,
-      "format": "tabs-top",
-      "items": {
-        "options": {
-          "disable_collapse": true,
-          "disable_properties": true
-        },
-        "properties": {
-          "ssid": {
-            "title": "SSID/Wifi Name",
-            "type": "string",
-            "required": true
-          },
-          "password": {
-            "title": "Password",
-            "type": "string",
-            "required": true
-          }
-        },
-        "title": "Network",
-        "type": "object"
-      }
-    },
-  "title": "Network Settings",
-  "type": "object"
-}
-)";
-
 
 // Schema for the device-specific settings
 static const char device_schema[] = R"(
