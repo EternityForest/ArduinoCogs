@@ -145,6 +145,31 @@ Cogs includes an optional web server, powered by ESPAsyncwebserver, making it ea
 
 The web server provides a small set of APIs, mostly for editing files.
 
+### Python API
+
+iot_devices can talk to this, and will handle reconnection gracefully.
+
+```python
+import time
+from iot_devices.host import get_class, create_device
+
+data = {
+    "type": "ArduinoCogsClient",
+    "url": "forest.local"
+}
+c = get_class(data)
+device = create_device(c ,"MyDevice", data)
+
+# Wait for it to connect and discover data points on the device.
+while "board.ext_humidity" not in device.datapoints:
+    time.sleep(1)
+
+print(f"Connected: {device.datapoints["api_connected"]})
+print(f"Humidty: {device.datapoints["board.ext_humidity"]})
+
+device.close()
+```
+
 ## Setting up credentials
 
 There are two ways to connect to wifi, directly in code:
