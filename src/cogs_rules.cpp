@@ -803,12 +803,18 @@ Clockwork::Clockwork(const std::string &name)
 
 void Clockwork::gotoState(const std::string &name, unsigned long time)
 {
+  cogs::logInfo("Clockwork " + this->name + " gotoState " + name);
 
   if (this->currentState)
   {
     std::string stateName = this->currentState->name;
     auto tag = IntTagPoint::getTag(this->name + ".states." + stateName, 0);
-    tag->setValue(0);
+    // If re-entering the same state, don't reset it
+    // that would trigger an infinite loop with the tag point making us re-enter
+    if(! (name== stateName))
+    {
+      tag->setValue(0);
+    }
     this->currentState->exit();
   }
 
@@ -849,17 +855,33 @@ Clockwork::~Clockwork()
   }
 }
 
+// The GIL should make this ok
+int recursionLimit = 0;
+
 static void onStateTagSet(IntTagPoint *tag)
 {
+  recursionLimit++;
+  
   State *state = static_cast<State *>(tag->extraData);
+
+  if (recursionLimit > 2)
+  {
+    cogs::logError("State tag set recursion limit exceeded going to "+state->name);
+    recursionLimit = 0;
+    return;
+  }
+
   if (state)
   {
     if (tag->value[0])
     {
+      cogs::logInfo("Clockwork tag set" + state->owner->name + " gotoState " + state->name);
       state->owner->gotoState(state->name);
     }
     state->eval();
   }
+
+  recursionLimit--;
 }
 
 std::shared_ptr<State> Clockwork::getState(std::string name)
@@ -909,12 +931,13 @@ void Clockwork::eval()
   {
 
     // handle duration logic
-    if (this->currentState->duration)
+    if (this->currentState->duration>0)
     {
-      if (millis() - this->enteredAt > this->currentState->duration)
+      if ((millis() - this->enteredAt) > this->currentState->duration)
       {
         if (this->currentState->nextState.length() > 0)
         {
+          cogs::logInfo("Clockwork " + this->name + " timer transition to " + this->currentState->nextState);
           this->gotoState(this->currentState->nextState);
         }
       }

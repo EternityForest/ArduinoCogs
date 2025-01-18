@@ -73,13 +73,13 @@
             "format": "tabs-top",
             "items": {
                 "options": {
-                    "disable_collapse": true,
-                    "disable_properties": true
+                    "disable_collapse": true
                 },
                 "properties": {
                     "name": {
                         "type": "string",
-                        "default": "Untitled Clockwork"
+                        "default": "Untitled Clockwork",
+                        "required": true
                     },
                     "states": {
                         "description": "A state represents a mode, status, or condition that a Clockwork can be in.",
@@ -87,6 +87,8 @@
                         "options": {
                             "disable_collapse": true
                         },
+                        "default": [],
+                        "required": true,
                         "items": {
                             "id": "state",
                             "headerTemplate": "state: {{name}}",
@@ -99,9 +101,27 @@
                             "properties": {
                                 "name": {
                                     "type": "string",
-                                    "default": "default"
+                                    "default": "default",
+                                    "required": true
+                                },
+
+                                "duration": {
+                                    "type": "number",
+                                    "default": "0",
+                                    "minimum": "0",
+                                    "required": false,
+                                    "unit": "ms",
+                                    "description": "If present and not zero, go to next state after N milliseconds"
+                                },
+                                "nextState": {
+                                    "type": "string",
+                                    "default": "",
+                                    "required": false,
+                                    "description": "Sets the 'next' state to go to when duration timer expires."
                                 },
                                 "bindings": {
+                                    "required": true,
+                                    "default": [],
                                     "description": "While a state is active, a binding sets the value of a variable. similar to spreadsheet expressions",
                                     "options": {
                                         "disable_collapse": true

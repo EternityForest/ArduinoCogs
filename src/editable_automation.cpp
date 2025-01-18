@@ -148,6 +148,15 @@ static void _loadFromFile()
         {
             auto s = new_clockwork->getState(stateData["name"].as<std::string>());
 
+            if (stateData["nextState"].is<const char *>())
+            {
+                s->nextState = stateData["nextState"].as<std::string>();
+            }
+            if (stateData["duration"].is<int>())
+            {
+                s->duration = stateData["duration"].as<int>();
+            }
+
             auto bindings = stateData["bindings"];
             if (!bindings.is<JsonArray>())
             {
