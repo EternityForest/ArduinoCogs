@@ -214,7 +214,7 @@ namespace cogs_gpio
         }
 
         JsonVariant outputs = doc["outputs"];
-        if (inputs.is<JsonArray>())
+        if (outputs.is<JsonArray>())
         {
 
             for (auto const &output : outputs.as<JsonArray>())
@@ -224,7 +224,7 @@ namespace cogs_gpio
         }
 
         JsonVariant analogs = doc["analogInputs"];
-        if (inputs.is<JsonArray>())
+        if (analogs.is<JsonArray>())
         {
 
             for (auto const &analog : analogs.as<JsonArray>())
@@ -307,7 +307,9 @@ namespace cogs_gpio
             return;
         }
 
+
         int v = tag->value[0];
+
         if (v >= o->pwmSteps)
         {
             v = o->pwmSteps;
@@ -352,6 +354,8 @@ namespace cogs_gpio
 
         int pin = p->pin;
 
+        this->pin = pin;
+
         cogs::logInfo("Using output " + pinName + " at " + std::to_string(pin));
 
         if (config["pwmSteps"].is<int>())
@@ -365,20 +369,19 @@ namespace cogs_gpio
         }
         std::string st = config["source"].as<std::string>();
 
-        if (cogs_rules::IntTagPoint::exists(st))
+        // We need to "own" the tag and can't use an existing one,
+        // otherwise someone else might mess with extra data
+        if (!(st.rfind("output.", 0)==0))
         {
-
-            this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0);
-            this->sourceTag->extraData = this;
-            this->sourceTag->subscribe(&onSourceTagSet);
-        }
-        else
-        {
-            cogs::logError("Source " + st + " does not exist");
-            foundError = true;
+            st = "output." + st;
         }
 
-        onSourceTagSet(this->sourceTag.get());
+ 
+        this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0);
+        this->sourceTag->extraData = this;
+        this->sourceTag->subscribe(&onSourceTagSet);
+ 
+
         if (pin < 1024)
         {
             pinMode(pin, OUTPUT);
@@ -391,6 +394,11 @@ namespace cogs_gpio
         if (this->sourceTag)
         {
             this->sourceTag->unsubscribe(&onSourceTagSet);
+        }
+
+        if(this->pin<1024)
+        {
+            pinMode(this->pin, INPUT);
         }
     }
 
@@ -885,7 +893,7 @@ namespace cogs_gpio
 
     void CogsAnalogInput::poll()
     {
-        unsigned long st = micros();
+        //unsigned long st = micros();
 
         bool windowMoved = false;
 

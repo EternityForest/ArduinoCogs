@@ -35,7 +35,8 @@
                         "default": "16348",
                         "minimum": "1",
                         "maximum": "65535",
-                        "description": "With resolution of 100, the variable would have 0.01 steps."
+                        "description": "With resolution of 100, the variable would have 0.01 steps.",
+                        "required": true
                     },
                     "persistent": {
                         "type": "boolean",

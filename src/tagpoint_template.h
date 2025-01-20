@@ -72,6 +72,10 @@ namespace cogs_tagpoints
     /// is this many when converted to int.
     void setScale(int s)
     {
+      if(s==0)
+      {
+        cogs::logError("Tag scale cannot be 0 in "+this->name);
+      }
       this->scale = s;
       this->scale_inverse = 1.0f / scale;
     }

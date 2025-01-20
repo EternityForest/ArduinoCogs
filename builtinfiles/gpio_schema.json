@@ -1,10 +1,19 @@
 {
   "properties": {
 
-    "ouptuts": {
+    "outputs": {
       "items": {
         "id": "input",
         "properties": {
+          "pwmSteps":
+          {
+            "title": "PWM Steps",
+            "type": "number",
+            "default": 255,
+            "minimum": 0,
+            "maximum": 4096,
+            "required": false,
+          "description": "Set to enable analog PWM output"},
           "invert": {
             "title": "Active High",
             "type": "boolean",
@@ -12,9 +21,9 @@
             "required": false
           },
           "source": {
-            "title": "Source Variable",
+            "title": "Source Variable.",
             "type": "string",
-            "description": "Pin will be set based on the value of this variable",
+            "description": "Pin will be set based on the value of this variable. Must start with output.",
             "options": {
               "inputAttributes": {
                 "list": "tags"
