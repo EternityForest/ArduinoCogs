@@ -121,10 +121,15 @@ namespace cogs_tagpoints
 
     /*!
     @param name The name of the tag
+    @param default_value How many values the tag has
     @param default_value The default value of the tag.  Ignored if tag already exists.
+    @param default_scale The default scale of the tag.  Ignored if tag already exists.
+
     */
 
-    static std::shared_ptr<TagPoint> getTag(std::string name, TAG_DATA_TYPE default_value, int count = 1)
+    static std::shared_ptr<TagPoint> getTag(std::string name, 
+    TAG_DATA_TYPE default_value, int count = 1,
+    int default_scale = 1)
     {
       bool is_new = !TagPoint::exists(name);
 
@@ -154,6 +159,10 @@ namespace cogs_tagpoints
       {
         if (tag->name == name)
         {
+          if(is_new)
+          {
+            tag->setScale(default_scale);
+          }
           return tag;
         }
       }

@@ -144,7 +144,7 @@ namespace cogs_gpio
         JsonDocument doc;
         doc["type"] = "string";
         int ctr = 0;
-        for (auto const &e : gpioInfo)
+        for (const auto &e : gpioInfo)
         {
             if (e->in == true)
             {
@@ -163,7 +163,7 @@ namespace cogs_gpio
         JsonDocument doc;
         doc["type"] = "string";
         int ctr = 0;
-        for (auto const &e : gpioInfo)
+        for  (const auto &e : gpioInfo)
         {
             if (e->out == true)
             {
@@ -271,11 +271,10 @@ namespace cogs_gpio
             return;
         }
 
-        if (!cogs_rules::started)
+        if (cogs_rules::started)
         {
-            cogs::logError("gpio must start after rules");
+            cogs::logError("gpio should start before rules");
             cogs::addTroubleCode("ESETUPORDER");
-            return;
         }
 
         alreadySetup = true;
@@ -346,7 +345,7 @@ namespace cogs_gpio
         }
 
         std::string pinName = config["pin"].as<std::string>();
-        auto p = gpioByName(pinName);
+        const cogs_gpio::GPIOInfo *p = gpioByName(pinName);
         if (p == 0)
         {
             throw std::runtime_error("Invalid pin " + pinName);
@@ -371,13 +370,14 @@ namespace cogs_gpio
 
         // We need to "own" the tag and can't use an existing one,
         // otherwise someone else might mess with extra data
-        if (!(st.rfind("output.", 0)==0))
+        // so enforce a prefix
+        if (!(st.rfind("outputs.", 0)==0))
         {
-            st = "output." + st;
+            st = "outputs." + st;
         }
 
  
-        this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0);
+        this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0, 1, cogs_rules::FXP_RES);
         this->sourceTag->extraData = this;
         this->sourceTag->subscribe(&onSourceTagSet);
  
@@ -500,16 +500,7 @@ namespace cogs_gpio
             std::string st = config["activeTarget"].as<std::string>();
             if (st.size() > 0)
             {
-                bool existed = cogs_rules::IntTagPoint::exists(st);
-                if (!existed)
-                {
-                    cogs::logError("Target " + st + " does not exist");
-                    foundError = true;
-                }
-                else
-                {
-                    this->activeTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
-                }
+                this->activeTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
             }
         }
 
@@ -518,16 +509,7 @@ namespace cogs_gpio
             std::string st = config["inactiveTarget"].as<std::string>();
             if (st.size() > 0)
             {
-                bool existed = cogs_rules::IntTagPoint::exists(st);
-                if (!existed)
-                {
-                    cogs::logError("Target " + st + " does not exist");
-                    foundError = true;
-                }
-                else
-                {
-                    this->inactiveTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
-                }
+                this->inactiveTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
             }
         }
 
@@ -536,16 +518,7 @@ namespace cogs_gpio
             std::string st = config["digitalValueTarget"].as<std::string>();
             if (st.size() > 0)
             {
-                bool existed = cogs_rules::IntTagPoint::exists(st);
-                if (!existed)
-                {
-                    cogs::logError("Target " + st + " does not exist");
-                    foundError = true;
-                }
-                else
-                {
-                    this->digitalValueTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
-                }
+                this->digitalValueTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
             }
         }
     }
@@ -701,16 +674,7 @@ namespace cogs_gpio
             std::string st = config["analogValueTarget"].as<std::string>();
             if (st.size() > 0)
             {
-                bool existed = cogs_rules::IntTagPoint::exists(st);
-                if (!existed)
-                {
-                    cogs::logError("Target " + st + " does not exist");
-                    foundError = true;
-                }
-                else
-                {
-                    this->analogValueTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
-                }
+                this->analogValueTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1, cogs_rules::FXP_RES);
             }
         }
 
