@@ -18,6 +18,7 @@ using namespace cogs_rules;
 
 static std::map<std::string, std::shared_ptr<Clockwork>> webClockworks;
 
+
 static void closeAllClockworks()
 {
 
@@ -342,7 +343,6 @@ static void exprDatalist(AsyncWebServerRequest *request)
 }
 void cogs_editable_automation::begin()
 {
-    started = true;
     loadFromFile();
 
     cogs_web::server.on("/api/tags", HTTP_GET, listTargetsApi);

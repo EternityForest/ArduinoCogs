@@ -4,7 +4,7 @@ namespace cogs_editable_automation{
     /// When a global file change event happens, it will update them.
     void begin();
 
-    bool started = false;
+    extern bool started;
     /// Adds editing UI for the web.
    // void setupWebEditing();
 }

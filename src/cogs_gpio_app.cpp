@@ -4,7 +4,7 @@
 #include "web/cogs_web.h"
 #include "cogs_power_management.h"
 #include "cogs_trouble_codes.h"
-#include "cogs_editable_automation.h"
+#include "editable_automation.h"
 
 #include "web/generated_data/gpio_schema_json_gz.h"
 #if defined(ESP32) || defined(ESP8266)
@@ -300,11 +300,11 @@ namespace cogs_gpio
             return;
         }
 
-        if (cogs_editable_automation::started)
-        {
-            cogs::logError("gpio should start before rules");
-            cogs::addTroubleCode("ESETUPORDER");
-        }
+        // if (cogs_editable_automation::started)
+        // {
+        //     cogs::logError("gpio should start before rules");
+        //     cogs::addTroubleCode("ESETUPORDER");
+        // }
 
         alreadySetup = true;
         cogs::globalEventHandlers.push_back(globalEventsHandler);
