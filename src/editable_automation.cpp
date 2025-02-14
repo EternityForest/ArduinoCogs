@@ -342,6 +342,7 @@ static void exprDatalist(AsyncWebServerRequest *request)
 }
 void cogs_editable_automation::begin()
 {
+    started = true;
     loadFromFile();
 
     cogs_web::server.on("/api/tags", HTTP_GET, listTargetsApi);

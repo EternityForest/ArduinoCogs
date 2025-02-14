@@ -31,6 +31,8 @@ namespace cogs_gpio
         bool lastInputLevel = false;
         unsigned long debounceTimestamp = 0;
         int debounce = 0;
+        bool pullup=false;
+
 
         void setupDigitalTargetsFromJson(const JsonVariant &config);
         std::shared_ptr<cogs_rules::IntTagPoint> activeTarget = nullptr;
@@ -58,6 +60,7 @@ namespace cogs_gpio
     {
     public:
         int pin;
+        int channel;
         int (*readFunction)(int) = nullptr;
 
         /// Multiply the input by this value to get the real useful value
@@ -93,6 +96,7 @@ namespace cogs_gpio
 
         /// Do auto zeroing if the value is below this
         int autoZero = 0;
+
 
         // The value target, after processing
         std::shared_ptr<cogs_rules::IntTagPoint> analogValueTarget = nullptr;

@@ -116,7 +116,7 @@
           "pullup": {
             "title": "Internal Pullup",
             "type": "boolean",
-            "description": "If set, pull to 3.3V if possible"
+            "description": "If set, pull to 3.3V if possible. Many platforms may not fully support this and may give odd readings."
           },
           "activeHigh": {
             "title": "Active High",
@@ -201,14 +201,14 @@
           "scale": {
             "title": "Scale",
             "type": "string",
-            "default": "3.3 / 4096",
+            "default": "1",
             "description": "Multiplier to convert to raw value to the actual measurement.",
             "required": true
           },
           "zeroValue": {
             "title": "Zero Value",
             "type": "string",
-            "default": 1.65,
+            "default": 0,
             "description": "Offset in scaled units that is considered zero.",
             "required": true
           },

@@ -4,16 +4,18 @@
 #include "web/cogs_web.h"
 #include "cogs_power_management.h"
 #include "cogs_trouble_codes.h"
+#include "cogs_editable_automation.h"
+
 #include "web/generated_data/gpio_schema_json_gz.h"
 #if defined(ESP32) || defined(ESP8266)
 #include "driver/rtc_io.h"
 #include "esp_sleep.h"
-#define ANREAD analogReadMilliVolts
-#else
-#define ANREAD analogRead
 #endif
 #include <LittleFS.h>
 #include <Arduino.h>
+
+
+#define ANREAD analogRead
 
 namespace cogs_gpio
 {
@@ -23,6 +25,32 @@ namespace cogs_gpio
     std::vector<CogsSimpleOutput> simpleOutputs;
     std::vector<CogsAnalogInput> analogInputs;
 
+    bool pullupEnabledOnPin(int pin)
+    {
+        // iterate all analog
+        for (auto i : analogInputs)
+        {
+            if (i.pin == pin)
+            {
+                if (i.pullup)
+                {
+                    return true;
+                }
+            }
+        }
+        for (auto i : simpleInputs)
+        {
+            if (i.pin == pin)
+            {
+                if (i.pullup)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     bool foundError = false;
 
     // Always return higher values for touch.
@@ -31,17 +59,17 @@ namespace cogs_gpio
     {
         int val = 0;
 
-// #if defined(ESP32) || defined(ESP8266)
-//         if (digitalPinToTouchChannel(pin) > -1)
-//         {
-// #if defined(SOC_TOUCH_VERSION_1)
-//             val = touchRead(pin);
-//             val = -val;
-// #else
-//             val = touchRead(pin);
-// #endif
-//         }
-// #endif
+        // #if defined(ESP32) || defined(ESP8266)
+        //         if (digitalPinToTouchChannel(pin) > -1)
+        //         {
+        // #if defined(SOC_TOUCH_VERSION_1)
+        //             val = touchRead(pin);
+        //             val = -val;
+        // #else
+        //             val = touchRead(pin);
+        // #endif
+        //         }
+        // #endif
         for (int i = 0; i < 24; i++)
         {
 
@@ -163,7 +191,8 @@ namespace cogs_gpio
         JsonDocument doc;
         doc["type"] = "string";
         int ctr = 0;
-        for  (const auto &e : gpioInfo)
+        doc["enum"] = JsonArray();
+        for (const auto &e : gpioInfo)
         {
             if (e->out == true)
             {
@@ -271,7 +300,7 @@ namespace cogs_gpio
             return;
         }
 
-        if (cogs_rules::started)
+        if (cogs_editable_automation::started)
         {
             cogs::logError("gpio should start before rules");
             cogs::addTroubleCode("ESETUPORDER");
@@ -305,7 +334,6 @@ namespace cogs_gpio
         {
             return;
         }
-
 
         int v = tag->value[0];
 
@@ -341,14 +369,16 @@ namespace cogs_gpio
 
         if (!config.is<JsonObject>())
         {
-            throw std::runtime_error("Invalid config");
+            this->pin = -1;
+            return;
         }
 
         std::string pinName = config["pin"].as<std::string>();
         const cogs_gpio::GPIOInfo *p = gpioByName(pinName);
         if (p == 0)
         {
-            throw std::runtime_error("Invalid pin " + pinName);
+            this->pin = -1;
+            return;
         }
 
         int pin = p->pin;
@@ -371,16 +401,14 @@ namespace cogs_gpio
         // We need to "own" the tag and can't use an existing one,
         // otherwise someone else might mess with extra data
         // so enforce a prefix
-        if (!(st.rfind("outputs.", 0)==0))
+        if (!(st.rfind("outputs.", 0) == 0))
         {
             st = "outputs." + st;
         }
 
- 
         this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0, 1, cogs_rules::FXP_RES);
         this->sourceTag->extraData = this;
         this->sourceTag->subscribe(&onSourceTagSet);
- 
 
         if (pin < 1024)
         {
@@ -391,12 +419,16 @@ namespace cogs_gpio
 
     CogsSimpleOutput::~CogsSimpleOutput()
     {
+        if (this->pin == -1)
+        {
+            return;
+        }
         if (this->sourceTag)
         {
             this->sourceTag->unsubscribe(&onSourceTagSet);
         }
 
-        if(this->pin<1024)
+        if (this->pin < 1024)
         {
             pinMode(this->pin, INPUT);
         }
@@ -427,10 +459,9 @@ namespace cogs_gpio
 
         std::string pinName = config["pin"].as<std::string>();
 
-        bool pullup = false;
         if (config["pullup"].is<bool>())
         {
-            pullup = config["pullup"].as<bool>();
+            this->pullup = config["pullup"].as<bool>();
         }
 
         auto p = gpioByName(pinName);
@@ -442,16 +473,27 @@ namespace cogs_gpio
         unsigned int pin = p->pin;
         this->pin = pin;
 
-        cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
+        cogs::logInfo("Using input " + pinName + " at " + std::to_string(pin));
 
         if (pin < 1024)
         {
-            if (pullup)
+            if (this->pullup || pullupEnabledOnPin(pin))
             {
                 pinMode(pin, INPUT_PULLUP);
+#if defined(ESP32) || defined(ESP8266)
+
+                rtc_gpio_pullup_en((gpio_num_t)pin);
+                rtc_gpio_pulldown_dis((gpio_num_t)pin);
+#endif
+
+#if defined(ESP32)
+                gpio_sleep_set_pull_mode((gpio_num_t)pin, GPIO_PULLUP_ONLY);
+#endif
+                cogs::logInfo("Using pullup");
             }
             else
             {
+                cogs::logInfo("No pullup");
                 pinMode(pin, INPUT);
             }
         }
@@ -498,6 +540,12 @@ namespace cogs_gpio
         if (config["activeTarget"].is<const char *>())
         {
             std::string st = config["activeTarget"].as<std::string>();
+
+            if (!(st.rfind("inputs.", 0) == 0))
+            {
+                st = "inputs." + st;
+            }
+
             if (st.size() > 0)
             {
                 this->activeTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
@@ -506,7 +554,13 @@ namespace cogs_gpio
 
         if (config["inactiveTarget"].is<const char *>())
         {
+
             std::string st = config["inactiveTarget"].as<std::string>();
+            if (!(st.rfind("inputs.", 0) == 0))
+            {
+                st = "inputs." + st;
+            }
+
             if (st.size() > 0)
             {
                 this->inactiveTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
@@ -516,6 +570,11 @@ namespace cogs_gpio
         if (config["digitalValueTarget"].is<const char *>())
         {
             std::string st = config["digitalValueTarget"].as<std::string>();
+            if (!(st.rfind("inputs.", 0) == 0))
+            {
+                st = "inputs." + st;
+            }
+
             if (st.size() > 0)
             {
                 this->digitalValueTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
@@ -538,7 +597,10 @@ namespace cogs_gpio
 
     void CogsSimpleInput::poll()
     {
-
+        if (this->pin == -1)
+        {
+            return;
+        }
         if (millis() - this->debounceTimestamp < this->debounce)
         {
             return;
@@ -611,10 +673,9 @@ namespace cogs_gpio
 
         std::string pinName = config["pin"].as<std::string>();
 
-        bool pullup = false;
         if (config["pullup"].is<bool>())
         {
-            pullup = config["pullup"].as<bool>();
+            this->pullup = config["pullup"].as<bool>();
         }
 
         if (config["referencePin"].is<const char *>())
@@ -672,6 +733,12 @@ namespace cogs_gpio
         if (config["analogValueTarget"].is<const char *>())
         {
             std::string st = config["analogValueTarget"].as<std::string>();
+
+            if (!(st.rfind("inputs.", 0) == 0))
+            {
+                st = "inputs." + st;
+            }
+
             if (st.size() > 0)
             {
                 this->analogValueTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1, cogs_rules::FXP_RES);
@@ -687,16 +754,29 @@ namespace cogs_gpio
         unsigned int pin = p->pin;
         this->pin = pin;
 
-        cogs::logInfo("Using input" + pinName + " at " + std::to_string(pin));
+        cogs::logInfo("Using analog ch " + pinName + " at " + std::to_string(pin));
 
         if (pin < 1024)
         {
-            if (pullup)
+
+            this->channel = pin;
+            if (this->pullup || pullupEnabledOnPin(pin))
             {
                 pinMode(pin, INPUT_PULLUP);
+#if defined(ESP32) || defined(ESP8266)
+
+                rtc_gpio_pullup_en((gpio_num_t)pin);
+                rtc_gpio_pulldown_dis((gpio_num_t)pin);
+
+#endif
+#if defined(ESP32)
+                gpio_sleep_set_pull_mode((gpio_num_t)pin, GPIO_PULLUP_ONLY);
+#endif
+                cogs::logInfo("Using pullup");
             }
             else
             {
+                cogs::logInfo("No pullup");
                 pinMode(pin, INPUT);
             }
         }
@@ -713,6 +793,7 @@ namespace cogs_gpio
                 }
                 else
                 {
+                    cogs::logInfo("Using sw capsense");
                     this->readFunction = &swCapsenseRead;
                 }
             }
@@ -786,12 +867,6 @@ namespace cogs_gpio
                 if (config["deepSleepWake"].as<bool>())
                 {
                     esp_sleep_enable_ext0_wakeup((gpio_num_t)pin, this->activeHigh);
-
-                    if (pullup)
-                    {
-                        rtc_gpio_pullup_en((gpio_num_t)pin);
-                        rtc_gpio_pulldown_dis((gpio_num_t)pin);
-                    }
                 }
             }
 #endif
@@ -825,7 +900,16 @@ namespace cogs_gpio
 
         if (this->readFunction == nullptr)
         {
+            // TODO this is awful hack because analog read undoes pullups
             val = ANREAD(this->pin);
+            if (this->pullup)
+            {
+                pinMode(this->pin, INPUT_PULLUP);
+            }
+            else
+            {
+                pinMode(this->pin, INPUT);
+            }
         }
         else
         {
@@ -845,6 +929,15 @@ namespace cogs_gpio
             if (this->readFunction == nullptr)
             {
                 val -= ANREAD(this->pin);
+                
+                if (this->pullup)
+                {
+                    pinMode(this->pin, INPUT_PULLUP);
+                }
+                else
+                {
+                    pinMode(this->pin, INPUT);
+                }
             }
             else
             {
@@ -857,8 +950,12 @@ namespace cogs_gpio
 
     void CogsAnalogInput::poll()
     {
-        //unsigned long st = micros();
+        // unsigned long st = micros();
 
+        if (this->pin == -1)
+        {
+            return;
+        }
         bool windowMoved = false;
 
         int val = this->rawRead();
