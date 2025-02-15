@@ -578,6 +578,7 @@ namespace cogs_gpio
             if (st.size() > 0)
             {
                 this->digitalValueTarget = cogs_rules::IntTagPoint::getTag(st, 0, 1);
+                this->digitalValueTarget->setUnit("bool");
             }
         }
     }
@@ -624,17 +625,6 @@ namespace cogs_gpio
         if (val != this->lastInputLevel)
         {
             this->debounceTimestamp = millis();
-            if (this->digitalValueTarget)
-            {
-                if (val == this->activeHigh)
-                {
-                    this->digitalValueTarget->setValue(1, 0, 1);
-                }
-                else
-                {
-                    this->digitalValueTarget->setValue(0, 0, 1);
-                }
-            }
 
             if (val == this->activeHigh)
             {
@@ -655,7 +645,7 @@ namespace cogs_gpio
 
             if (this->digitalValueTarget)
             {
-                this->digitalValueTarget->setValue(val, 0, 1);
+                this->digitalValueTarget->setValue(val == this->activeHigh, 0, 1);
             }
 
             this->lastInputLevel = val;

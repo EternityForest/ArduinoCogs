@@ -136,12 +136,21 @@ namespace cogs_rules
     /// onenter is set.
     bool onchange = false;
 
+    // If true, the output value increments whenever the expression val changes
+    // to something non-zero
+    bool trigger_mode = false;
+
+
     /// Only act once on enter no matter what.
     bool freeze = false;
 
     /// Array tracking the last value of the binding.
     /// Used for change detection.
     int *lastState = nullptr;
+
+    bool *stateUnknown = nullptr;
+
+    bool ready = false;
 
     Binding(const std::string &target_name, const std::string &input,
             const int start = 0, const int count = 0);
@@ -178,6 +187,10 @@ namespace cogs_rules
     std::string nextState = "";
 
     std::shared_ptr<Clockwork> owner;
+
+
+    // We do our own change detection here for loop prevention reasons
+    int lastTagValue = 0;
 
     std::string name;
     //! List of bindings which shall be evaluated only when the state is active

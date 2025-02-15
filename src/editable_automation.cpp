@@ -18,7 +18,6 @@ using namespace cogs_rules;
 
 static std::map<std::string, std::shared_ptr<Clockwork>> webClockworks;
 
-
 static void closeAllClockworks()
 {
 
@@ -98,13 +97,28 @@ static void _loadFromFile()
         return;
     }
 
+    // Initial integrity check before doing anything
     for (auto const &clockworkData : clockworks.as<JsonArray>())
     {
 
-        std::string state = "default";
-        unsigned long entered = 1;
+        JsonVariant states = clockworkData["states"];
+        if (!states.is<JsonArray>())
+        {
+            cogs::logError("Clockwork " + clockworkData["name"].as<std::string>() + " has no states.");
+            badAutomation();
+            return;
 
-        cogs::logInfo("Loading clockwork " + clockworkData["name"].as<std::string>());
+            throw std::runtime_error(clockworkData["name"].as<std::string>() + " has no states.");
+        }
+    }
+
+    std::map<std::string, std::string> old_states;
+    std::map<std::string, unsigned long> old_times;
+
+    // Pre-declare the clockworks and states, before the bindings, because bindings may reference them
+    // Todo all integrity checks should come first
+    for (auto const &clockworkData : clockworks.as<JsonArray>())
+    {
 
         // This clockwork exists but is defined in code, do not overwrite it.
         if (Clockwork::exists(clockworkData["name"].as<std::string>()))
@@ -124,26 +138,16 @@ static void _loadFromFile()
                                   clockworkData["name"].as<std::string>() + ": " +
                                   webClockworks[clockworkData["name"].as<std::string>()]->currentState->name);
 
-                    state = webClockworks[clockworkData["name"].as<std::string>()]->currentState->name;
+                    old_states[clockworkData["name"].as<std::string>()] = webClockworks[clockworkData["name"].as<std::string>()]->currentState->name;
                 }
-                entered = webClockworks[clockworkData["name"].as<std::string>()]->enteredAt;
+                old_times[clockworkData["name"].as<std::string>()] = webClockworks[clockworkData["name"].as<std::string>()]->enteredAt;
                 webClockworks[clockworkData["name"].as<std::string>()]->close();
             }
         }
 
-        auto new_clockwork = Clockwork::getClockwork(clockworkData["name"].as<std::string>());
-
-        webClockworks[clockworkData["name"].as<std::string>()] = new_clockwork;
-
         JsonVariant states = clockworkData["states"];
-        if (!states.is<JsonArray>())
-        {
-            cogs::logError("Clockwork " + clockworkData["name"].as<std::string>() + " has no states.");
-            badAutomation();
-            return;
 
-            throw std::runtime_error(clockworkData["name"].as<std::string>() + " has no states.");
-        }
+        auto new_clockwork = Clockwork::getClockwork(clockworkData["name"].as<std::string>());
 
         for (auto const &stateData : states.as<JsonArray>())
         {
@@ -157,7 +161,27 @@ static void _loadFromFile()
             {
                 s->duration = stateData["duration"].as<int>();
             }
+        }
 
+        webClockworks[clockworkData["name"].as<std::string>()] = new_clockwork;
+    }
+
+
+    // Create all the bindings
+    for (auto const &clockworkData : clockworks.as<JsonArray>())
+    {
+
+
+
+        cogs::logInfo("Loading clockwork " + clockworkData["name"].as<std::string>());
+
+        auto new_clockwork = Clockwork::getClockwork(clockworkData["name"].as<std::string>());
+
+        JsonVariant states = clockworkData["states"];
+
+        for (auto const &stateData : states.as<JsonArray>())
+        {
+            auto s = new_clockwork->getState(stateData["name"].as<std::string>());
             auto bindings = stateData["bindings"];
             if (!bindings.is<JsonArray>())
             {
@@ -168,7 +192,7 @@ static void _loadFromFile()
             // Now add the bindings
             for (auto const &bindingData : bindings.as<JsonArray>())
             {
-                cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["target"].as<std::string>() + " to " + bindingData["source"].as<std::string>());
+                cogs::logInfo("Clockwork " + clockworkData["name"].as<std::string>() + " adding binding " + bindingData["source"].as<std::string>() + "->" + bindingData["target"].as<std::string>());
 
                 int start = 0;
                 int count = 0;
@@ -197,6 +221,20 @@ static void _loadFromFile()
                     {
                         b->onchange = true;
                     }
+
+                    if (mode == "trigger")
+                    {
+                        b->trigger_mode = true;
+                        b->onchange = true;
+                    }
+
+                    if (mode == "triggerOnEnter")
+                    {
+                        b->trigger_mode = true;
+                        b->onenter = true;
+                        b->freeze = true;
+                    }
+
                     if (mode == "onenter")
                     {
                         b->onenter = true;
@@ -247,6 +285,15 @@ static void _loadFromFile()
                 }
             }
         }
+
+        std::string state = "default";
+        int entered = 0;
+
+        if(old_states.count(clockworkData["name"].as<std::string>()) > 0){
+            state = old_states[clockworkData["name"].as<std::string>()];
+            entered = old_times[clockworkData["name"].as<std::string>()];
+        }
+
         // State doesn't exist, use default
         if (!(new_clockwork->states.count(state) == 1))
         {
@@ -303,7 +350,9 @@ static void listTargetsApi(AsyncWebServerRequest *request)
         return;
     }
     serializeJson(doc, buf, 8192);
-    request->send(200, "application/json", buf);
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", buf);
+    response->addHeader("Cache-Control", "no-cache");
+    request->send(response);
     free(buf);
 }
 
@@ -338,7 +387,9 @@ static void exprDatalist(AsyncWebServerRequest *request)
         return;
     }
     serializeJson(doc, buf, 8192);
-    request->send(200, "application/json", buf);
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", buf);
+    response->addHeader("Cache-Control", "no-cache");
+    request->send(response);
     free(buf);
 }
 void cogs_editable_automation::begin()

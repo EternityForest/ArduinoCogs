@@ -231,8 +231,8 @@ static float lower(float a, float b) {return a < b;}
 static float lower_eq(float a, float b) {return a <= b;}
 static float equal(float a, float b) {return a == b;}
 static float not_equal(float a, float b) {return a != b;}
-static float logical_and(float a, float b) {return a != 0.0 && b != 0.0;}
-static float logical_or(float a, float b) {return a != 0.0 || b != 0.0;}
+static float logical_and(float a, float b) {return (a != 0.0) ? b : 0.0;}
+static float logical_or(float a, float b) {return (a != 0.0) ? b : a;}
 static float logical_not(float a) {return a == 0.0;}
 static float logical_notnot(float a) {return a != 0.0;}
 static float negate_logical_not(float a) {return -(a == 0.0);}

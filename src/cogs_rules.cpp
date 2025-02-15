@@ -341,7 +341,6 @@ void setupBuiltins()
 
   cogs_rules::user_functions2["min"] = &min;
   cogs_rules::user_functions2["max"] = &max;
-
 }
 
 void cogs_rules::refreshBindingsEngine()
@@ -438,8 +437,6 @@ void IntFadeClaim::applyLayer(int32_t *vals, uint16_t tagLength)
 
 Binding *b = nullptr;
 
-
-
 Binding::Binding(const std::string &target_name, const std::string &input, const int start, const int count)
 {
   // Look for something like [1:4] at the end of the target, which would make this
@@ -482,6 +479,15 @@ Binding::Binding(const std::string &target_name, const std::string &input, const
   }
 
   this->lastState = reinterpret_cast<int *>(malloc(sizeof(int) * this->multiCount));
+
+  this->stateUnknown = reinterpret_cast<bool *>(malloc(sizeof(bool) * this->multiCount));
+  this->ready = true;
+
+  if (!this->lastState || !this->stateUnknown)
+  {
+    cogs::logError("Memory allocation failed");
+    this->ready = false;
+  }
 };
 
 bool Binding::trySetupTarget()
@@ -522,6 +528,11 @@ bool Binding::trySetupTarget()
 }
 void Binding::eval()
 {
+
+  if (!this->ready)
+  {
+    return;
+  }
   if (!this->inputExpression)
   {
     return;
@@ -570,8 +581,30 @@ void Binding::eval()
 
       float x = te_eval(this->inputExpression);
 
+      // If the conditions are met, the val we want to assign
+      float new_v = x;
+
+      bool should_set = true;
+
+      if (this->trigger_mode)
+      {
+        // floor
+        x = floor(x);
+
+        if (x > 0.0)
+        {
+          // Can do this all with ints!
+          new_v = cogs::bang(this->target->value[this->multiStart + i] / this->target->scale);
+        }
+        else
+        {
+          should_set = false;
+        }
+      }
+
       if (this->onchange)
       {
+
         if (x != this->lastState[i])
         {
 
@@ -580,46 +613,54 @@ void Binding::eval()
           /// Act until it changes again.
 
           // If onenter is true, we act on enter no matter what
-          if ((this->lastState[i] != NAN) || this->onenter)
+          if ((!this->stateUnknown[i]) || this->onenter)
           {
-            if (this->claim)
+            if (should_set)
             {
-              if (!this->claim->finished)
+              if (this->claim)
               {
-                this->claim->value[this->multiStart + i] = x * this->target->scale;
+                if (!this->claim->finished)
+                {
+                  this->claim->value[this->multiStart + i] = new_v * this->target->scale;
+                }
+                else
+                {
+                  this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
+                }
               }
               else
               {
-                this->target->background_value[this->multiStart + i] = x * this->target->scale;
+                this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
               }
+              shouldRerender = true;
             }
-            else
-            {
-              this->target->background_value[this->multiStart + i] = x * this->target->scale;
-            }
-            shouldRerender = true;
           }
           this->lastState[i] = x;
         }
+
+        this->stateUnknown[i] = false;
       }
       else
       {
-        if (this->claim)
+        if (should_set)
         {
-          if (!this->claim->finished)
+          if (this->claim)
           {
-            this->claim->value[this->multiStart + i] = x * this->target->scale;
+            if (!this->claim->finished)
+            {
+              this->claim->value[this->multiStart + i] = new_v * this->target->scale;
+            }
+            else
+            {
+              this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
+            }
           }
           else
           {
-            this->target->background_value[this->multiStart + i] = x * this->target->scale;
+            this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
           }
+          shouldRerender = true;
         }
-        else
-        {
-          this->target->background_value[this->multiStart + i] = x * this->target->scale;
-        }
-        shouldRerender = true;
       }
 
       dollar_sign_i++;
@@ -650,6 +691,17 @@ Binding::~Binding()
   {
     te_free(this->fadeInTime);
   }
+
+  if (this->lastState)
+  {
+    free(this->lastState);
+    this->lastState = nullptr;
+  }
+  if (this->stateUnknown)
+  {
+    free(this->stateUnknown);
+    this->stateUnknown = nullptr;
+  }
 };
 
 void Binding::enter()
@@ -657,7 +709,7 @@ void Binding::enter()
   this->frozen = false;
   for (int i = 0; i < this->multiCount; i++)
   {
-    this->lastState[i] = 0;
+    this->stateUnknown[i] = true;
   }
 
   // Almost all the actual claim config happens here, we just reuse stuff.
@@ -811,7 +863,7 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
     auto tag = IntTagPoint::getTag(this->name + ".states." + stateName, 0);
     // If re-entering the same state, don't reset it
     // that would trigger an infinite loop with the tag point making us re-enter
-    if(! (name== stateName))
+    if (!(name == stateName))
     {
       tag->setValue(0);
     }
@@ -824,11 +876,15 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
     return;
   }
 
+  this->currentState = this->states[name].get();
+
+  // Mark to not make a loop and enter an extra time
+  this->currentState->lastTagValue = 1;
+
   // Update the state tags
   auto tag2 = IntTagPoint::getTag(this->name + ".states." + name, 1);
   tag2->setValue(1);
 
-  this->currentState = this->states[name].get();
 
   if (time == 0)
   {
@@ -860,13 +916,22 @@ int recursionLimit = 0;
 
 static void onStateTagSet(IntTagPoint *tag)
 {
-  recursionLimit++;
-  
+
   State *state = static_cast<State *>(tag->extraData);
+
+  // We do our own change detect logic so we can set this var when we want to ignore stuff
+  if (state->lastTagValue == tag->value[0])
+  {
+    return;
+  }
+  
+  recursionLimit++;
+
+  state->lastTagValue = tag->value[0];
 
   if (recursionLimit > 2)
   {
-    cogs::logError("State tag set recursion limit exceeded going to "+state->name);
+    cogs::logError("State tag set recursion limit exceeded going to " + state->name);
     recursionLimit = 0;
     return;
   }
@@ -875,7 +940,7 @@ static void onStateTagSet(IntTagPoint *tag)
   {
     if (tag->value[0])
     {
-      cogs::logInfo("Clockwork tag set" + state->owner->name + " gotoState " + state->name);
+      cogs::logInfo("Tag causing transition " + state->owner->name + " gotoState " + state->name);
       state->owner->gotoState(state->name);
     }
     state->eval();
@@ -931,7 +996,7 @@ void Clockwork::eval()
   {
 
     // handle duration logic
-    if (this->currentState->duration>0)
+    if (this->currentState->duration > 0)
     {
       if ((millis() - this->enteredAt) > this->currentState->duration)
       {
@@ -1105,7 +1170,8 @@ static void slowPoll()
 
 void cogs_rules::begin()
 {
-  if(cogs_rules::started){
+  if (cogs_rules::started)
+  {
     cogs::logError("Rules already started");
     cogs::addTroubleCode("ESETUPORDER");
     return;

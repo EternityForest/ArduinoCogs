@@ -61,7 +61,7 @@
           "activeHigh": {
             "title": "Active High",
             "type": "boolean",
-            "description": "If unset, input is active when the voltage is low",
+            "description": "If false, input is active when the voltage is low",
             "required": true
           },
           "activeTarget": {

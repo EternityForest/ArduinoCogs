@@ -110,14 +110,23 @@ It provides a low-code programming model where you can connect
 A clockwork is like a state machine.  At any point it can be in one of it's
 states, and each state may have ay number of bindings attached.
 
+#### Bindings
+
 A binding is a rule that says "While this state is active, set this variable to this expression".
 
 You might, for instance, map a switch input to an LED.
 
-Bindings have an "onchange" setting, which means the value is only set
-when the output of the expression changes.  This is for things like controlling one light from two switches, so they will not fight each other
-when one isn't changing.
+Bindings have several modes.  Onchange will set the target to the expression when the expression changes.  A "change" means that it actually changed while the clockwork was on the state, it won't
+register old changes from before that.
 
+Trigger will increment the target whenever the expression changes to a nonzero value,
+letting you map through triggers.
+
+onframe sets the target every frame, always, and onenter sets it only once when entering the
+state.
+
+
+triggerOnEnter triggers once when entering a cue, as long as the expression is true.
 ### Tag Points/Variables
 
 These are just lists of numbers. Most of the time, they only contain one number. They are used to control things or read from sensors.  Using their names in expressions gives you the first value, the rest are
@@ -225,6 +234,7 @@ Notably, it provides a JSON editor that takes a filename on the LittleFS, and a
 schema URL, with requests like `http://192.168.1.15/default-template?load-module=/builtin/jsoneditor.js&schema=/builtin/schemas/object.json&filename=/test.json`
 
 Note that this works by going to the default template, which then loads the json editor app.
+
 
 
 

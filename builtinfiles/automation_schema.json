@@ -149,12 +149,18 @@
                                                 },
                                                 "required": true
                                             },
+                                            "notes": {
+                                                "type": "string",
+                                                "required": false
+                                            },
                                             "mode": {
                                                 "type": "string",
                                                 "enum": [
                                                     "onchange",
                                                     "onenter",
-                                                    "onframe"
+                                                    "onframe",
+                                                    "trigger",
+                                                    "triggerOnEnter"
                                                 ],
                                                 "title": "Mode",
                                                 "required": true
