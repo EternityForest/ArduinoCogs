@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <math.h>
+#include <vector>
 #include "cogs_rules.h"
 #include "cogs_util.h"
 #include "cogs_global_events.h"
@@ -390,50 +391,6 @@ void cogs_rules::refreshBindingsEngine()
   cogs_rules::needRefresh = false;
 };
 
-IntFadeClaim::IntFadeClaim(uint16_t startIndex, uint16_t count) : cogs_tagpoints::TagPointClaim(startIndex, count) {
-
-                                                                  };
-
-void IntFadeClaim::applyLayer(int32_t *vals, uint16_t tagLength)
-{
-
-  // Calculate how far along we are as a 0 to 100% control value
-  int32_t blend_fader = millis() - this->start;
-  if (blend_fader >= this->duration)
-  {
-    this->fadeDone = true;
-    blend_fader = FXP_RES;
-  }
-  else
-  {
-    blend_fader *= FXP_RES;
-    blend_fader = blend_fader / this->duration;
-  }
-
-  blend_fader *= this->alpha;
-
-  blend_fader = blend_fader / FXP_RES;
-
-  for (int i = 0; i < this->count; i++)
-  {
-    int mapped_idx = (this->startIndex + i);
-    // Do not exceed tag bounds
-    if (mapped_idx >= tagLength)
-    {
-      break;
-    }
-
-    int64_t blend_bg = vals[this->startIndex + i];
-    blend_bg *= (FXP_RES - blend_fader);
-
-    int64_t blend_fg = this->value[i];
-    blend_fg *= (blend_fader);
-
-    int64_t res = blend_bg + blend_fg;
-
-    vals[this->startIndex + i] = res / FXP_RES;
-  }
-};
 
 Binding *b = nullptr;
 
@@ -478,16 +435,9 @@ Binding::Binding(const std::string &target_name, const std::string &input, const
     cogs::logError("Bad expression: " + input);
   }
 
-  this->lastState = reinterpret_cast<int *>(malloc(sizeof(int) * this->multiCount));
 
-  this->stateUnknown = reinterpret_cast<bool *>(malloc(sizeof(bool) * this->multiCount));
   this->ready = true;
 
-  if (!this->lastState || !this->stateUnknown)
-  {
-    cogs::logError("Memory allocation failed");
-    this->ready = false;
-  }
 };
 
 bool Binding::trySetupTarget()
@@ -501,32 +451,13 @@ bool Binding::trySetupTarget()
       this->multiCount = target->count;
     }
 
-    if (this->fadeInTime || this->alpha || this->layer)
-    {
-      if (!this->claim)
-      {
-        this->claim = std::make_shared<cogs_rules::IntFadeClaim>(
-            this->multiStart,
-            this->multiCount);
-      }
-
-      int l = this->layer;
-      if (this->fadeInTime || this->alpha)
-      {
-        if (l < 1)
-        {
-          l = 1;
-        }
-      }
-
-      this->claim->priority = l;
-    }
     return true;
   }
 
   return false;
 }
-void Binding::eval()
+
+inline void Binding::eval()
 {
 
   if (!this->ready)
@@ -550,26 +481,10 @@ void Binding::eval()
     }
   }
 
-  bool shouldRerender = false;
-
-  if (this->claim)
-  {
-    if (!this->claim->fadeDone)
-    {
-      shouldRerender = true;
-    }
-    else
-    {
-      if (!this->claim->finished)
-      {
-        if (this->layer == 0)
-        {
-          shouldRerender = true;
-          this->claim->finished = true;
-        }
-      }
-    }
-  }
+  // First we render to a scratchpad, then
+  // if needed we copy that to the target. Because we may have some filters
+  // In  between the scratchpad and the target.
+  int scratchpad[this->multiCount];
 
   if (!this->frozen)
   {
@@ -581,87 +496,9 @@ void Binding::eval()
 
       float x = te_eval(this->inputExpression);
 
-      // If the conditions are met, the val we want to assign
-      float new_v = x;
+      int x_scaled = x * this->target->scale;
 
-      bool should_set = true;
-
-      if (this->trigger_mode)
-      {
-        // floor
-        x = floor(x);
-
-        if (x > 0.0)
-        {
-          // Can do this all with ints!
-          new_v = cogs::bang(this->target->value[this->multiStart + i] / this->target->scale);
-        }
-        else
-        {
-          should_set = false;
-        }
-      }
-
-      if (this->onchange)
-      {
-
-        if (x != this->lastState[i])
-        {
-
-          /// nan is the special flag meaning we are in an unknown state
-          /// And thus cannot do change detection yet, so we don't
-          /// Act until it changes again.
-
-          // If onenter is true, we act on enter no matter what
-          if ((!this->stateUnknown[i]) || this->onenter)
-          {
-            if (should_set)
-            {
-              if (this->claim)
-              {
-                if (!this->claim->finished)
-                {
-                  this->claim->value[this->multiStart + i] = new_v * this->target->scale;
-                }
-                else
-                {
-                  this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
-                }
-              }
-              else
-              {
-                this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
-              }
-              shouldRerender = true;
-            }
-          }
-          this->lastState[i] = x;
-        }
-
-        this->stateUnknown[i] = false;
-      }
-      else
-      {
-        if (should_set)
-        {
-          if (this->claim)
-          {
-            if (!this->claim->finished)
-            {
-              this->claim->value[this->multiStart + i] = new_v * this->target->scale;
-            }
-            else
-            {
-              this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
-            }
-          }
-          else
-          {
-            this->target->background_value[this->multiStart + i] = new_v * this->target->scale;
-          }
-          shouldRerender = true;
-        }
-      }
+      scratchpad[i] = x_scaled;
 
       dollar_sign_i++;
     }
@@ -675,92 +512,54 @@ void Binding::eval()
     }
   }
 
-  if (shouldRerender)
+  bool has_filters = this->filters.size() > 0;
+  bool shouldRerender = true;
+  if (has_filters)
   {
-    this->target->rerender();
+    int *targetvals = this->target->value + this->multiStart;
+    for (auto it : this->filters)
+    {
+      if (!it->sample(scratchpad, targetvals))
+      {
+        shouldRerender = false;
+        break;
+      }
+    }
+
+    if (shouldRerender)
+    {
+      memcpy(this->target->background_value + this->multiStart, scratchpad, this->multiCount * sizeof(int));
+      this->target->rerender();
+    }
   }
 };
 
 Binding::~Binding()
 {
-  if (this->inputExpression)
-  {
-    te_free(this->inputExpression);
-  }
-  if (this->fadeInTime)
-  {
-    te_free(this->fadeInTime);
-  }
 
-  if (this->lastState)
+  for (int i = 0; i < this->filters.size(); i++)
   {
-    free(this->lastState);
-    this->lastState = nullptr;
-  }
-  if (this->stateUnknown)
-  {
-    free(this->stateUnknown);
-    this->stateUnknown = nullptr;
+    delete this->filters[i];
   }
 };
 
 void Binding::enter()
 {
   this->frozen = false;
-  for (int i = 0; i < this->multiCount; i++)
+
+
+  if (this->target)
   {
-    this->stateUnknown[i] = true;
-  }
-
-  // Almost all the actual claim config happens here, we just reuse stuff.
-  if (this->claim)
-  {
-    this->claim->alpha = cogs_rules::FXP_RES;
-
-    // Be, defensive, B-E defensive!
-    if (this->fadeInTime)
+    for (auto f : this->filters)
     {
-      this->claim->duration = te_eval(this->fadeInTime) * 1000;
-    }
-    else
-    {
-      this->claim->duration = 0;
-    }
-
-    this->claim->start = millis();
-    this->claim->fadeDone = false;
-    this->claim->finished = false;
-
-    if (this->target)
-    {
-      this->target->addClaim(this->claim);
+      f->setStateEnterTargetValue(this->target->value + this->multiStart);
     }
   }
 }
 
 void Binding::exit()
 {
-  // We don't need that claim anymore, merge it back into the background state if possible.
-  if (this->claim)
-  {
 
-    // Layers don't get folded into the background.
-    // They go away when we're done so we can use them as overrides.
-    if (this->layer == 0)
-    {
-      this->claim->finished = true;
-    }
-    else
-    {
-      this->target->removeClaim(this->claim);
-    }
-
-    if (this->target)
-    {
-      // Needed to properly clean the finished claims.
-      this->target->rerender();
-    }
-  }
 }
 
 void State::eval()
@@ -885,7 +684,6 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
   auto tag2 = IntTagPoint::getTag(this->name + ".states." + name, 1);
   tag2->setValue(1);
 
-
   if (time == 0)
   {
     this->enteredAt = millis();
@@ -924,7 +722,7 @@ static void onStateTagSet(IntTagPoint *tag)
   {
     return;
   }
-  
+
   recursionLimit++;
 
   state->lastTagValue = tag->value[0];
@@ -1224,30 +1022,6 @@ bool Binding::handleEngineRefresh()
     {
       this->inputExpression = nullptr;
       cogs::logError("Error compiling expression: " + this->inputExpressionSource);
-      good = false;
-    }
-  }
-
-  if (this->fadeInTime)
-  {
-    te_free(this->fadeInTime);
-    this->fadeInTime = compileExpression(this->fadeInTimeSource);
-    if (!this->fadeInTime)
-    {
-      this->fadeInTime = nullptr;
-      cogs::logError("Error compiling expression: " + this->fadeInTimeSource);
-      good = false;
-    }
-  }
-
-  if (this->alpha)
-  {
-    te_free(this->alpha);
-    this->alpha = compileExpression(this->alphaSource);
-    if (!this->alpha)
-    {
-      this->alpha = nullptr;
-      cogs::logError("Error compiling expression: " + this->alphaSource);
       good = false;
     }
   }

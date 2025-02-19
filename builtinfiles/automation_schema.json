@@ -1,243 +1,279 @@
 {
-    "options": {
-        "disable_collapse": true
-    },
-    "properties": {
-        "vars": {
-            "description": "Define your own variables here!",
-            "title": "Variables",
-            "type": "array",
-            "format": "tabs-top",
-            "items": {
-                "type": "object",
-                "options": {
-                    "disable_collapse": true
-                },
-                "id": "var",
-                "headerTemplate": "var: {{name}}",
-                "watch": {
-                    "name": "var.name"
-                },
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "default": "temp1",
-                        "required": true
-                    },
-                    "default": {
-                        "type": "number",
-                        "default": "0",
-                        "description": "The default value of the variable at boot",
-                        "required": true
-                    },
-                    "resolution": {
-                        "type": "number",
-                        "default": "16348",
-                        "minimum": "1",
-                        "maximum": "65535",
-                        "description": "With resolution of 100, the variable would have 0.01 steps.",
-                        "required": true
-                    },
-                    "persistent": {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "If true, the variable will save it's value. Variable saving may not be instant. Once marked as persistent, unmarking it requires deleting the key in prefs.json"
-                    },
-                    "unit": {
-                        "type": "string",
-                        "required": false,
-                        "default": "",
-                        "enum": [
-                            "",
-                            "bang",
-                            "bool",
-                            "count",
-                            "dB",
-                            "dBm",
-                            "mm",
-                            "degC",
-                            "kg",
-                            "V",
-                            "A",
-                            "Hz",
-                            "Ohm",
-                            "l",
-                            "s",
-                            "%"
-                        ]
-                    }
-                }
-            }
+  "options": {
+    "disable_collapse": true
+  },
+  "properties": {
+    "vars": {
+      "description": "Define your own variables here!",
+      "title": "Variables",
+      "type": "array",
+      "format": "tabs-top",
+      "items": {
+        "type": "object",
+        "options": {
+          "disable_collapse": true
         },
-        "clockworks": {
-            "description": "A clockwork is a virtual timer machine that can trigger different actions in different conditions",
-            "format": "tabs-top",
-            "items": {
-                "options": {
-                    "disable_collapse": true
-                },
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "default": "Untitled Clockwork",
-                        "required": true
-                    },
-                    "states": {
-                        "description": "A state represents a mode, status, or condition that a Clockwork can be in.",
-                        "format": "tabs-top",
-                        "options": {
-                            "disable_collapse": true
-                        },
-                        "default": [],
-                        "required": true,
-                        "items": {
-                            "id": "state",
-                            "headerTemplate": "state: {{name}}",
-                            "watch": {
-                                "name": "state.name"
-                            },
-                            "options": {
-                                "disable_collapse": true
-                            },
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "default": "default",
-                                    "required": true
-                                },
-
-                                "duration": {
-                                    "type": "number",
-                                    "default": "0",
-                                    "minimum": "0",
-                                    "required": false,
-                                    "unit": "ms",
-                                    "description": "If present and not zero, go to next state after N milliseconds"
-                                },
-                                "nextState": {
-                                    "type": "string",
-                                    "default": "",
-                                    "required": false,
-                                    "description": "Sets the 'next' state to go to when duration timer expires."
-                                },
-                                "bindings": {
-                                    "required": true,
-                                    "default": [],
-                                    "description": "While a state is active, a binding sets the value of a variable. similar to spreadsheet expressions",
-                                    "options": {
-                                        "disable_collapse": true
-                                    },
-                                    "items": {
-                                        "properties": {
-                                            "source": {
-                                                "title": "Source Expression",
-                                                "type": "string",
-                                                "options": {
-                                                    "inputAttributes": {
-                                                        "list": "expr_completions"
-                                                    }
-                                                },
-                                                "required": true
-                                            },
-                                            "target": {
-                                                "title": "Target Variable",
-                                                "type": "string",
-                                                "options": {
-                                                    "inputAttributes": {
-                                                        "list": "tags"
-                                                    }
-                                                },
-                                                "required": true
-                                            },
-                                            "notes": {
-                                                "type": "string",
-                                                "required": false
-                                            },
-                                            "mode": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "onchange",
-                                                    "onenter",
-                                                    "onframe",
-                                                    "trigger",
-                                                    "triggerOnEnter"
-                                                ],
-                                                "title": "Mode",
-                                                "required": true
-                                            },
-                                            "fadeInTime": {
-                                                "title": "Fade In Time(s)",
-                                                "type": "string",
-                                                "options": {
-                                                    "inputAttributes": {
-                                                        "list": "expr_completions"
-                                                    }
-                                                },
-                                                "required": false
-                                            },
-                                            "alpha": {
-                                                "title": "Alpha Blend(0-1)",
-                                                "type": "string",
-                                                "options": {
-                                                    "inputAttributes": {
-                                                        "list": "expr_completions"
-                                                    }
-                                                },
-                                                "required": false
-                                            },
-                                            "layer": {
-                                                "title": "Layer",
-                                                "type": "number",
-                                                "description": "Overlay layer, 0 is the background",
-                                                "required": false
-                                            },
-                                            "startPosition": {
-                                                "title": "Start Position",
-                                                "type": "number",
-                                                "description": "Start location"
-                                            },
-                                            "count": {
-                                                "title": "Count",
-                                                "type": "number",
-                                                "description": "Number of slots to affect"
-                                            }
-                                        },
-                                        "title": "Binding",
-                                        "type": "object",
-                                        "options": {
-                                            "disable_properties": false,
-                                            "disable_collapse": false
-                                        },
-                                        "id": "binding",
-                                        "headerTemplate": "{{source}} > target",
-                                        "watch": {
-                                            "source": "binding.source",
-                                            "target": "binding.target"
-                                        }
-                                    },
-                                    "title": "Bindings",
-                                    "type": "array"
-                                }
-                            },
-                            "title": "State",
-                            "type": "object"
-                        },
-                        "title": "States",
-                        "type": "array"
-                    }
-                },
-                "title": "Clockwork",
-                "id": "clockwork",
-                "headerTemplate": "clockwork: {{name}}",
-                "watch": {
-                    "name": "clockwork.name"
-                },
-                "type": "object"
-            },
-            "title": "Clockworks",
-            "type": "array"
+        "id": "var",
+        "headerTemplate": "var: {{name}}",
+        "watch": {
+          "name": "var.name"
+        },
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "temp1",
+            "required": true
+          },
+          "default": {
+            "type": "number",
+            "default": "0",
+            "description": "The default value of the variable at boot",
+            "required": true
+          },
+          "resolution": {
+            "type": "number",
+            "default": "16348",
+            "minimum": "1",
+            "maximum": "65535",
+            "description": "With resolution of 100, the variable would have 0.01 steps.",
+            "required": true
+          },
+          "persistent": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, the variable will save it's value. Variable saving may not be instant. Once marked as persistent, unmarking it requires deleting the key in prefs.json"
+          },
+          "unit": {
+            "type": "string",
+            "required": false,
+            "default": "",
+            "enum": [
+              "",
+              "bang",
+              "bool",
+              "count",
+              "dB",
+              "dBm",
+              "mm",
+              "degC",
+              "kg",
+              "V",
+              "A",
+              "Hz",
+              "Ohm",
+              "l",
+              "s",
+              "%"
+            ]
+          }
         }
+      }
     },
-    "title": "Automation",
-    "type": "object"
+    "clockworks": {
+      "description": "A clockwork is a virtual timer machine that can trigger different actions in different conditions",
+      "format": "tabs-top",
+      "items": {
+        "options": {
+          "disable_collapse": true
+        },
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "Untitled Clockwork",
+            "required": true
+          },
+          "states": {
+            "description": "A state represents a mode, status, or condition that a Clockwork can be in.",
+            "format": "tabs-top",
+            "options": {
+              "disable_collapse": true
+            },
+            "default": [],
+            "required": true,
+            "items": {
+              "id": "state",
+              "headerTemplate": "state: {{name}}",
+              "watch": {
+                "name": "state.name"
+              },
+              "options": {
+                "disable_collapse": true
+              },
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "default": "default",
+                  "required": true
+                },
+
+                "duration": {
+                  "type": "number",
+                  "default": "0",
+                  "minimum": "0",
+                  "required": false,
+                  "unit": "ms",
+                  "description": "If present and not zero, go to next state after N milliseconds"
+                },
+                "nextState": {
+                  "type": "string",
+                  "default": "",
+                  "required": false,
+                  "description": "Sets the 'next' state to go to when duration timer expires."
+                },
+                "bindings": {
+                  "required": true,
+                  "default": [],
+                  "description": "While a state is active, a binding sets the value of a variable. similar to spreadsheet expressions",
+                  "options": {
+                    "disable_collapse": true
+                  },
+                  "items": {
+                    "properties": {
+                      "source": {
+                        "title": "Source Expression",
+                        "type": "string",
+                        "options": {
+                          "inputAttributes": {
+                            "list": "expr_completions"
+                          }
+                        },
+                        "required": true
+                      },
+                      "target": {
+                        "title": "Target Variable",
+                        "type": "string",
+                        "options": {
+                          "inputAttributes": {
+                            "list": "tags"
+                          }
+                        },
+                        "required": true
+                      },
+
+                      "filters": {
+                        "type": "array",
+                        "required": false,
+                        "items": {
+                          "type": "object",
+                          "options": {
+                            "keep_oneof_values": false
+                          },
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "required": true,
+                              "options": {
+                                "hidden": true
+                              }
+                            }
+                          },
+
+                          "oneOf": [
+                            {
+                              "title": "Null Filter",
+                              "properties": {
+                                "type": {
+                                  "enum": ["null"]
+                                }
+                              }
+                            },
+                            {
+                                "title": "Change Detect",
+                                "description": "Drop samples except when a change happens while state active.",
+                                "properties": {
+                                  "type": {
+                                    "enum": ["change"]
+                                  }
+                                }
+                              },
+                              {
+                                "title": "Pass Triggers",
+                                "description": "Pass any sample where the value changes, unless the new value is zero",
+                                "properties": {
+                                  "type": {
+                                    "enum": ["trigger"]
+                                  }
+                                }
+                              },
+                            {
+                              "title": "1st Order Lowpass",
+                              "properties": {
+                                "type": {
+                                  "enum": ["lowpass"]
+                                },
+                                "timeConstant": {
+                                  "type": "number",
+                                  "required": true,
+                                  "minimum": "0",
+                                  "unit": "ms",
+                                  "description": "Number of milliseconds for output to reach 63% of input"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "notes": {
+                        "type": "string",
+                        "required": false
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "onenter",
+                          "onframe",
+                          "once"
+                        ],
+                        "title": "Mode",
+                        "required": true
+                      },
+                      "startPosition": {
+                        "title": "Start Position",
+                        "type": "number",
+                        "description": "Start location"
+                      },
+                      "count": {
+                        "title": "Count",
+                        "type": "number",
+                        "description": "Number of slots to affect"
+                      }
+                    },
+                    "title": "Binding",
+                    "type": "object",
+                    "options": {
+                      "disable_properties": false,
+                      "disable_collapse": false
+                    },
+                    "id": "binding",
+                    "headerTemplate": "{{source}} > target",
+                    "watch": {
+                      "source": "binding.source",
+                      "target": "binding.target"
+                    }
+                  },
+                  "title": "Bindings",
+                  "type": "array"
+                }
+              },
+              "title": "State",
+              "type": "object"
+            },
+            "title": "States",
+            "type": "array"
+          }
+        },
+        "title": "Clockwork",
+        "id": "clockwork",
+        "headerTemplate": "clockwork: {{name}}",
+        "watch": {
+          "name": "clockwork.name"
+        },
+        "type": "object"
+      },
+      "title": "Clockworks",
+      "type": "array"
+    }
+  },
+  "title": "Automation",
+  "type": "object"
 }

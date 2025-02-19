@@ -116,14 +116,18 @@ A binding is a rule that says "While this state is active, set this variable to 
 
 You might, for instance, map a switch input to an LED.
 
-Bindings have several modes.  Onchange will set the target to the expression when the expression changes.  A "change" means that it actually changed while the clockwork was on the state, it won't
-register old changes from before that.
+Bindings have several modes.  They can either run once when the state becomes active, or on every frame.
 
-Trigger will increment the target whenever the expression changes to a nonzero value,
-letting you map through triggers.
+##### Filters
 
-onframe sets the target every frame, always, and onenter sets it only once when entering the
-state.
+Every binding has a set of filters, so you can do things like only setting the target when
+the value changes, or applying a lowpass.
+
+Of special note is the trigger filter, it drops unchanged samples or 0-value samples,
+and normalizez so the output always increments. [0,1,0,1] becomes [NoChange, 1, NoChange, 2]
+
+Note that filters either pass through everything or nothing, so things like arrays of triggers
+don't make sense. with most filters,
 
 
 triggerOnEnter triggers once when entering a cue, as long as the expression is true.

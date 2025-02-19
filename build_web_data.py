@@ -1,10 +1,36 @@
 import gzip
+import json
 import os
+
+
+def add_date_to_scheme_ref_urls(schema, fn):
+    """$ref needs cache bust vals"""
+    if isinstance(schema, dict):
+        for k, v in schema.items():
+            if isinstance(v, dict):
+                add_date_to_scheme_ref_urls(v, fn)
+            elif isinstance(v, list):
+                add_date_to_scheme_ref_urls(v, fn)
+
+            if k == "$ref":
+                schema[k] = f"{schema[k]}?cache={os.path.getmtime(fn)}"
+
+    elif isinstance(schema, list):
+        for i in schema:
+            add_date_to_scheme_ref_urls(i, fn)
+
+
+def process_json(s, fn):
+    j = json.loads(s)
+    add_date_to_scheme_ref_urls(j, fn)
+    return json.dumps(j)
 
 
 def file_to_c_array(filename: str) -> str:
     with open(filename, "rb") as f:
         data = f.read()
+    if filename.endswith(".json"):
+        data = process_json(data.decode("utf-8"), filename).encode("utf-8")
     data = gzip.compress(data, mtime=os.path.getmtime(filename))
 
     vn = os.path.basename(filename).replace(".", "_") + "_gz"

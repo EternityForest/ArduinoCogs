@@ -217,70 +217,34 @@ static void _loadFromFile()
                 if (bindingData["mode"].is<const char *>())
                 {
                     std::string mode = bindingData["mode"].as<std::string>();
-                    if (mode == "onchange")
-                    {
-                        b->onchange = true;
-                    }
-
-                    if (mode == "trigger")
-                    {
-                        b->trigger_mode = true;
-                        b->onchange = true;
-                    }
-
-                    if (mode == "triggerOnEnter")
-                    {
-                        b->trigger_mode = true;
-                        b->onenter = true;
-                        b->freeze = true;
-                    }
-
                     if (mode == "onenter")
                     {
-                        b->onenter = true;
                         b->freeze = true;
                     }
                     if (mode == "onframe")
                     {
-                        b->onchange = false;
                         b->freeze = false;
                     }
                 }
 
-                if (bindingData["fadeInTime"].is<const char *>())
-                {
-                    std::string fadeInTime = bindingData["fadeInTime"].as<std::string>();
-                    if (!(fadeInTime == "0" || fadeInTime == "0.0" || fadeInTime == ""))
-                    {
-                        b->fadeInTimeSource = fadeInTime;
-                        b->fadeInTime = cogs_rules::compileExpression(fadeInTime);
-                        if (!b->fadeInTime)
-                        {
+             
+
+                if(b->multiCount > 0){
+                    count = b->multiCount;
+                }
+
+                if(bindingData["filters"].is<JsonArray>()){
+                    auto filters = bindingData["filters"].as<JsonArray>();
+                    for(auto const &filterData : filters){
+                        if(count==0){
+                            cogs::logError("Cannot apply binding if binding values count is unknown");
                             badAutomation();
                             return;
                         }
-                        b->trySetupTarget();
-                    }
-                }
-
-                if (bindingData["alpha"].is<const char *>())
-                {
-                    std::string alpha = bindingData["alpha"].as<std::string>();
-                    if (!(alpha == "1" || alpha == "1.0" || alpha == ""))
-                    {
-                        b->alphaSource = alpha;
-                        b->alpha = cogs_rules::compileExpression(alpha);
-                        b->trySetupTarget();
-                    }
-                }
-
-                if (bindingData["layer"].is<int>())
-                {
-                    int layer = bindingData["layer"].as<int>();
-                    if (layer)
-                    {
-                        b->layer = layer;
-                        b->trySetupTarget();
+                        auto f = cogs_rules::createFilter(count, b->target->scale, filterData);
+                        if(f){
+                            b->filters.push_back(f);
+                        }
                     }
                 }
             }

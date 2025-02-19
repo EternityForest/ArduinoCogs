@@ -11,20 +11,21 @@
 #include <map>
 #include <vector>
 #include <cstring>
+#include <ArduinoJson.h>
 
 #include <memory>
 #include <stdint.h>
 #include "tagpoint_template.h"
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
+#include "cogs_filters.h"
 
 extern "C"
 {
 #include "tinyexpr/tinyexpr.h"
 }
 
-#define CLAIM_PRIORITY_FADE 2
-
+using namespace cogs_rules;
 namespace cogs_rules
 {
 
@@ -77,36 +78,22 @@ namespace cogs_rules
   /// This is special because it is the highest power of two fitting in an int16.
   const int32_t FXP_RES = 16384;
 
-  class IntFadeClaim : public cogs_tagpoints::TagPointClaim
-  {
-  public:
-    int32_t start;
-    int32_t duration;
-    uint16_t alpha = FXP_RES;
-    bool fadeDone = false;
-    virtual void applyLayer(int32_t *vals, uint16_t start) override;
-
-    IntFadeClaim(uint16_t startIndex, uint16_t count);
-  };
-
   class Binding
   {
   private:
-    std::shared_ptr<IntTagPoint> target;
-
-    // In claim mode we use a claim rather than directly setting the value
-    std::shared_ptr<cogs_rules::IntFadeClaim> claim = nullptr;
 
     /// Don't run till unfrozen
     bool frozen = false;
 
   public:
     std::string target_name;
+    std::shared_ptr<IntTagPoint> target;
 
     std::string inputExpressionSource;
 
     te_expr *inputExpression;
 
+    std::vector<Filter *> filters;
     // A binding can be for an array. This is an index and count for what part
     // Of the tag point's data to affect.
     uint16_t multiStart = 0;
@@ -114,41 +101,22 @@ namespace cogs_rules
     // 0 means all elements
     uint16_t multiCount = 0;
 
-    /// Should we apply to bg value, or create a claim with priority?
-    uint16_t layer = 0;
-
-    // Eval'ed when the binding enters
-    std::string fadeInTimeSource;
-
-    te_expr *fadeInTime = nullptr;
-
-    // Eval'ed every frame
-    std::string alphaSource;
-    te_expr *alpha = nullptr;
-
     /// If you change fadeInTime, set up the target again
     bool trySetupTarget();
-
-    /// If True, act once when entering a state, even if no changes
-    bool onenter = false;
-
-    /// If True, only act when value changes, and on enter if
-    /// onenter is set.
-    bool onchange = false;
 
     // If true, the output value increments whenever the expression val changes
     // to something non-zero
     bool trigger_mode = false;
 
-
     /// Only act once on enter no matter what.
     bool freeze = false;
+
+    /// Only act once on entering frame, but try until we get a non dropped sample
+    bool freeze_after_first = false;
 
     /// Array tracking the last value of the binding.
     /// Used for change detection.
     int *lastState = nullptr;
-
-    bool *stateUnknown = nullptr;
 
     bool ready = false;
 
@@ -187,7 +155,6 @@ namespace cogs_rules
     std::string nextState = "";
 
     std::shared_ptr<Clockwork> owner;
-
 
     // We do our own change detection here for loop prevention reasons
     int lastTagValue = 0;
