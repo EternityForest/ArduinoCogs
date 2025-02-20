@@ -226,6 +226,26 @@
                                     "description": "Number of milliseconds for full fade"
                                   }
                                 }
+                              },
+
+                            {
+                                "title": "Expression",
+                                "description": "Use an expression to process the value",
+                                "properties": {
+                                  "type": {
+                                    "enum": ["expression"]
+                                  },
+                                  "expression": {
+                                    "type": "string",
+                                    "required": true,
+                                    "description": "Use $old to get the val",
+                                    "options": {
+                                      "inputAttributes": {
+                                        "list": "expr_completions"
+                                      }
+                                    }
+                                  }
+                                }
                               }
                           ]
                         }

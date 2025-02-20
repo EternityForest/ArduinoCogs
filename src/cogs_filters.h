@@ -23,6 +23,7 @@ namespace cogs_rules
         // Used for things like lowpass filters, when a binding
         // Becomes active we need to know the previous state
         virtual void setStateEnterTargetValue(int *input);
+        virtual bool handleEngineRefresh();
         virtual ~Filter();
 
         // If True, the filter can be called with the previous output even if there is no new

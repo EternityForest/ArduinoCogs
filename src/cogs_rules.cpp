@@ -67,7 +67,9 @@ te_expr *cogs_rules::compileExpression(const std::string &input)
 
 void cogs_rules::freeExpression(te_expr *x)
 {
-  te_free(x);
+  if(x){
+    te_free(x);
+  }
 }
 
 float cogs_rules::evalExpression(const std::string &input)
@@ -154,7 +156,10 @@ static void append_func(const std::string &name, void *f, int type)
 
 static float fxp_res_var = FXP_RES;
 
-static float dollar_sign_i = 0;
+namespace cogs_rules {
+float dollar_sign_i = 0;
+float dollar_sign_old = 0;
+}
 
 static float adcUserFunction(float x)
 {
@@ -329,7 +334,9 @@ float fbang(float x)
 void setupBuiltins()
 {
   cogs_rules::constants["$res"] = &fxp_res_var;
-  cogs_rules::constants["$i"] = &dollar_sign_i;
+  cogs_rules::constants["$i"] = &cogs_rules::dollar_sign_i;
+  cogs_rules::constants["$old"] = &cogs_rules::dollar_sign_old;
+
   cogs_rules::user_functions1["analogRead"] = &adcUserFunction;
   cogs_rules::user_functions0["random"] = &randomUserFunction;
   cogs_rules::user_functions0["millis"] = &timeUserFunction;
@@ -491,7 +498,7 @@ inline void Binding::eval()
 
   if (!this->frozen)
   {
-    dollar_sign_i = this->multiStart;
+    cogs_rules::dollar_sign_i = this->multiStart;
     shouldRerender = true;
 
     // If it's a multi binding, evaluate each part
@@ -504,11 +511,11 @@ inline void Binding::eval()
 
       scratchpad[i] = x_scaled;
 
-      dollar_sign_i++;
+      cogs_rules::dollar_sign_i++;
     }
 
     // Set it back to 0
-    dollar_sign_i = 0;
+    cogs_rules::dollar_sign_i = 0;
 
     if (this->freeze)
     {
@@ -526,7 +533,7 @@ inline void Binding::eval()
         return;
     }
     }
-    
+
     if (!it->sample(scratchpad, targetvals))
     {
       shouldRerender = false;
@@ -1038,6 +1045,14 @@ bool Binding::handleEngineRefresh()
   {
     this->target = nullptr;
     this->trySetupTarget();
+  }
+
+  for(const auto &filter : this->filters)
+  {
+    if (!filter->handleEngineRefresh())
+    {
+      good = false;
+    }
   }
 
   return good;
