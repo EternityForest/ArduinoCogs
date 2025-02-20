@@ -24,6 +24,10 @@ namespace cogs_rules
         // Becomes active we need to know the previous state
         virtual void setStateEnterTargetValue(int *input);
         virtual ~Filter();
+
+        // If True, the filter can be called with the previous output even if there is no new
+        // input
+        bool  freeRun = false;
     };
 
     extern Filter *createFilter(int num, int resolution, const JsonObject &json);

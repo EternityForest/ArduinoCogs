@@ -127,10 +127,26 @@ Of special note is the trigger filter, it drops unchanged samples or 0-value sam
 and normalizez so the output always increments. [0,1,0,1] becomes [NoChange, 1, NoChange, 2]
 
 Note that filters either pass through everything or nothing, so things like arrays of triggers
-don't make sense. with most filters,
+don't make sense with many filters.
+
+Current filters:
+
+* First order lowpass(fee run)
+* Fade in(Free run during inital fade)
+* On Change(Drop any sample that has't changed)
+* Pass through triggers
+* Null filter does nothing
+
+When a filter "drops" a sample, the whole rest of the filter chain is ignored, unless the very 
+next filter is "free running".  So the pipeline onchange > lowpass will set the target every single 
+frame, because lowpass free runs even with no input, it just keeps the old input.
+
+Wheras lowpass > onchange will stop seting the value once the lowpass reaches it's steady value.
+In theory this will never happen, in practivce it will due to floating point precision.
 
 
-triggerOnEnter triggers once when entering a cue, as long as the expression is true.
+
+
 ### Tag Points/Variables
 
 These are just lists of numbers. Most of the time, they only contain one number. They are used to control things or read from sensors.  Using their names in expressions gives you the first value, the rest are

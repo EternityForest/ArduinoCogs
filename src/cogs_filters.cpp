@@ -14,6 +14,66 @@ bool cogs_rules::Filter::sample(int *input, int* current_target_vals){return tru
 void cogs_rules::Filter::setStateEnterTargetValue(int *input){};
 
 
+class FadeInFilter : public cogs_rules::Filter
+{
+public:
+    float time = 1000;
+    int count = 0;
+    float *state = nullptr;
+    int32_t start = 0;
+
+    inline FadeInFilter(int num, int resolution, const JsonObject &json)
+    {
+        if (json["time"].is<float>())
+        {
+            time = json["time"].as<float>();
+        }
+        this->state = new float[num];
+        this->count = num;
+        this->freeRun = true;
+        start = millis();
+    }
+
+    // Tell filter about the value of the target when the state first enters.
+    void setStateEnterTargetValue(int *input)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            state[i] = input[i];
+        }
+        start = millis();
+        freeRun = true;
+    }
+
+    bool sample(int *input, int* current_target_vals)
+    {
+        if(!freeRun){
+            return true;
+        }
+
+        int32_t now = millis();
+        float delta = now - start;
+       
+        float blend = delta/time;
+        if(blend>=1.0){
+            blend=1.0;
+            freeRun = false;
+            return true;
+        }
+
+        for(int i = 0; i < count; i++){
+            state[i] = blend * ((float)input[i]) +   (1.0f - blend) * state[i];
+            input[i] = (int)state[i];
+        }
+        return true;
+        // Too some optimization thing
+    }
+
+    ~FadeInFilter()
+    {
+        delete[] state;
+    }
+};
 
 class LowPassFilter : public cogs_rules::Filter
 {
@@ -37,6 +97,7 @@ public:
 
         this->state = new float[num];
         this->count = num;
+        this->freeRun = true;
         lastSample = millis();
     }
 
@@ -173,18 +234,22 @@ Filter *cogs_rules::createFilter(int num, int resolution, const JsonObject &json
         return new Filter();
     }
 
-    if(type == "change"){
+    else if(type == "change"){
         return new OnChangeFilter(num, resolution, json);
     }
-    if(type == "trigger"){
+    else if(type == "trigger"){
         return new TriggerFilter(num, resolution, json);
     }
 
-    if (type == "lowpass")
+    else if (type == "lowpass")
     {
         return new LowPassFilter(num, resolution, json);
     }
 
+    else if (type == "fadeIn")
+    {
+        return new FadeInFilter(num, resolution, json);
+    }
     cogs::logError("Unknown filter type: " + type);
     return nullptr;
 }

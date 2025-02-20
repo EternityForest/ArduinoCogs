@@ -29,13 +29,6 @@ void cogs::runUnitTests()
 
     check(t->value[0], 90);
 
-    // Create a claim, layer 100.
-    auto c = t->overrideClaim(100, 60);
-
-    check(c->value[0], 60);
-
-    t->removeClaim(c);
-    check(c->value[0], 90);
 
     auto t2 = cogs_rules::IntTagPoint::getTag("array", 80, 32);
     check(t2->count, 32);

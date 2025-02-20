@@ -209,7 +209,24 @@
                                   "description": "Number of milliseconds for output to reach 63% of input"
                                 }
                               }
-                            }
+                            },
+
+                            {
+                                "title": "Fade In",
+                                "description": "On entering state, start at initial target value and fade to filter input",
+                                "properties": {
+                                  "type": {
+                                    "enum": ["fadeIn"]
+                                  },
+                                  "time": {
+                                    "type": "number",
+                                    "required": true,
+                                    "minimum": "10",
+                                    "unit": "ms",
+                                    "description": "Number of milliseconds for full fade"
+                                  }
+                                }
+                              }
                           ]
                         }
                       },

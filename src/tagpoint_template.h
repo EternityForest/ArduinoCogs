@@ -18,8 +18,6 @@ extern "C"
 
 namespace cogs_tagpoints
 {
-  class TagPointClaim;
-
   /// A tag point is a container representing a subscribable value.
   /// They may be of any type, however int32 is the standard type
   /// Tags must be unregistered once you are done, as they automatically store themselves in a global list.
@@ -29,11 +27,6 @@ namespace cogs_tagpoints
   class TagPoint
   {
   private:
-    // Track all claims affecting the tag's value
-    // we can only have one claim of each priority.
-    // Unsigned long is so we can use more complex keys.
-    std::vector<std::shared_ptr<TagPointClaim>> claims;
-
     // These functions are called when value changes
     std::vector<void (*)(TagPoint *)> subscribers;
 
@@ -43,9 +36,6 @@ namespace cogs_tagpoints
     TagPoint(const std::string &n, TAG_DATA_TYPE val, uint16_t count = 1);
     ~TagPoint();
 
-    /// This is the current "base" value before applying any claims.
-    /// It may be overridden or filtered by a claim.  Once a claim is "finished",
-    /// Meaning it's effect is no longer changing, the output of that layer will be written to
     TAG_DATA_TYPE *background_value;
 
     /// The last rendered first value, converted to a float.
@@ -187,7 +177,7 @@ namespace cogs_tagpoints
     //! Unregister a tag. It should not be used after that.
     void unregister();
 
-    /// Recalculates value, applying all claim layers
+    /// Recalculates value
     void rerender();
 
     //! Set the description of the tag.
@@ -202,17 +192,6 @@ namespace cogs_tagpoints
       this->unit = cogs::getSharedString(std::string(u));
     }
 
-    //! Create an override claim
-
-    /*!
-    @param layer Serves as both unique ID and priority for the claim
-    @param value the value of the claim
-    */
-
-    std::shared_ptr<TagPointClaim> overrideClaim(uint16_t layer, TAG_DATA_TYPE value, uint16_t startIndex = 0, uint16_t count = 1);
-
-    //! Remove a claim.  There is no way to add it back.
-    void removeClaim(std::shared_ptr<TagPointClaim> c);
 
     //! Function will be called when val changes
     void subscribe(void (*func)(TagPoint *));
@@ -231,56 +210,13 @@ namespace cogs_tagpoints
     void smartSetValue(TAG_DATA_TYPE val, int minDifference, int interval);
 
 
-
-    void addClaim(std::shared_ptr<TagPointClaim> claim);
-
     void silentResetValue();
-
-    /// Clean the list of claims.  Once something is marked finished, if it is
-    /// Right above background, it's value is the new background and we delete it
-    void cleanFinished();
 
     /// Increment the value by 1, looping at 1M, and skipping 0.
     void bang(){
       this->setValue(cogs::bang(this->value[0]));
     }
     
-  };
-
-  /// A tag point claim is an an object that sets the value of a tag.
-  /// It is essentially a layer and can even blend with layers below.
-  /// A claim has no idea about it's parent tag and changes do not affect it unless you
-  /// Explicitly rerender.
-
-  class TagPointClaim
-  {
-
-  public:
-    /// Every claim has an array of values
-    /// that it wants to put at a specific place.
-    /// Normally we just have one val at 0 to represent scalars
-    TAG_DATA_TYPE *value;
-
-    /// Index into the tagpoint's value array where we are affecting
-    uint16_t startIndex = 0;
-
-    /// How many vals
-    uint16_t count = 1;
-
-    uint16_t priority = 0;
-
-    // When a tag is "finished", it's value can be "folded into" the background
-    // layer, assuming  it is the next layer above
-    bool finished = false;
-
-    // applyLayer is an in place paint operation
-    virtual void applyLayer(TAG_DATA_TYPE *old, uint16_t count);
-
-    /// Count must be specified up front, everything else can be done later
-    /// Because it's mostly type specific
-    TagPointClaim(uint16_t startIndex, uint16_t count);
-
-    ~TagPointClaim();
   };
 
 }

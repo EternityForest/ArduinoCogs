@@ -18,6 +18,8 @@ using namespace cogs_rules;
 
 static std::map<std::string, std::shared_ptr<Clockwork>> webClockworks;
 
+static std::vector<std::shared_ptr<cogs_rules::IntTagPoint>> automationTags;
+
 static void closeAllClockworks()
 {
 
@@ -63,6 +65,12 @@ static void _loadFromFile()
 
     closeAllClockworks();
 
+    for(auto v : automationTags){
+        v->unregister();
+    }
+    automationTags.clear();
+    cogs_rules::refreshBindingsEngine();
+
     JsonVariant vars = doc["vars"];
     if (vars.is<JsonArray>())
     {
@@ -85,9 +93,13 @@ static void _loadFromFile()
             {
                 cogs_prefs::addPref(var["name"].as<std::string>());
             }
+
+            automationTags.push_back(v);
         }
-        cogs_rules::refreshBindingsEngine();
     }
+
+    
+    cogs_rules::refreshBindingsEngine();
 
     JsonVariant clockworks = doc["clockworks"];
     if (!clockworks.is<JsonArray>())

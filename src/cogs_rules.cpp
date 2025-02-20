@@ -481,6 +481,9 @@ inline void Binding::eval()
     }
   }
 
+  bool shouldRerender = false;
+
+
   // First we render to a scratchpad, then
   // if needed we copy that to the target. Because we may have some filters
   // In  between the scratchpad and the target.
@@ -489,6 +492,7 @@ inline void Binding::eval()
   if (!this->frozen)
   {
     dollar_sign_i = this->multiStart;
+    shouldRerender = true;
 
     // If it's a multi binding, evaluate each part
     for (int i = 0; i < this->multiCount; i++)
@@ -513,25 +517,29 @@ inline void Binding::eval()
   }
 
   bool has_filters = this->filters.size() > 0;
-  bool shouldRerender = true;
-  if (has_filters)
-  {
-    int *targetvals = this->target->value + this->multiStart;
-    for (auto it : this->filters)
-    {
-      if (!it->sample(scratchpad, targetvals))
-      {
-        shouldRerender = false;
-        break;
-      }
-    }
 
-    if (shouldRerender)
+  int *targetvals = this->target->value + this->multiStart;
+  for (auto it : this->filters)
+  {
+    if(!shouldRerender){
+      if(!it->freeRun){
+        return;
+    }
+    }
+    
+    if (!it->sample(scratchpad, targetvals))
     {
-      memcpy(this->target->background_value + this->multiStart, scratchpad, this->multiCount * sizeof(int));
-      this->target->rerender();
+      shouldRerender = false;
+      return;
     }
   }
+
+  if (shouldRerender)
+  {
+    memcpy(this->target->background_value + this->multiStart, scratchpad, this->multiCount * sizeof(int));
+    this->target->rerender();
+  }
+  
 };
 
 Binding::~Binding()
