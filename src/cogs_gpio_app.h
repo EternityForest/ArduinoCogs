@@ -26,7 +26,7 @@ namespace cogs_gpio
     {
     public:
         void onNewRawDigitalValue(bool);
-
+        int pin;
         bool activeHigh = false;
         bool lastInputLevel = false;
         unsigned long debounceTimestamp = 0;
@@ -40,12 +40,19 @@ namespace cogs_gpio
         std::shared_ptr<cogs_rules::IntTagPoint> digitalValueTarget = nullptr;
 
         void configureDigitalPropsFromData(const JsonVariant &config);
+
+        // If this is true, we expect there to always be a 1M or similar resistor
+        // Connected between the pin and ground, allowing us to be instantly notified about
+        // a bad connection
+        bool needPilotResistor = false;
+        bool testResistorPresence();
+
+        bool pilotResistorPresent = true;
     };
 
     class CogsSimpleInput : public CogsDigitalInput
     {
     public:
-        int pin;
         int (*readFunction)(int) = nullptr;
         bool isInterruptDriven = false;
 
@@ -63,39 +70,20 @@ namespace cogs_gpio
         int channel;
         int (*readFunction)(int) = nullptr;
 
-        /// Multiply the input by this value to get the real useful value
-        float inputScaleFactor = 1.0;
+        int rawToScaledMultiplier = 1.0;
 
-        float filterTime = 0.0;
-
-        float filteredValue = 0.0;
+        // what to mult adc untis by to get the tag point fixed point vals
+        int valMult=0;
 
         /// The offset to subtract, in raw units.
-        int centerValue = 0;
-        float centerValueFloat = 0.0;
+        int rawUnitCenterValue = 0;
 
-        /// The original, not auto drift corrected, raw units
-        float absoluteZeroOffset = 0.0;
 
-        int hystWindowCenter = 0;
-        float hystWindowCenterFloat = 0.0;
-
-        int hysteresis = 0;
-
-        bool analogHysteresis = false;
 
         bool singleEndedSense = false;
 
-        unsigned long lastDriftCorrection = 0;
+        float rawUnitMaxAutoZero = 0;
 
-        /// The t value for drift correction.
-        float driftFactor = 0.0;
-
-        /// The deadband around zero for the analog value
-        float deadBand = 0.0;
-
-        /// Do auto zeroing if the value is below this
-        int autoZero = 0;
 
 
         // The value target, after processing

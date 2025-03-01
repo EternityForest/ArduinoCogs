@@ -14,7 +14,6 @@
 #include <LittleFS.h>
 #include <Arduino.h>
 
-
 #define ANREAD analogRead
 
 namespace cogs_gpio
@@ -159,6 +158,19 @@ namespace cogs_gpio
         for (auto &i : analogInputs)
         {
             i.poll();
+        }
+    }
+
+    static void checkAllInputs()
+    {
+        for (auto &i : simpleInputs)
+        {
+            i.testResistorPresence();
+        }
+
+        for (auto &i : analogInputs)
+        {
+            i.testResistorPresence();
         }
     }
 
@@ -445,6 +457,47 @@ namespace cogs_gpio
         {
             this->debounce = config["debounce"].as<int>();
         }
+
+        if (config["openDrainPilotResistor"].is<bool>())
+        {
+            this->needPilotResistor = config["openDrainPilotResistor"].as<bool>();
+        }
+    }
+
+    bool CogsDigitalInput::testResistorPresence()
+    {
+
+        if (!this->needPilotResistor)
+        {
+            return true;
+        }
+
+        if (this->pin >= 1024)
+        {
+            return true;
+        }
+        pinMode(this->pin, INPUT_PULLUP);
+        delayMicroseconds(40);
+        pinMode(this->pin, INPUT);
+        delay(1);
+
+        if (!digitalRead(this->pin))
+        {
+            if (!this->pilotResistorPresent)
+            {
+                this->pilotResistorPresent = true;
+                cogs::inactivateTroubleCode("EINPUTDISCONNECTED");
+            }
+            return true;
+        }
+
+        if (this->pilotResistorPresent)
+        {
+
+            this->pilotResistorPresent = false;
+            cogs::addTroubleCode("EINPUTDISCONNECTED");
+        }
+        return false;
     }
 
     CogsSimpleInput::CogsSimpleInput(const JsonVariant &config)
@@ -691,11 +744,6 @@ namespace cogs_gpio
             }
         }
 
-        if (config["filterTime"].is<double>())
-        {
-            this->filterTime = config["filterTime"].as<double>();
-        }
-
         std::string scale = "1";
 
         if (config["scale"].is<const char *>())
@@ -703,21 +751,11 @@ namespace cogs_gpio
             scale = config["scale"].as<std::string>();
         }
 
-        if (config["driftTime"].is<float>())
-        {
-            this->driftFactor = cogs::fastGetApproxFilterBlendConstant(config["driftTime"].as<float>(), 1.0);
-        }
-
-        this->inputScaleFactor = cogs_rules::evalExpression(scale);
-        if (this->inputScaleFactor == 0)
+        this->rawToScaledMultiplier = cogs_rules::evalExpression(scale);
+        if (this->rawToScaledMultiplier == 0)
         {
             cogs::logError("Invalid scale " + scale);
-            this->inputScaleFactor = 1;
-        }
-
-        if (config["hysteresis"].is<double>())
-        {
-            this->hysteresis = config["hysteresis"].as<double>() / this->inputScaleFactor;
+            this->rawToScaledMultiplier = 1;
         }
 
         if (config["analogValueTarget"].is<const char *>())
@@ -797,13 +835,13 @@ namespace cogs_gpio
             }
         }
 
+        this->valMult = this->rawToScaledMultiplier * cogs_rules::FXP_RES;
+
         if (config["zeroValue"].is<double>())
         {
-            this->centerValue = config["centerValue"].as<double>() / this->inputScaleFactor;
-            this->absoluteZeroOffset = this->centerValue / this->inputScaleFactor;
+            this->rawUnitCenterValue = config["zeroValue"].as<double>() / this->rawToScaledMultiplier;
         }
 
-        this->hystWindowCenter = this->centerValue;
         this->setupDigitalTargetsFromJson(config);
 
         int samples = 64;
@@ -822,30 +860,22 @@ namespace cogs_gpio
 
         avg /= samples;
 
-        // We don't always use this
-        this->filteredValue = avg;
-
         // Automatic zero at boot, only if it's fairly close to the center
         if (config["autoZero"].as<float>())
         {
 
-            this->autoZero = config["autoZero"].as<float>() / this->inputScaleFactor;
+            this->rawUnitMaxAutoZero = config["autoZero"].as<float>() / this->rawToScaledMultiplier;
 
-            // *2 is a random guess for what might be close enough to centered to count.
-            if ((avg > this->centerValue + (this->autoZero)) ||
-                (avg < this->centerValue - (this->autoZero)))
+            if ((avg > this->rawUnitCenterValue + (this->rawUnitMaxAutoZero)) ||
+                (avg < this->rawUnitCenterValue - (this->rawUnitMaxAutoZero)))
             {
                 cogs::addTroubleCode("EAUTOZEROFAIL");
             }
             else
             {
-                this->hystWindowCenter = avg;
-                this->centerValue = avg;
+                this->rawUnitCenterValue = avg;
             }
         }
-        this->centerValueFloat = this->centerValue;
-
-        this->hystWindowCenterFloat = this->hystWindowCenter;
 
         int interuptNumber = -1;
         if (pin < 1024)
@@ -919,7 +949,7 @@ namespace cogs_gpio
             if (this->readFunction == nullptr)
             {
                 val -= ANREAD(this->pin);
-                
+
                 if (this->pullup)
                 {
                     pinMode(this->pin, INPUT_PULLUP);
@@ -946,90 +976,15 @@ namespace cogs_gpio
         {
             return;
         }
-        bool windowMoved = false;
 
         int val = this->rawRead();
 
-        if (this->filterTime > 0.0)
+        float realMeasurement = (val - this->rawUnitCenterValue);
+        if (this->analogValueTarget)
         {
-            float t = cogs::fastGetApproxFilterBlendConstant(this->filterTime, cogs_pm::fps);
-            this->filteredValue = cogs::blend(this->filteredValue, val, t);
-            val = this->filteredValue;
+            // Need to convert to the target scale
+            this->analogValueTarget->setValue(realMeasurement * this->valMult, 0, 1);
         }
-
-        if (val < this->hystWindowCenter - this->hysteresis)
-        {
-            this->hystWindowCenterFloat = val;
-            this->hystWindowCenter = val;
-            this->onNewRawDigitalValue(false);
-            windowMoved = true;
-        }
-        else if (val > this->hystWindowCenter + this->hysteresis)
-        {
-            this->hystWindowCenterFloat = val;
-            this->hystWindowCenter = val;
-            this->onNewRawDigitalValue(true);
-            windowMoved = true;
-        }
-
-        if (windowMoved || (!this->analogHysteresis))
-        {
-            if (this->analogValueTarget)
-            {
-                float realMeasurement = ((val - this->centerValue) * this->inputScaleFactor);
-                if (this->deadBand > 0.0)
-                {
-                    if (abs(realMeasurement) < this->deadBand)
-                    {
-                        realMeasurement = 0.0;
-                    }
-                    else
-                    {
-                        if (realMeasurement > 0.0)
-                        {
-                            realMeasurement -= this->deadBand;
-                        }
-                        else
-                        {
-                            realMeasurement += this->deadBand;
-                        }
-                    }
-                }
-
-                // Need to convert to the target scale
-                this->analogValueTarget->setValue(realMeasurement * this->analogValueTarget->scale, 0, 1);
-            }
-        }
-
-        if (this->driftFactor > 0.0)
-        {
-            // Drift only happens if within middle 50% of the window, to eliminate outliers
-            if (millis() - this->lastDriftCorrection > 1000)
-            {
-
-                this->lastDriftCorrection = millis();
-                if (val > this->hystWindowCenter - (this->hysteresis / 2))
-                {
-                    if (val < this->hystWindowCenter + (this->hysteresis / 2))
-                    {
-                        this->lastDriftCorrection = millis();
-                        this->hystWindowCenterFloat = cogs::blend(this->hystWindowCenterFloat, val, this->driftFactor);
-                        this->hystWindowCenter = this->hystWindowCenterFloat;
-                    }
-                }
-
-                if (val > (this->absoluteZeroOffset - this->autoZero))
-                {
-                    if (val < (this->absoluteZeroOffset + this->autoZero))
-                    {
-
-                        this->centerValueFloat = cogs::blend(this->centerValueFloat, val, this->driftFactor);
-                        this->centerValue = this->centerValueFloat;
-                    }
-                }
-            }
-        }
-
         // Serial.println(micros() - st);
     }
 }

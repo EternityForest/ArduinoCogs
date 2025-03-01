@@ -51,6 +51,12 @@
             "type": "boolean",
             "description": "If set, pull to 3.3V if possible"
           },
+
+          "openDrainPilotResistor": {
+            "title": "Expect open drain pilot resistor",
+            "type": "boolean",
+            "description": "If set, expect 1M resistor to ground to detect disconnected inputs."
+          },
           "debounce": {
             "title": "Debounce Time(ms)",
             "type": "number",
@@ -118,34 +124,9 @@
             "type": "boolean",
             "description": "If set, pull to 3.3V if possible. Many platforms may not fully support this and may give odd readings."
           },
-          "activeHigh": {
-            "title": "Active High",
-            "type": "boolean",
-            "description": "If unset, input is active when the voltage is low",
-            "required": true
-          },
-          "activeTarget": {
-            "title": "Active Target",
-            "type": "string",
-            "description": "Variable to set when pin becomes active",
-            "options": {
-              "inputAttributes": {
-                "list": "tags"
-              }
-            }
-          },
-          "inactiveTarget": {
-            "title": "Inactive Target",
-            "type": "string",
-            "description": "Variable to set when pin becomes inactive",
-            "options": {
-              "inputAttributes": {
-                "list": "tags"
-              }
-            }
-          },
+
           "analogValueTarget": {
-            "title": "Value Target",
+            "title": "Analog Value Target",
             "type": "string",
             "description": "Variable to set with the measured value.",
             "options": {
@@ -154,50 +135,13 @@
               }
             }
           },
-          "digitalValueTarget": {
-            "title": "Digital Value Target",
-            "type": "string",
-            "description": "Variable to set with active/inactive digital value.",
-            "options": {
-              "inputAttributes": {
-                "list": "tags"
-              }
-            }
-          },
-          "filterTime": {
-            "title": "Filter Time(s)",
-            "type": "number",
-            "default": 0.0,
-            "description": "Filter averaging time in seconds, happens before any other processing."
-          },
-          "deepSleepWake": {
-            "title": "Deep Sleep Wake",
-            "type": "boolean",
-            "required": false,
-            "description": "If set, pin will wake the device from deep sleep if it becomes active. Some pins may not support this, some chips may only allow one wake pin."
-          },
+
+    
           "pin": {
             "$ref": "/gpio/input_pin_schema.json",
             "required": true
           },
-          "hysteresis": {
-            "title": "Hysteresis",
-            "type": "number",
-            "default": 0.1,
-            "description": "Hysteresis in scaled units, used to convert to digital value."
-          },
-          "analogHysteresis": {
-            "title": "Analog Hysteresis",
-            "type": "boolean",
-            "description": "If set, apply hysteresis to the analog value as well as the digital value.",
-            "default": true
-          },
-          "deadband": {
-            "title": "Analog Deadband",
-            "type": "number",
-            "required": false,
-            "description": "Deadband around zero, applies to the analog value."
-          },
+        
           "scale": {
             "title": "Scale",
             "type": "string",
@@ -205,6 +149,7 @@
             "description": "Multiplier to convert to raw value to the actual measurement.",
             "required": true
           },
+
           "zeroValue": {
             "title": "Zero Value",
             "type": "string",
@@ -225,10 +170,12 @@
             "default": 3600,
             "description": "Expected speed for approx 63% change due to drift"
           },
+
           "referencePin": {
             "$ref": "/gpio/output_pin_schema.json",
             "description": "Output used as a reference, to measure conductance.  Use for matrix reading, capsense, etc."
           },
+          
           "capSense": {
             "title": "Capsense",
             "type": "boolean",

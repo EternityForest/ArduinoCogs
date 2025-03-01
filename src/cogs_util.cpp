@@ -296,7 +296,7 @@ namespace cogs
 
     // ChatGPT generated
     float fastGetApproxFilterBlendConstant(float tc, float sps) {
-        float x = tc * sps;
+        float x = tc * sps * 2.0f;
         return 1.0f - x / (1.0f + x + 0.5f * x * x);
     }
 

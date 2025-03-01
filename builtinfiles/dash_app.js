@@ -117,7 +117,11 @@ export class PageRoot extends LitElement {
 
                 if (value.unit == 'trigger' || value.unit == 'bang') {
                     return html`
-                <label style="word-wrap: break-word"><b>${label}</b><ds-button source="tag:${key}" filter="confirm: Confirm?">💥 Go!</ds-button></label>
+                    <label style="word-wrap: break-word">
+                    <b>${label}</b>
+                    <ds-button source="tag:${key}" filter="confirm: Confirm?">💥 Go! 
+                    (<ds-span source="tag:${key}"></ds-span>)</ds-button>
+                    </label>
                 `
                 } else if (value.unit == 'bool' || value.unit == 'boolean') {
                     return html`
