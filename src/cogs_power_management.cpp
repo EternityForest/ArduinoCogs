@@ -60,6 +60,7 @@ namespace cogs_pm
                         return;
                 }
                 lsEnabled = en;
+                cogs::logInfo("Setting light sleep enable: " + std::to_string(en));
 #ifdef CONFIG_PM_ENABLE
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 4)
                 esp_pm_config_t pm;
@@ -122,7 +123,7 @@ namespace cogs_pm
                 {
                         return true;
                 }
-                if (millis() - keepAwakeTime > 240000)
+                if (millis() - keepAwakeTime > 60000)
                 {
                         return true;
                 }
@@ -131,11 +132,12 @@ namespace cogs_pm
 
         static void slowPoll()
         {
+                      //esp_pm_dump_locks(stdout); // Dumps lock information to Serial Monitor
+
                 if (!lsEnabled)
                 {
                         if (canSleep())
                         {
-                                cogs::logInfo("Enabling auto sleep");
                                 setLightSleepEnable(true);
                         }
                 }

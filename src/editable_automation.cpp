@@ -194,6 +194,11 @@ static void _loadFromFile()
         for (auto const &stateData : states.as<JsonArray>())
         {
             auto s = new_clockwork->getState(stateData["name"].as<std::string>());
+
+            if(stateData["reentrant"].is<bool>()){
+                s->reentrant = stateData["reentrant"].as<bool>();
+            }
+
             auto bindings = stateData["bindings"];
             if (!bindings.is<JsonArray>())
             {

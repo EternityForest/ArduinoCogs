@@ -674,6 +674,11 @@ void Clockwork::gotoState(const std::string &name, unsigned long time)
   if (this->currentState)
   {
     std::string stateName = this->currentState->name;
+
+    if(!this->currentState->reentrant && (name == stateName)){
+      return;
+    }
+    
     auto tag = IntTagPoint::getTag(this->name + ".states." + stateName, 0);
     // If re-entering the same state, don't reset it
     // that would trigger an infinite loop with the tag point making us re-enter

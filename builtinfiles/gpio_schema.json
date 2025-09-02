@@ -1,19 +1,18 @@
 {
   "properties": {
-
     "outputs": {
       "items": {
-        "id": "input",
+        "id": "output",
         "properties": {
-          "pwmSteps":
-          {
+          "pwmSteps": {
             "title": "PWM Steps",
             "type": "number",
             "default": 255,
             "minimum": 0,
             "maximum": 4096,
             "required": false,
-          "description": "Set to enable analog PWM output"},
+            "description": "Set to enable analog PWM output"
+          },
           "invert": {
             "title": "Active High",
             "type": "boolean",
@@ -21,14 +20,9 @@
             "required": false
           },
           "source": {
-            "title": "Source Variable.",
+            "title": "Source Variable",
             "type": "string",
-            "description": "Pin will be set based on the value of this variable. Must start with output.",
-            "options": {
-              "inputAttributes": {
-                "list": "tags"
-              }
-            }
+            "description": "Create a variable that you can use to control the pin. It gets prefixed with 'outputs.'"
           },
           "pin": {
             "$ref": "/gpio/output_pin_schema.json",
@@ -73,7 +67,7 @@
           "activeTarget": {
             "title": "Active Target",
             "type": "string",
-            "description": "Variable to set when pin becomes active",
+            "description": "Create a variable which triggers when the pin becomes active. It gets prefixed with 'outputs.'",
             "options": {
               "inputAttributes": {
                 "list": "tags"
@@ -83,7 +77,7 @@
           "inactiveTarget": {
             "title": "Inactive Target",
             "type": "string",
-            "description": "Variable to set when pin becomes inactive",
+            "description": "Create a variable which triggers when the pin becomes inactive. It gets prefixed with 'outputs.'",
             "options": {
               "inputAttributes": {
                 "list": "tags"
@@ -93,7 +87,7 @@
           "digitalValueTarget": {
             "title": "Digital Value Target",
             "type": "string",
-            "description": "Variable to set with active/inactive digital value.",
+            "description": "Create a variable which is 1 when the pin is active. It gets prefixed with 'outputs.'",
             "options": {
               "inputAttributes": {
                 "list": "tags"
@@ -136,12 +130,11 @@
             }
           },
 
-    
           "pin": {
             "$ref": "/gpio/input_pin_schema.json",
             "required": true
           },
-        
+
           "scale": {
             "title": "Scale",
             "type": "string",
@@ -175,7 +168,7 @@
             "$ref": "/gpio/output_pin_schema.json",
             "description": "Output used as a reference, to measure conductance.  Use for matrix reading, capsense, etc."
           },
-          
+
           "capSense": {
             "title": "Capsense",
             "type": "boolean",

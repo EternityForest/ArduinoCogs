@@ -26,7 +26,7 @@ namespace cogs_gpio
     {
     public:
         void onNewRawDigitalValue(bool);
-        int pin;
+        int pin = -1;
         bool activeHigh = false;
         bool lastInputLevel = false;
         unsigned long debounceTimestamp = 0;
@@ -66,7 +66,7 @@ namespace cogs_gpio
     class CogsAnalogInput : public CogsDigitalInput
     {
     public:
-        int pin;
+        int pin = -1;
         int channel;
         int (*readFunction)(int) = nullptr;
 
@@ -103,7 +103,7 @@ namespace cogs_gpio
     class CogsSimpleOutput
     {
     public:
-        unsigned int pin;
+        unsigned int pin = -1;
         int pwmSteps = 1;
         void (*writeFunction)(int, int) = nullptr;
         bool invert = false;

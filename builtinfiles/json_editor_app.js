@@ -140,7 +140,7 @@ export class PageRoot extends LitElement {
                 body: fd
             })
 
-            lastSavedVersion = JSON.stringify(editor.getValue(), null, 2);
+            lastSavedVersion = editor.getValue();
 
             picodash.snackbar.createSnackbar("Saved!", {
                 accent: 'success',

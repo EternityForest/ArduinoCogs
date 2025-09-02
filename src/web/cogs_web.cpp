@@ -39,6 +39,7 @@ namespace cogs_web
     bool mdns_started = false;
 
     bool scan_res_once = true;
+        bool use_ap = false;
 
     bool apStarted = false;
 
@@ -46,11 +47,20 @@ namespace cogs_web
 
     unsigned long lastGoodConnection = 0;
 
-    static bool wifiEnabled = true;
+    static bool wifiEnabledTagState = true;
 
     static bool lastWifiEnabled = true;
 
-    static std::shared_ptr<cogs_rules::IntTagPoint> connectedTag = nullptr;
+    // Used for turning off wifi scanning when no
+    // APs are around.  Enable for duty cycle ms
+    // every period ms, always on if period == 0
+    unsigned long wifiBackoffDutyCycle = 30*1000;
+    unsigned long wifiBackoffPeriod = 60*1000;
+    // True if wifi is disabled due to backoff
+    bool wifiBackoffState = false;
+
+    static std::shared_ptr<cogs_rules::IntTagPoint>
+        connectedTag = nullptr;
 
     void handlePSTag(cogs_rules::IntTagPoint *tp)
     {
@@ -68,11 +78,11 @@ namespace cogs_web
     {
         if (tp->value[0] == 0)
         {
-            wifiEnabled = false;
+            wifiEnabledTagState = false;
         }
         else
         {
-            wifiEnabled = true;
+            wifiEnabledTagState = true;
         }
     }
 
@@ -142,7 +152,6 @@ namespace cogs_web
 
         std::string ap_ssid = "";
         std::string ap_pass = "";
-        bool use_ap = false;
 
         if (connectedTag.get())
         {
@@ -187,7 +196,7 @@ namespace cogs_web
             connectingAttempt = "";
         }
 
-        if (!wifiEnabled)
+        if (!wifiEnabledTagState)
         {
             if (lastWifiEnabled)
             {
@@ -196,13 +205,13 @@ namespace cogs_web
                 {
                     cogs::logInfo("WIFI OFF");
                     WiFi.mode(WIFI_OFF);
-                    lastWifiEnabled = wifiEnabled;
+                    lastWifiEnabled = wifiEnabledTagState;
                     return;
                 }
             }
         }
 
-        lastWifiEnabled = wifiEnabled;
+        lastWifiEnabled = wifiEnabledTagState;
 
         if (!mdns_started)
         {
@@ -218,12 +227,59 @@ namespace cogs_web
             }
         }
 
+        if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
+        {
+            lastGoodConnection = millis();
+        }
+
+
+        // If we can't find a wifi, limit how much time
+        // we spend trying.
+
+        // Only if we have been on for 5 minutes and we have
+        // not seen a wifi in five minutes
+        bool shouldBackoff = false;
+
+        if (!use_ap)
+        {
+            if (millis() - lastGoodConnection > (4 * 60 * 1000) &&
+                (cogs::uptime() > (60 * 5 * 1000)))
+            {
+                unsigned long x = millis() % wifiBackoffPeriod;
+                if (x <= wifiBackoffDutyCycle)
+                {
+                    shouldBackoff = true;
+                }
+            }
+        }
+
+        if (shouldBackoff != wifiBackoffState)
+        {
+            wifiBackoffState = shouldBackoff;
+            if (wifiBackoffState)
+            {
+                WiFi.mode(WIFI_OFF);
+                if (millis() - lastGoodConnection > (120 * 60 * 1000))
+                {
+                    wifiBackoffPeriod = (30 * 60 * 1000);
+                }
+                else if (millis() - lastGoodConnection > (60 * 60 * 1000))
+                {
+                    wifiBackoffPeriod = (10 * 60 * 1000);
+                }
+                else if (millis() - lastGoodConnection > (30 * 60 * 1000))
+                {
+                    wifiBackoffPeriod = (10 * 60 * 1000);
+                }
+                else
+                {
+                    wifiBackoffPeriod = (3 * 60 * 1000);
+                }
+            }
+        }
+
         if (!force)
         {
-            if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
-            {
-                lastGoodConnection = millis();
-            }
             if (lastGoodConnection > 0)
             {
                 if (millis() - lastGoodConnection < 20000)
@@ -271,12 +327,10 @@ namespace cogs_web
             }
             return;
         }
-
-
+        use_ap = doc["accessPoint"]["enabled"].as<bool>();
 
         if (doc["accessPoint"].as<JsonObject>())
         {
-            use_ap = doc["accessPoint"]["enabled"].as<bool>();
             if (use_ap)
             {
                 ap_ssid = doc["accessPoint"]["ssid"].as<std::string>();
@@ -292,7 +346,8 @@ namespace cogs_web
                         WiFi.softAP(ap_ssid.c_str(), ap_pass.c_str());
                     }
                 }
-                else{
+                else
+                {
                     use_ap = false;
                 }
             }
@@ -470,6 +525,7 @@ namespace cogs_web
         cogs::logInfo("Cogs is managing wifi");
         WiFi.persistent(false);
         WiFi.mode(WIFI_STA);
+    
 
         connectedTag = cogs_rules::IntTagPoint::getTag("wifi.rssi", -999, 1);
         connectedTag->setUnit("dBm");

@@ -25,44 +25,44 @@ void setup_builtin_static()
                         { cogs_web::sendGzipFile(request, favicon_png_gz, sizeof(favicon_png_gz), "image/png"); });
 
     cogs_web::server.on("/builtin/lit.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, lit_min_js_gz, sizeof(lit_min_js_gz), "application/javascript"); });
+                        { cogs_web::sendGzipFile(request, lit_min_js_gz, sizeof(lit_min_js_gz), "text/javascript"); });
 
     cogs_web::server.on("/builtin/jsoneditor.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, jsoneditor_min_js_gz, sizeof(jsoneditor_min_js_gz), "application/javascript"); });
+                        { cogs_web::sendGzipFile(request, jsoneditor_min_js_gz, sizeof(jsoneditor_min_js_gz), "text/javascript"); });
 
     cogs_web::server.on("/builtin/barrel.css", HTTP_GET, [](AsyncWebServerRequest *request)
                         { cogs_web::sendGzipFile(request, barrel_css_gz, sizeof(barrel_css_gz), "text/css"); });
 
     cogs_web::server.on("/builtin/picodash.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, picodash_min_js_gz, sizeof(picodash_min_js_gz), "application/javascript"); });
+                        { cogs_web::sendGzipFile(request, picodash_min_js_gz, sizeof(picodash_min_js_gz), "text/javascript"); });
 
     cogs_web::server.on("/builtin/jsoneditor_app.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, json_editor_app_js_gz, sizeof(json_editor_app_js_gz), "application/javascript"); });
+                        { cogs_web::sendGzipFile(request, json_editor_app_js_gz, sizeof(json_editor_app_js_gz), "text/javascript"); });
 
     cogs_web::server.on("/builtin/files_app.js", HTTP_GET, [](AsyncWebServerRequest *request)
                         { cogs_web::sendGzipFile(request,
                                                  file_manager_app_js_gz,
                                                  sizeof(file_manager_app_js_gz),
-                                                 "application/javascript"); });
+                                                 "text/javascript"); });
 
     cogs_web::server.on("/builtin/schemas/object.json", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { request->send(200, "application/json", generic_object_schema); });
+                        { request->send(200, "text/json", generic_object_schema); });
 
     cogs_web::server.on("/builtin/schemas/network.json", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, network_schema_json_gz, sizeof(network_schema_json_gz), "application/json"); });
+                        { cogs_web::sendGzipFile(request, network_schema_json_gz, sizeof(network_schema_json_gz), "text/json"); });
 
     cogs_web::server.on("/builtin/schemas/device.json", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { request->send(200, "application/json", device_schema); });
+                        { request->send(200, "text/json", device_schema); });
 
     cogs_web::server.on("/builtin/schemas/settings.json", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, settings_schema_json_gz, sizeof(settings_schema_json_gz), "application/json"); });
+                        { cogs_web::sendGzipFile(request, settings_schema_json_gz, sizeof(settings_schema_json_gz), "text/json"); });
 
     // Automation schema is included on demand in editable automation
     cogs_web::server.on("/builtin/cogs.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, cogs_js_gz, sizeof(cogs_js_gz), "application/javascript"); });
+                        { cogs_web::sendGzipFile(request, cogs_js_gz, sizeof(cogs_js_gz), "text/javascript"); });
 
     cogs_web::server.on("/builtin/dashboard_app.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                        { cogs_web::sendGzipFile(request, dash_app_js_gz, sizeof(dash_app_js_gz), "application/javascript"); });
+                        { cogs_web::sendGzipFile(request, dash_app_js_gz, sizeof(dash_app_js_gz), "text/javascript"); });
 
     cogs_web::server.on("/api/cogs.theme.css", HTTP_GET, [](AsyncWebServerRequest *request)
                         {

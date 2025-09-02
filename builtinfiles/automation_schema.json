@@ -106,6 +106,13 @@
                   "required": true
                 },
 
+                "reentrant": {
+                  "type": "boolean",
+                  "default": true,
+                  "required": false,
+                  "description": "If true, a state can be entered while already in this state."
+                },
+
                 "duration": {
                   "type": "number",
                   "default": "0",

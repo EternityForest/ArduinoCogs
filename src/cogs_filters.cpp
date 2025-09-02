@@ -131,11 +131,22 @@ public:
             return true;
         }
 
+        int fxp_blend = blend * FXP_RES;
+
+
+
+
         for (int i = 0; i < count; i++)
         {
-            state[i] = blend * ((float)input[i]) + (1.0f - blend) * state[i];
-            input[i] = (int)state[i];
+            unsigned long accum = state[i] * (FXP_RES - fxp_blend);
+            accum += input[i] * fxp_blend;
+
+            input[i] = accum / FXP_RES;
         }
+
+
+        
+
         return true;
         // Too some optimization thing
     }

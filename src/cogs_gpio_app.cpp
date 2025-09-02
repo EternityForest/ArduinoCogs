@@ -418,7 +418,7 @@ namespace cogs_gpio
             st = "outputs." + st;
         }
 
-        this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0, 1, cogs_rules::FXP_RES);
+        this->sourceTag = cogs_rules::IntTagPoint::getTag(st, 0, 1, 1);
         this->sourceTag->extraData = this;
         this->sourceTag->subscribe(&onSourceTagSet);
 
@@ -505,22 +505,25 @@ namespace cogs_gpio
 
         if (!config.is<JsonObject>())
         {
-            throw std::runtime_error("Invalid config");
+            cogs::logError("Invalid input config");
+            cogs::addTroubleCode("EGPIOCONFIG");
+            return;       
+        }
+        std::string pinName = config["pin"].as<std::string>();
+        auto p = gpioByName(pinName);
+        if (!p)
+        {
+            cogs::logError("Nonexistent pin " + pinName);
+            cogs::addTroubleCode("EGPIOCONFIG");
+            return;       
         }
 
         this->configureDigitalPropsFromData(config);
 
-        std::string pinName = config["pin"].as<std::string>();
 
         if (config["pullup"].is<bool>())
         {
             this->pullup = config["pullup"].as<bool>();
-        }
-
-        auto p = gpioByName(pinName);
-        if (!p)
-        {
-            throw std::runtime_error("Pin " + pinName + " not found");
         }
 
         unsigned int pin = p->pin;
@@ -709,7 +712,9 @@ namespace cogs_gpio
     {
         if (!config.is<JsonObject>())
         {
-            throw std::runtime_error("Invalid config");
+            cogs::logError("Invalid GPIO config");
+            cogs::addTroubleCode("EGPIOCONFIG");
+            return;
         }
 
         this->configureDigitalPropsFromData(config);
@@ -776,7 +781,9 @@ namespace cogs_gpio
         auto p = gpioByName(pinName);
         if (!p)
         {
-            throw std::runtime_error("Pin " + pinName + " not found");
+            cogs::logError("Pin " + pinName + " not found");
+            cogs::addTroubleCode("EGPIOCONFIG");
+            return;
         }
 
         unsigned int pin = p->pin;

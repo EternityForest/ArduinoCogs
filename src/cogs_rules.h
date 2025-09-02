@@ -161,6 +161,9 @@ namespace cogs_rules
 
     std::shared_ptr<Clockwork> owner;
 
+    // Can we enter the state again if we are already in the state?
+    bool reentrant = true;
+
     // We do our own change detection here for loop prevention reasons
     int lastTagValue = 0;
 
