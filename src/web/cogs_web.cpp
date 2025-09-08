@@ -27,6 +27,8 @@ static std::string connectingAttempt = "";
 
 static unsigned long lastWifiScan = 0;
 
+static unsigned long lastWifiCheck = 0;
+
 namespace cogs_web
 {
 
@@ -39,7 +41,7 @@ namespace cogs_web
     bool mdns_started = false;
 
     bool scan_res_once = true;
-        bool use_ap = false;
+    bool use_ap = false;
 
     bool apStarted = false;
 
@@ -54,8 +56,8 @@ namespace cogs_web
     // Used for turning off wifi scanning when no
     // APs are around.  Enable for duty cycle ms
     // every period ms, always on if period == 0
-    unsigned long wifiBackoffDutyCycle = 30*1000;
-    unsigned long wifiBackoffPeriod = 60*1000;
+    unsigned long wifiBackoffDutyCycle = 30 * 1000;
+    unsigned long wifiBackoffPeriod = 3 * 60 * 1000;
     // True if wifi is disabled due to backoff
     bool wifiBackoffState = false;
 
@@ -150,8 +152,88 @@ namespace cogs_web
     void check_wifi(bool force = false)
     {
 
+        if (!force)
+        {
+            if (millis() - lastWifiCheck < 10000)
+            {
+                return;
+            }
+        }
+
+        lastWifiCheck = millis();
         std::string ap_ssid = "";
         std::string ap_pass = "";
+
+        if (!wifiEnabledTagState)
+        {
+            if (lastWifiEnabled)
+            {
+
+                if ((cogs::uptime() > (60 * 5 * 1000)) || cogs_pm::allowImmediateSleep)
+                {
+                    cogs::logInfo("WIFI OFF");
+                    WiFi.mode(WIFI_OFF);
+                    lastWifiEnabled = wifiEnabledTagState;
+                    return;
+                }
+            }
+        }
+
+        lastWifiEnabled = wifiEnabledTagState;
+
+        // If we can't find a wifi, limit how much time
+        // we spend trying.
+
+        // Only if we have been on for 5 minutes and we have
+        // not seen a wifi in five minutes
+        bool shouldBackoff = false;
+
+        if (!use_ap)
+        {
+
+            if (millis() - lastGoodConnection > (2 * 60 * 1000) && (cogs::uptime() > (60 * 5 * 1000)))
+            {
+                unsigned long x = millis() % wifiBackoffPeriod;
+                if (x >= wifiBackoffDutyCycle)
+                {
+                    shouldBackoff = true;
+                }
+            }
+        }
+
+        if (shouldBackoff != wifiBackoffState)
+        {
+            wifiBackoffState = shouldBackoff;
+            if (wifiBackoffState)
+            {
+                cogs::logInfo("WiFi not found. Stopping and retrying");
+                WiFi.mode(WIFI_OFF);
+                if (millis() - lastGoodConnection > (120 * 60 * 1000))
+                {
+                    wifiBackoffPeriod = (30 * 60 * 1000);
+                }
+                else if (millis() - lastGoodConnection > (60 * 60 * 1000))
+                {
+                    wifiBackoffPeriod = (10 * 60 * 1000);
+                }
+                else if (millis() - lastGoodConnection > (30 * 60 * 1000))
+                {
+                    wifiBackoffPeriod = (10 * 60 * 1000);
+                }
+                else if (millis() - lastGoodConnection > (10 * 60 * 1000))
+                {
+                    wifiBackoffPeriod = (5 * 60 * 1000);
+                }
+                else
+                {
+                    wifiBackoffPeriod = (3 * 60 * 1000);
+                }
+            }
+        }
+
+        if(shouldBackoff){
+            return;
+        }
 
         if (connectedTag.get())
         {
@@ -196,23 +278,6 @@ namespace cogs_web
             connectingAttempt = "";
         }
 
-        if (!wifiEnabledTagState)
-        {
-            if (lastWifiEnabled)
-            {
-
-                if ((cogs::uptime() > (60 * 5 * 1000)) || cogs_pm::allowImmediateSleep)
-                {
-                    cogs::logInfo("WIFI OFF");
-                    WiFi.mode(WIFI_OFF);
-                    lastWifiEnabled = wifiEnabledTagState;
-                    return;
-                }
-            }
-        }
-
-        lastWifiEnabled = wifiEnabledTagState;
-
         if (!mdns_started)
         {
             if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
@@ -230,52 +295,6 @@ namespace cogs_web
         if (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0"))
         {
             lastGoodConnection = millis();
-        }
-
-
-        // If we can't find a wifi, limit how much time
-        // we spend trying.
-
-        // Only if we have been on for 5 minutes and we have
-        // not seen a wifi in five minutes
-        bool shouldBackoff = false;
-
-        if (!use_ap)
-        {
-            if (millis() - lastGoodConnection > (4 * 60 * 1000) &&
-                (cogs::uptime() > (60 * 5 * 1000)))
-            {
-                unsigned long x = millis() % wifiBackoffPeriod;
-                if (x <= wifiBackoffDutyCycle)
-                {
-                    shouldBackoff = true;
-                }
-            }
-        }
-
-        if (shouldBackoff != wifiBackoffState)
-        {
-            wifiBackoffState = shouldBackoff;
-            if (wifiBackoffState)
-            {
-                WiFi.mode(WIFI_OFF);
-                if (millis() - lastGoodConnection > (120 * 60 * 1000))
-                {
-                    wifiBackoffPeriod = (30 * 60 * 1000);
-                }
-                else if (millis() - lastGoodConnection > (60 * 60 * 1000))
-                {
-                    wifiBackoffPeriod = (10 * 60 * 1000);
-                }
-                else if (millis() - lastGoodConnection > (30 * 60 * 1000))
-                {
-                    wifiBackoffPeriod = (10 * 60 * 1000);
-                }
-                else
-                {
-                    wifiBackoffPeriod = (3 * 60 * 1000);
-                }
-            }
         }
 
         if (!force)
@@ -525,7 +544,6 @@ namespace cogs_web
         cogs::logInfo("Cogs is managing wifi");
         WiFi.persistent(false);
         WiFi.mode(WIFI_STA);
-    
 
         connectedTag = cogs_rules::IntTagPoint::getTag("wifi.rssi", -999, 1);
         connectedTag->setUnit("dBm");

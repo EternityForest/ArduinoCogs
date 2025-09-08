@@ -40,7 +40,7 @@ namespace cogs
         }
         lastFastPollTime = micros()-now;
 
-        if (millis() - lastSlowPoll > 1000)
+        if (millis() - lastSlowPoll > 5000)
         {
             if(lastFastPollTime>50000){
                 Serial.println("slow poll cycle ");
