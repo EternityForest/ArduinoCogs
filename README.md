@@ -99,6 +99,8 @@ void loop() {
 It provides a low-code programming model where you can connect
 "Tag Points" together in a way that will be familiar to anyone used to Excel.
 
+This feature is completely modular and optional.
+
 ### Clockworks
 
 >They'd cut me out for baking bread\
@@ -137,8 +139,8 @@ Current filters:
 * Pass through triggers
 * Null filter does nothing
 
-When a filter "drops" a sample, the whole rest of the filter chain is ignored, unless the very 
-next filter is "free running".  So the pipeline onchange > lowpass will set the target every single 
+When a filter "drops" a sample, the whole rest of the filter chain is ignored, unless the very
+next filter is "free running".  So the pipeline onchange > lowpass will set the target every single
 frame, because lowpass free runs even with no input, it just keeps the old input.
 
 Wheras lowpass > onchange will stop seting the value once the lowpass reaches it's steady value.
@@ -158,11 +160,6 @@ the tag's scale factor to floating point for evaluating expressions.
 Changes in the first variable are pushed to the web socket API, however the system may
 skip some updates on rapidly changing tags.  The most recent value will always get sent eventually,
 but some updates may be skipped to not overload the CPU with networking.
-
-
-### Prefs
-
-A varia
 
 
 ## Web features
